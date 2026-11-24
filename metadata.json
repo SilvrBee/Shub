@@ -1,0 +1,8 @@
+{
+  "name": "Cadence",
+  "description": "A clean, structured personal dashboard for daily priorities, time-blocked scheduling, focus sessions, habits, and notes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
