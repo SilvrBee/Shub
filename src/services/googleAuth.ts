@@ -1,5 +1,6 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import {
+  Auth,
   getAuth,
   GoogleAuthProvider,
   onAuthStateChanged,
@@ -18,8 +19,16 @@ export const SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
 ] as const;
 
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-const auth = getAuth(app);
+let auth: Auth | null = null;
+let authInitError: string | null = null;
+
+try {
+  const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+  auth = getAuth(app);
+} catch (err) {
+  authInitError =
+    err instanceof Error ? err.message : 'Firebase authentication could not initialize.';
+}
 
 const provider = new GoogleAuthProvider();
 for (const scope of SCOPES) {
@@ -33,6 +42,11 @@ let cachedAccessToken: string | null = null;
 export const initAuth = (
   onUserChange: (user: User | null, token: string | null) => void
 ) => {
+  if (!auth) {
+    onUserChange(null, null);
+    return () => {};
+  }
+
   return onAuthStateChanged(auth, (user: User | null) => {
     if (user) {
       if (cachedAccessToken) {
@@ -52,6 +66,10 @@ export const googleSignIn = async (): Promise<{
   user: User;
   accessToken: string;
 }> => {
+  if (!auth) {
+    throw new Error(authInitError || 'Google Sign-In is unavailable in this environment.');
+  }
+
   try {
     isSigningIn = true;
     const result = await signInWithPopup(auth, provider);
@@ -61,6 +79,14 @@ export const googleSignIn = async (): Promise<{
     }
     cachedAccessToken = credential.accessToken;
     return { user: result.user, accessToken: cachedAccessToken };
+  } catch (err) {
+    const code = (err as { code?: string })?.code;
+    if (code === 'auth/unauthorized-domain') {
+      throw new Error(
+        `This domain (${window.location.hostname}) is not authorized for Google Sign-In. Add it in Firebase Console → Authentication → Settings → Authorized domains.`
+      );
+    }
+    throw err;
   } finally {
     isSigningIn = false;
   }
@@ -72,5 +98,7 @@ export const getAccessToken = (): string | null => {
 
 export const logout = async (): Promise<void> => {
   cachedAccessToken = null;
-  await signOut(auth);
+  if (auth) {
+    await signOut(auth);
+  }
 };
