@@ -1,4 +1,6 @@
-import { getApp, getApps, initializeApp } from 'firebase/app';
+import { FirebaseApp, getApp, getApps, initializeApp } from 'firebase/app';
+import { AI, getAI, GoogleAIBackend } from 'firebase/ai';
+import { AppCheck, initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 import {
   Auth,
   getAuth,
@@ -8,27 +10,74 @@ import {
   signOut,
   User,
 } from 'firebase/auth';
+import { doc, Firestore, getDocFromServer, getFirestore } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 export const SCOPES = [
   'https://www.googleapis.com/auth/userinfo.profile',
   'https://www.googleapis.com/auth/userinfo.email',
-  'https://www.googleapis.com/auth/drive.readonly',
-  'https://www.googleapis.com/auth/calendar.readonly',
+  'https://www.googleapis.com/auth/drive.file',
+  'https://www.googleapis.com/auth/drive.metadata.readonly',
   'https://www.googleapis.com/auth/documents.readonly',
+  'https://www.googleapis.com/auth/calendar.readonly',
   'https://www.googleapis.com/auth/gmail.readonly',
 ] as const;
 
+let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
+let db: Firestore | null = null;
+let firebaseAI: AI | null = null;
+let appCheck: AppCheck | null = null;
+let isAppCheckConfigured = false;
 let authInitError: string | null = null;
 
 try {
-  const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+  app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
   auth = getAuth(app);
+
+  const configWithDb = firebaseConfig as typeof firebaseConfig & {
+    firestoreDatabaseId?: string;
+    recaptchaSiteKey?: string;
+  };
+
+  db = configWithDb.firestoreDatabaseId
+    ? getFirestore(app, configWithDb.firestoreDatabaseId)
+    : getFirestore(app);
+
+  const siteKey =
+    (configWithDb.recaptchaSiteKey || '').trim() ||
+    ((import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined) || '').trim();
+
+  if (typeof window !== 'undefined' && siteKey) {
+    appCheck = initializeAppCheck(app, {
+      provider: new ReCaptchaEnterpriseProvider(siteKey),
+      isTokenAutoRefreshEnabled: true,
+    });
+    isAppCheckConfigured = true;
+  }
+
+  firebaseAI = getAI(app, {
+    backend: new GoogleAIBackend(),
+  });
 } catch (err) {
   authInitError =
-    err instanceof Error ? err.message : 'Firebase authentication could not initialize.';
+    err instanceof Error ? err.message : 'Firebase services could not initialize.';
 }
+
+export { auth, db, firebaseAI, appCheck, isAppCheckConfigured };
+
+async function testConnection() {
+  if (!db) return;
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error('Please check your Firebase configuration.');
+    }
+  }
+}
+
+void testConnection();
 
 const provider = new GoogleAuthProvider();
 for (const scope of SCOPES) {
@@ -94,6 +143,11 @@ export const googleSignIn = async (): Promise<{
 
 export const getAccessToken = (): string | null => {
   return cachedAccessToken;
+};
+
+export const getFirebaseIdToken = async (): Promise<string | null> => {
+  if (!auth?.currentUser) return null;
+  return auth.currentUser.getIdToken();
 };
 
 export const logout = async (): Promise<void> => {

@@ -9,6 +9,12 @@ interface HeaderProps {
 
 const VIEW_LABELS: Record<DashboardView, string> = {
   [DashboardView.Overview]: 'Overview',
+  [DashboardView.Journal]: 'Journal',
+  [DashboardView.AskMyLife]: 'Ask My Life',
+  [DashboardView.People]: 'People',
+  [DashboardView.Commitments]: "Things I Said I'd Do",
+  [DashboardView.Timeline]: 'Timeline',
+  [DashboardView.Vault]: 'Vault',
   [DashboardView.Tasks]: 'Tasks',
   [DashboardView.Schedule]: 'Schedule',
   [DashboardView.FocusHabits]: 'Focus & Habits',

@@ -1,0 +1,332 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Root user workspace profile, scratchpad, and Google Docs journal sync configuration.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "displayName": { "type": "string", "maxLength": 120 },
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "photoURL": { "type": "string", "maxLength": 500 },
+        "scratchpad": { "type": "string", "maxLength": 20000 },
+        "journalDocId": { "type": "string", "maxLength": 200 },
+        "journalDocName": { "type": "string", "maxLength": 300 },
+        "journalDocUrl": { "type": "string", "maxLength": 500 },
+        "autoSyncEnabled": { "type": "boolean" },
+        "autoSyncOnOpen": { "type": "boolean" },
+        "aiPrivacyAcknowledged": { "type": "boolean" },
+        "syncTime": { "type": "string", "maxLength": 10 },
+        "syncTimezone": { "type": "string", "maxLength": 80 },
+        "lastSyncedAt": { "type": "string", "maxLength": 64 },
+        "lastProcessedEntryDate": { "type": "string", "maxLength": 20 },
+        "lastProcessedEntryHash": { "type": "string", "maxLength": 128 },
+        "lastSyncError": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "createdAt", "updatedAt"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Personal task item.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "category": { "type": "string", "enum": ["Work", "Personal", "Health", "Finance"] },
+        "priority": { "type": "string", "enum": ["High", "Medium", "Low"] },
+        "dueDate": { "type": "string", "maxLength": 20 },
+        "completed": { "type": "boolean" },
+        "notes": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "title", "category", "priority", "dueDate", "completed", "createdAt", "updatedAt"]
+    },
+    "ScheduleBlock": {
+      "title": "ScheduleBlock",
+      "description": "Time-blocked daily schedule item.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "startTime": { "type": "string", "maxLength": 10 },
+        "endTime": { "type": "string", "maxLength": 10 },
+        "category": { "type": "string", "enum": ["Work", "Personal", "Health", "Finance"] },
+        "location": { "type": "string", "maxLength": 200 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "title", "startTime", "endTime", "category", "createdAt", "updatedAt"]
+    },
+    "Habit": {
+      "title": "Habit",
+      "description": "Weekly personal habit tracker row.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "category": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "targetDaysPerWeek": { "type": "integer" },
+        "completedDays": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name", "category", "targetDaysPerWeek", "completedDays", "createdAt", "updatedAt"]
+    },
+    "FocusSession": {
+      "title": "FocusSession",
+      "description": "Completed deep-work focus session.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "label": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "minutes": { "type": "integer" },
+        "dateKey": { "type": "string", "maxLength": 20 },
+        "completedAt": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "label", "minutes", "dateKey", "completedAt", "createdAt"]
+    },
+    "Note": {
+      "title": "Note",
+      "description": "Personal long-form note.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 300 },
+        "category": { "type": "string", "maxLength": 80 },
+        "content": { "type": "string", "maxLength": 50000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "title", "category", "content", "createdAt", "updatedAt"]
+    },
+    "JournalEntrySummary": {
+      "title": "JournalEntrySummary",
+      "description": "Derived Gemini summary and fingerprint for a processed Google Docs journal entry.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "docId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "docUrl": { "type": "string", "maxLength": 500 },
+        "entryDate": { "type": "string", "minLength": 1, "maxLength": 30 },
+        "heading": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "contentHash": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 4000 },
+        "themes": { "type": "array" },
+        "mentionedPeople": { "type": "array" },
+        "entrySnippet": { "type": "string", "maxLength": 800 },
+        "syncedAt": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "docId", "entryDate", "heading", "contentHash", "summary", "themes", "mentionedPeople", "syncedAt", "createdAt", "updatedAt"]
+    },
+    "ReviewSuggestion": {
+      "title": "ReviewSuggestion",
+      "description": "Pending or resolved confirmation-inbox suggestion extracted from journal writing.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "kind": { "type": "string", "enum": ["sleep", "spending", "vault_link", "vault_song", "vault_note"] },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "dismissed"] },
+        "title": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "proposedValue": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "amount": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 12 },
+        "category": { "type": "string", "maxLength": 80 },
+        "entryDate": { "type": "string", "maxLength": 30 },
+        "sourceEntryId": { "type": "string", "maxLength": 128 },
+        "excerpt": { "type": "string", "maxLength": 800 },
+        "fingerprint": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "kind", "status", "title", "proposedValue", "entryDate", "excerpt", "fingerprint", "createdAt", "updatedAt"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "Confirmed sleep/wake or spending log entry.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "kind": { "type": "string", "enum": ["sleep", "spending"] },
+        "entryDate": { "type": "string", "maxLength": 30 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "value": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "amount": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 12 },
+        "category": { "type": "string", "maxLength": 80 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "excerpt": { "type": "string", "maxLength": 800 },
+        "sourceEntryId": { "type": "string", "maxLength": 128 },
+        "fingerprint": { "type": "string", "maxLength": 160 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "kind", "entryDate", "title", "value", "createdAt", "updatedAt"]
+    },
+    "PersonProfile": {
+      "title": "PersonProfile",
+      "description": "Person profile in the searchable People Directory.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "aliases": { "type": "array" },
+        "birthday": { "type": "string", "maxLength": 40 },
+        "relationship": { "type": "string", "maxLength": 200 },
+        "lastMentionedDate": { "type": "string", "maxLength": 30 },
+        "mentionCount": { "type": "integer" },
+        "memories": { "type": "array" },
+        "notes": { "type": "string", "maxLength": 5000 },
+        "sourceEntryIds": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name", "aliases", "mentionCount", "memories", "sourceEntryIds", "createdAt", "updatedAt"]
+    },
+    "PersonSuggestion": {
+      "title": "PersonSuggestion",
+      "description": "Gemini-proposed person profile awaiting confirmation or merge.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "relationship": { "type": "string", "maxLength": 200 },
+        "birthday": { "type": "string", "maxLength": 40 },
+        "memory": { "type": "string", "maxLength": 500 },
+        "excerpt": { "type": "string", "maxLength": 800 },
+        "entryDate": { "type": "string", "maxLength": 30 },
+        "sourceEntryId": { "type": "string", "maxLength": 128 },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "dismissed"] },
+        "fingerprint": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name", "excerpt", "entryDate", "status", "fingerprint", "createdAt", "updatedAt"]
+    },
+    "Commitment": {
+      "title": "Commitment",
+      "description": "Extracted or manual item for Things I Said I'd Do.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "originalStatement": { "type": "string", "maxLength": 800 },
+        "context": { "type": "string", "maxLength": 800 },
+        "dateMentioned": { "type": "string", "maxLength": 30 },
+        "dueDate": { "type": "string", "maxLength": 30 },
+        "status": { "type": "string", "enum": ["pending", "approved", "completed", "dismissed"] },
+        "sourceEntryId": { "type": "string", "maxLength": 128 },
+        "fingerprint": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "title", "dateMentioned", "status", "fingerprint", "createdAt", "updatedAt"]
+    },
+    "TimelineEvent": {
+      "title": "TimelineEvent",
+      "description": "Milestone or candidate milestone on the personal timeline.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "description": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "eventDate": { "type": "string", "minLength": 1, "maxLength": 30 },
+        "category": { "type": "string", "maxLength": 80 },
+        "excerpt": { "type": "string", "maxLength": 800 },
+        "sourceEntryId": { "type": "string", "maxLength": 128 },
+        "docUrl": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "enum": ["pending", "approved", "dismissed"] },
+        "fingerprint": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "title", "description", "eventDate", "status", "fingerprint", "createdAt", "updatedAt"]
+    },
+    "VaultItem": {
+      "title": "VaultItem",
+      "description": "Preserved link, song, or note in the Personal Vault.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "kind": { "type": "string", "enum": ["link", "song", "note"] },
+        "title": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "description": { "type": "string", "maxLength": 4000 },
+        "url": { "type": "string", "maxLength": 1000 },
+        "artist": { "type": "string", "maxLength": 200 },
+        "dateAdded": { "type": "string", "maxLength": 30 },
+        "tags": { "type": "array" },
+        "personId": { "type": "string", "maxLength": 128 },
+        "personName": { "type": "string", "maxLength": 160 },
+        "timelineEventId": { "type": "string", "maxLength": 128 },
+        "timelineEventTitle": { "type": "string", "maxLength": 240 },
+        "sourceEntryId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "kind", "title", "dateAdded", "tags", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Root user workspace profile and journal synchronization settings."
+    },
+    "/users/{uid}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "User-owned personal tasks."
+    },
+    "/users/{uid}/schedule/{blockId}": {
+      "schema": { "$ref": "#/entities/ScheduleBlock" },
+      "description": "User-owned daily schedule blocks."
+    },
+    "/users/{uid}/habits/{habitId}": {
+      "schema": { "$ref": "#/entities/Habit" },
+      "description": "User-owned weekly habits."
+    },
+    "/users/{uid}/focusSessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/FocusSession" },
+      "description": "User-owned focus session logs."
+    },
+    "/users/{uid}/notes/{noteId}": {
+      "schema": { "$ref": "#/entities/Note" },
+      "description": "User-owned personal notes."
+    },
+    "/users/{uid}/journalEntries/{entryId}": {
+      "schema": { "$ref": "#/entities/JournalEntrySummary" },
+      "description": "Derived summaries and hashes for processed Google Docs journal entries."
+    },
+    "/users/{uid}/reviewSuggestions/{suggestionId}": {
+      "schema": { "$ref": "#/entities/ReviewSuggestion" },
+      "description": "Confirmation inbox suggestions for sleep, spending, and vault items."
+    },
+    "/users/{uid}/activityLogs/{logId}": {
+      "schema": { "$ref": "#/entities/ActivityLog" },
+      "description": "Confirmed sleep/wake and spending log entries."
+    },
+    "/users/{uid}/people/{personId}": {
+      "schema": { "$ref": "#/entities/PersonProfile" },
+      "description": "User-owned People Directory profiles."
+    },
+    "/users/{uid}/peopleSuggestions/{suggestionId}": {
+      "schema": { "$ref": "#/entities/PersonSuggestion" },
+      "description": "Gemini-suggested people profiles pending user approval."
+    },
+    "/users/{uid}/commitments/{itemId}": {
+      "schema": { "$ref": "#/entities/Commitment" },
+      "description": "Things I Said I'd Do personal inbox items."
+    },
+    "/users/{uid}/timelineEvents/{eventId}": {
+      "schema": { "$ref": "#/entities/TimelineEvent" },
+      "description": "Personal timeline milestones and pending candidates."
+    },
+    "/users/{uid}/vaultItems/{itemId}": {
+      "schema": { "$ref": "#/entities/VaultItem" },
+      "description": "Personal Vault collection items."
+    }
+  }
+}

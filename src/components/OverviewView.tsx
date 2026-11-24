@@ -4,6 +4,7 @@ import {
   DashboardView,
   FocusSession,
   HabitItem,
+  JournalEntrySummary,
   ScheduleBlock,
   TaskCategory,
   TaskItem,
@@ -19,6 +20,8 @@ interface OverviewViewProps {
   habits: HabitItem[];
   focusSessions: FocusSession[];
   scratchpad: string;
+  latestJournalEntry?: JournalEntrySummary | null;
+  pendingLifeReviewCount?: number;
   userFirstName?: string | null;
   isSignedIn: boolean;
   hasWorkspaceToken: boolean;
@@ -38,6 +41,8 @@ export function OverviewView({
   habits,
   focusSessions,
   scratchpad,
+  latestJournalEntry,
+  pendingLifeReviewCount = 0,
   userFirstName,
   isSignedIn,
   hasWorkspaceToken,
@@ -575,6 +580,46 @@ export function OverviewView({
                 />
               )}
             </div>
+          </section>
+
+          {/* Journal & Life Snapshot */}
+          <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                  Journal &amp; Memory
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">
+                  {pendingLifeReviewCount > 0
+                    ? `${pendingLifeReviewCount} items awaiting confirmation`
+                    : latestJournalEntry
+                      ? `Last entry ${latestJournalEntry.entryDate}`
+                      : 'Connect your Google Docs journal'}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onNavigate(DashboardView.AskMyLife)}
+                  className="text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline whitespace-nowrap"
+                >
+                  Ask My Life
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate(DashboardView.Journal)}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
+                >
+                  <span>Open Journal</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+            {latestJournalEntry && (
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3">
+                {latestJournalEntry.summary}
+              </p>
+            )}
           </section>
         </div>
       </div>

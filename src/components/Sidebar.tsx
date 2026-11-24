@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
 import {
+  Archive,
+  BookOpen,
   CalendarClock,
   CheckSquare,
   FileText,
+  History,
   Layers,
   LayoutDashboard,
+  ListChecks,
   LogOut,
+  MessageSquareText,
   Moon,
   RotateCcw,
   Sun,
   Timer,
+  Users,
   X,
 } from 'lucide-react';
 import { DashboardView } from '../types/dashboard';
@@ -23,6 +29,10 @@ interface SidebarProps {
   onToggleTheme: () => void;
   onResetWorkspace: () => void;
   pendingCount: number;
+  journalPendingCount?: number;
+  peoplePendingCount?: number;
+  commitmentsPendingCount?: number;
+  timelinePendingCount?: number;
   mobileOpen: boolean;
   onCloseMobile: () => void;
   user: User | null;
@@ -34,6 +44,12 @@ interface SidebarProps {
 
 const NAV_ITEMS: { id: DashboardView; label: string; icon: typeof LayoutDashboard }[] = [
   { id: DashboardView.Overview, label: 'Overview', icon: LayoutDashboard },
+  { id: DashboardView.Journal, label: 'Journal', icon: BookOpen },
+  { id: DashboardView.AskMyLife, label: 'Ask My Life', icon: MessageSquareText },
+  { id: DashboardView.People, label: 'People', icon: Users },
+  { id: DashboardView.Commitments, label: "Things I Said I'd Do", icon: ListChecks },
+  { id: DashboardView.Timeline, label: 'Timeline', icon: History },
+  { id: DashboardView.Vault, label: 'Vault', icon: Archive },
   { id: DashboardView.Tasks, label: 'Tasks', icon: CheckSquare },
   { id: DashboardView.Schedule, label: 'Schedule', icon: CalendarClock },
   { id: DashboardView.FocusHabits, label: 'Focus & Habits', icon: Timer },
@@ -58,6 +74,10 @@ export function Sidebar({
   onToggleTheme,
   onResetWorkspace,
   pendingCount,
+  journalPendingCount = 0,
+  peoplePendingCount = 0,
+  commitmentsPendingCount = 0,
+  timelinePendingCount = 0,
   mobileOpen,
   onCloseMobile,
   user,
@@ -75,10 +95,19 @@ export function Sidebar({
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Guest Workspace';
   const displaySubtext = user?.email || 'Local profile';
 
+  const getBadgeCount = (id: DashboardView): number => {
+    if (id === DashboardView.Tasks) return pendingCount;
+    if (id === DashboardView.Journal) return journalPendingCount;
+    if (id === DashboardView.People) return peoplePendingCount;
+    if (id === DashboardView.Commitments) return commitmentsPendingCount;
+    if (id === DashboardView.Timeline) return timelinePendingCount;
+    return 0;
+  };
+
   const sidebarContent = (
     <div className="flex h-full flex-col justify-between bg-white dark:bg-[#0F1521] border-r border-slate-200 dark:border-slate-800 w-[248px] select-none">
-      <div>
-        <div className="flex h-16 items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex-1 min-h-0 flex flex-col">
+        <div className="flex h-16 items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800 shrink-0">
           <button
             type="button"
             onClick={() => {
@@ -99,10 +128,11 @@ export function Sidebar({
           </button>
         </div>
 
-        <nav aria-label="Primary Navigation" className="px-3 py-5 space-y-1">
+        <nav aria-label="Primary Navigation" className="px-3 py-4 space-y-0.5 overflow-y-auto flex-1">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = activeView === item.id;
+            const count = getBadgeCount(item.id);
             return (
               <button
                 key={item.id}
@@ -111,7 +141,7 @@ export function Sidebar({
                   onSelectView(item.id);
                   onCloseMobile();
                 }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
                   isActive
                     ? 'bg-slate-100 dark:bg-slate-800/80 text-slate-900 dark:text-white'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/40'
@@ -125,9 +155,9 @@ export function Sidebar({
                   />
                   <span className="truncate">{item.label}</span>
                 </span>
-                {item.id === DashboardView.Tasks && pendingCount > 0 && (
+                {count > 0 && (
                   <span className="font-mono text-xs tabular-nums text-slate-500 dark:text-slate-400 ml-2">
-                    {pendingCount}
+                    {count}
                   </span>
                 )}
               </button>
