@@ -184,7 +184,7 @@ function formatAiLogicError(err: unknown): Error {
   }
   if (msg.includes('appCheck') || msg.includes('App Check')) {
     return new Error(
-      'Firebase App Check verification is required. Configure your reCAPTCHA site key in Firebase Console → App Check and firebase-applet-config.json.'
+      'Firebase App Check enforcement appears to be turned on in Firebase Console. Disable App Check enforcement for Firebase AI Logic for personal use.'
     );
   }
   return err instanceof Error ? err : new Error(msg);

@@ -19,7 +19,6 @@ import {
 } from '../types/dashboard';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { ParsedJournalEntry } from '../services/journalDocsService';
-import { isAppCheckConfigured } from '../services/googleAuth';
 
 interface JournalViewProps {
   isSignedIn: boolean;
@@ -630,11 +629,6 @@ export function JournalView({
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
               Your original Google Doc is never altered. Gemini analysis runs on the free-tier Gemini Developer API via Firebase AI Logic; you can pause consent or delete all generated Firestore summaries anytime.
             </p>
-            {!isAppCheckConfigured && (
-              <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                App Check is not yet active—add a free reCAPTCHA Enterprise Essentials site key in Firebase Console → App Check and <code className="font-mono">firebase-applet-config.json</code> before enforcing App Check.
-              </p>
-            )}
             <div className="flex flex-wrap items-center gap-2.5 pt-1">
               {aiConsentGranted && (
                 <button

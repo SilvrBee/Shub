@@ -1,6 +1,5 @@
 import { FirebaseApp, getApp, getApps, initializeApp } from 'firebase/app';
 import { AI, getAI, GoogleAIBackend } from 'firebase/ai';
-import { AppCheck, initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 import {
   Auth,
   getAuth,
@@ -27,8 +26,6 @@ let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
 let firebaseAI: AI | null = null;
-let appCheck: AppCheck | null = null;
-let isAppCheckConfigured = false;
 let authInitError: string | null = null;
 
 try {
@@ -37,24 +34,11 @@ try {
 
   const configWithDb = firebaseConfig as typeof firebaseConfig & {
     firestoreDatabaseId?: string;
-    recaptchaSiteKey?: string;
   };
 
   db = configWithDb.firestoreDatabaseId
     ? getFirestore(app, configWithDb.firestoreDatabaseId)
     : getFirestore(app);
-
-  const siteKey =
-    (configWithDb.recaptchaSiteKey || '').trim() ||
-    ((import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined) || '').trim();
-
-  if (typeof window !== 'undefined' && siteKey) {
-    appCheck = initializeAppCheck(app, {
-      provider: new ReCaptchaEnterpriseProvider(siteKey),
-      isTokenAutoRefreshEnabled: true,
-    });
-    isAppCheckConfigured = true;
-  }
 
   firebaseAI = getAI(app, {
     backend: new GoogleAIBackend(),
@@ -64,7 +48,7 @@ try {
     err instanceof Error ? err.message : 'Firebase services could not initialize.';
 }
 
-export { auth, db, firebaseAI, appCheck, isAppCheckConfigured };
+export { auth, db, firebaseAI };
 
 async function testConnection() {
   if (!db) return;
