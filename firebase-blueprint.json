@@ -29,20 +29,31 @@
     },
     "Task": {
       "title": "Task",
-      "description": "Personal task item.",
+      "description": "Personal task item with optional scheduling, deadlines, subtasks, recurrence, duration estimates, pinning, and AI attribution.",
       "type": "object",
       "properties": {
         "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
         "title": { "type": "string", "minLength": 1, "maxLength": 300 },
         "category": { "type": "string", "enum": ["Work", "Personal", "Health", "Finance"] },
-        "priority": { "type": "string", "enum": ["High", "Medium", "Low"] },
+        "priority": { "type": "string", "enum": ["High", "Medium", "Low", "None"] },
+        "prioritySource": { "type": "string", "enum": ["user", "ai"] },
         "dueDate": { "type": "string", "maxLength": 20 },
+        "dueTime": { "type": "string", "maxLength": 10 },
+        "deadlineDate": { "type": "string", "maxLength": 20 },
+        "deadlineTime": { "type": "string", "maxLength": 10 },
         "completed": { "type": "boolean" },
+        "details": { "type": "string", "maxLength": 4000 },
         "notes": { "type": "string", "maxLength": 2000 },
+        "subtasks": { "type": "array" },
+        "repeat": { "type": "string", "enum": ["none", "daily", "weekly", "monthly", "custom"] },
+        "repeatWeekdays": { "type": "array" },
+        "durationMinutes": { "type": "integer" },
+        "durationSource": { "type": "string", "enum": ["user", "ai"] },
+        "pinned": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["ownerId", "title", "category", "priority", "dueDate", "completed", "createdAt", "updatedAt"]
+      "required": ["ownerId", "title", "priority", "completed", "createdAt", "updatedAt"]
     },
     "ScheduleBlock": {
       "title": "ScheduleBlock",

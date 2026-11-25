@@ -13,6 +13,7 @@ export enum TaskPriority {
   High = 'High',
   Medium = 'Medium',
   Low = 'Low',
+  None = 'None',
 }
 
 export enum TaskCategory {
@@ -22,16 +23,40 @@ export enum TaskCategory {
   Finance = 'Finance',
 }
 
+export interface SubtaskItem {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
+export type TaskRepeatFrequency = 'none' | 'daily' | 'weekly' | 'monthly' | 'custom';
+export type FieldSource = 'user' | 'ai';
+
 export interface TaskItem {
   id: string;
   title: string;
-  category: TaskCategory;
+  category?: TaskCategory;
   priority: TaskPriority;
-  dueDate: string; // YYYY-MM-DD
+  prioritySource?: FieldSource;
+  dueDate?: string; // YYYY-MM-DD
+  dueTime?: string; // HH:MM
+  deadlineDate?: string; // YYYY-MM-DD
+  deadlineTime?: string; // HH:MM
   completed: boolean;
-  notes?: string;
+  details?: string;
+  notes?: string; // legacy alias preserved for migration/compatibility
+  subtasks?: SubtaskItem[];
+  repeat?: TaskRepeatFrequency;
+  repeatWeekdays?: number[]; // 0 (Sun) .. 6 (Sat)
+  durationMinutes?: number;
+  durationSource?: FieldSource;
+  pinned?: boolean;
   createdAt: string;
 }
+
+export type SmartSortMode = 'balanced' | 'priority' | 'deadline' | 'quick-wins';
+export type MatrixImportantRule = 'high-medium' | 'high-only';
+export type AiPriorityMode = 'suggest' | 'auto-unflagged' | 'off';
 
 export interface ScheduleBlock {
   id: string;
@@ -94,6 +119,13 @@ export interface AppSettings {
   defaultFocusLabel: string;
   defaultTaskCategory: TaskCategory;
   defaultTaskPriority: TaskPriority;
+  smartSortMode: SmartSortMode;
+  quickWinMinutes: number;
+  matrixImportantRule: MatrixImportantRule;
+  matrixUrgentDays: number;
+  aiPriorityMode: AiPriorityMode;
+  aiAutoSort: boolean;
+  aiDailyCap: number;
   showFocusChart: boolean;
   showFocusTimer: boolean;
   showScratchpad: boolean;
@@ -112,7 +144,14 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   defaultFocusMinutes: 25,
   defaultFocusLabel: 'Deep work sprint',
   defaultTaskCategory: TaskCategory.Work,
-  defaultTaskPriority: TaskPriority.Medium,
+  defaultTaskPriority: TaskPriority.None,
+  smartSortMode: 'balanced',
+  quickWinMinutes: 5,
+  matrixImportantRule: 'high-medium',
+  matrixUrgentDays: 2,
+  aiPriorityMode: 'auto-unflagged',
+  aiAutoSort: false,
+  aiDailyCap: 20,
   showFocusChart: true,
   showFocusTimer: true,
   showScratchpad: true,

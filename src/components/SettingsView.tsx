@@ -10,6 +10,7 @@ import {
   Palette,
   RotateCcw,
   Sliders,
+  Sparkles,
   Sun,
 } from 'lucide-react';
 import {
@@ -19,16 +20,20 @@ import {
   STYLE_DEFINITIONS,
 } from '../styles/stylesConfig';
 import {
+  AiPriorityMode,
   AppSettings,
   AppThemeId,
   ColorMode,
   DashboardView,
   LayoutDensity,
+  MatrixImportantRule,
+  SmartSortMode,
   TaskCategory,
   TaskPriority,
 } from '../types/dashboard';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { DoodleHeaderScene } from './DoodleKit';
+import { getAiUsageToday } from '../services/aiTaskSort';
 
 interface SettingsViewProps {
   settings: AppSettings;
@@ -725,16 +730,221 @@ export function SettingsView({
               ))}
             </select>
           </div>
+
+          <div>
+            <label
+              htmlFor="settings-smart-sort"
+              className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+            >
+              Smart Order Default Mode
+            </label>
+            <select
+              id="settings-smart-sort"
+              value={settings.smartSortMode}
+              onChange={(e) =>
+                onUpdateSettings({ smartSortMode: e.target.value as SmartSortMode })
+              }
+              className="w-full px-3.5 py-2 rounded-lg text-sm bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
+            >
+              <option value="balanced">Balanced</option>
+              <option value="priority">Priority first</option>
+              <option value="deadline">Deadline first</option>
+              <option value="quick-wins">Quick wins first</option>
+            </select>
+          </div>
+
+          <div>
+            <label
+              htmlFor="settings-quick-win-mins"
+              className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+            >
+              Quick-Win Threshold (minutes)
+            </label>
+            <input
+              id="settings-quick-win-mins"
+              type="number"
+              min={1}
+              max={60}
+              value={settings.quickWinMinutes}
+              onChange={(e) => {
+                const parsed = Number(e.target.value);
+                if (Number.isFinite(parsed) && parsed >= 1) {
+                  onUpdateSettings({ quickWinMinutes: Math.min(60, Math.round(parsed)) });
+                }
+              }}
+              className="w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="settings-matrix-important"
+              className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+            >
+              Matrix &ldquo;Important&rdquo; Rule
+            </label>
+            <select
+              id="settings-matrix-important"
+              value={settings.matrixImportantRule}
+              onChange={(e) =>
+                onUpdateSettings({ matrixImportantRule: e.target.value as MatrixImportantRule })
+              }
+              className="w-full px-3.5 py-2 rounded-lg text-sm bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
+            >
+              <option value="high-medium">High or Medium flag</option>
+              <option value="high-only">High flag only</option>
+            </select>
+          </div>
+
+          <div>
+            <label
+              htmlFor="settings-matrix-urgent-days"
+              className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+            >
+              Matrix &ldquo;Urgent&rdquo; Window (days)
+            </label>
+            <input
+              id="settings-matrix-urgent-days"
+              type="number"
+              min={0}
+              max={30}
+              value={settings.matrixUrgentDays}
+              onChange={(e) => {
+                const parsed = Number(e.target.value);
+                if (Number.isFinite(parsed) && parsed >= 0) {
+                  onUpdateSettings({ matrixUrgentDays: Math.min(30, Math.round(parsed)) });
+                }
+              }}
+              className="w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
+            />
+          </div>
         </div>
       </section>
 
-      {/* Section 4: Google Account & Connected Apps */}
+      {/* Section 4: AI Task Ordering & Suggestions */}
+      <section className="editorial-rise editorial-rise-4 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
+          <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+          <div>
+            <span className="editorial-kicker">
+              <span className="editorial-marker" aria-hidden="true">04</span>
+              <span className="editorial-kicker-text">Optional Assistance</span>
+            </span>
+            <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+              AI
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Optional Gemini task ordering &amp; priority suggestions on top of score order
+            </p>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-5">
+          <div>
+            <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
+              AI Priority &amp; Duration Changes
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                {
+                  id: 'suggest' as AiPriorityMode,
+                  title: 'Suggest only',
+                  desc: 'Show accept/ignore chips on tasks without changing fields automatically.',
+                },
+                {
+                  id: 'auto-unflagged' as AiPriorityMode,
+                  title: 'Auto-apply to unflagged tasks only',
+                  desc: 'Fill missing flags & durations, never overwriting user-set priorities.',
+                },
+                {
+                  id: 'off' as AiPriorityMode,
+                  title: 'Off',
+                  desc: 'Do not suggest or apply priority flag changes.',
+                },
+              ].map((opt) => {
+                const selected = settings.aiPriorityMode === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      onUpdateSettings({ aiPriorityMode: opt.id });
+                      showNotice(`AI priority mode: ${opt.title}`);
+                    }}
+                    className={`text-left p-3.5 rounded-xl border transition-colors ${
+                      selected
+                        ? 'border-blue-600 dark:border-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
+                        : 'editorial-subtle-box border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-[#0B0F17]/50'
+                    }`}
+                  >
+                    <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                      {opt.title}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                      {opt.desc}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-2 gap-5 items-center">
+            <label className="flex items-center justify-between gap-3 cursor-pointer">
+              <div>
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                  Auto AI Sort
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Automatically refresh AI order when open tasks change
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings.aiAutoSort}
+                onChange={(e) => onUpdateSettings({ aiAutoSort: e.target.checked })}
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 shrink-0"
+              />
+            </label>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label
+                  htmlFor="settings-ai-daily-cap"
+                  className="text-sm font-medium text-slate-900 dark:text-slate-100"
+                >
+                  Daily AI Usage Cap
+                </label>
+                <span className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                  Used today: {getAiUsageToday()}/{settings.aiDailyCap}
+                </span>
+              </div>
+              <input
+                id="settings-ai-daily-cap"
+                type="number"
+                min={1}
+                max={200}
+                value={settings.aiDailyCap}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isFinite(parsed) && parsed >= 1) {
+                    onUpdateSettings({ aiDailyCap: Math.min(200, Math.round(parsed)) });
+                  }
+                }}
+                className="w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 5: Google Account & Connected Apps */}
       <section className="editorial-rise editorial-rise-5 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
           <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
           <div>
             <span className="editorial-kicker">
-              <span className="editorial-marker" aria-hidden="true">04</span>
+              <span className="editorial-marker" aria-hidden="true">05</span>
               <span className="editorial-kicker-text">Cloud Sync</span>
             </span>
             <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
@@ -801,13 +1011,13 @@ export function SettingsView({
         </div>
       </section>
 
-      {/* Section 5: Data, Backup & Reset */}
+      {/* Section 6: Data, Backup & Reset */}
       <section className="editorial-rise editorial-rise-6 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
           <Database className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
           <div>
             <span className="editorial-kicker">
-              <span className="editorial-marker" aria-hidden="true">05</span>
+              <span className="editorial-marker" aria-hidden="true">06</span>
               <span className="editorial-kicker-text">Archive &amp; Reset</span>
             </span>
             <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">

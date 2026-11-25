@@ -29,6 +29,7 @@ import {
   subscribeUserProfile,
   updateUserScratchpad,
 } from './services/firestoreService';
+import { buildNextRecurrenceTask, migrateTask, migrateTasks } from './utils/taskUtils';
 import {
   getStyleDefinition,
   resolveEffectiveColorMode,
@@ -365,8 +366,9 @@ export default function App() {
     };
   }, [uid, user]);
 
-  // Active workspace datasets
-  const tasks = uid ? cloudTasks : localTasks;
+  // Active workspace datasets (with task schema migration applied)
+  const rawTasks = uid ? cloudTasks : localTasks;
+  const tasks = useMemo(() => migrateTasks(rawTasks), [rawTasks]);
   const schedule = uid ? cloudSchedule : localSchedule;
   const habits = uid ? cloudHabits : localHabits;
   const focusSessions = uid ? cloudFocusSessions : localFocusSessions;
@@ -418,11 +420,48 @@ export default function App() {
   const handleToggleTask = (id: string) => {
     const target = tasks.find((t) => t.id === id);
     if (!target) return;
+    const nextCompleted = !target.completed;
+    const nextOccurrence =
+      nextCompleted && (target.repeat ?? 'none') !== 'none'
+        ? buildNextRecurrenceTask(target, makeId('task'))
+        : null;
+
     if (uid) {
-      void fsTasks.update(uid, id, { completed: !target.completed });
+      void fsTasks.update(uid, id, { completed: nextCompleted });
+      if (nextOccurrence) {
+        void fsTasks.create(uid, nextOccurrence);
+      }
+    } else {
+      setLocalTasks((prev) => {
+        const updated = prev.map((t) => (t.id === id ? { ...t, completed: nextCompleted } : t));
+        return nextOccurrence ? [nextOccurrence, ...updated] : updated;
+      });
+    }
+  };
+
+  const handleUpdateTask = (id: string, patch: Partial<TaskItem>) => {
+    if (uid) {
+      void fsTasks.update(uid, id, patch);
     } else {
       setLocalTasks((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+        prev.map((t) => (t.id === id ? migrateTask({ ...t, ...patch }) : t))
+      );
+    }
+  };
+
+  const handleBatchUpdateTasks = (patches: Array<{ id: string; patch: Partial<TaskItem> }>) => {
+    if (patches.length === 0) return;
+    if (uid) {
+      for (const { id, patch } of patches) {
+        void fsTasks.update(uid, id, patch);
+      }
+    } else {
+      const patchMap = new Map(patches.map((p) => [p.id, p.patch]));
+      setLocalTasks((prev) =>
+        prev.map((t) => {
+          const patch = patchMap.get(t.id);
+          return patch ? migrateTask({ ...t, ...patch }) : t;
+        })
       );
     }
   };
@@ -437,6 +476,7 @@ export default function App() {
       title,
       category,
       priority,
+      prioritySource: 'user',
       dueDate: getTodayKey(),
       completed: false,
       createdAt: new Date().toISOString(),
@@ -455,15 +495,14 @@ export default function App() {
     if (existingId) {
       if (uid) {
         void fsTasks.update(uid, existingId, {
-          title: data.title.slice(0, 300),
-          category: data.category,
-          priority: data.priority,
-          dueDate: data.dueDate.slice(0, 20),
-          notes: (data.notes ?? '').slice(0, 2000),
+          ...data,
+          notes: undefined,
         });
       } else {
         setLocalTasks((prev) =>
-          prev.map((t) => (t.id === existingId ? { ...t, ...data } : t))
+          prev.map((t) =>
+            t.id === existingId ? migrateTask({ ...t, ...data, notes: undefined }) : t
+          )
         );
       }
     } else {
@@ -765,7 +804,12 @@ export default function App() {
             {activeView === DashboardView.Tasks && (
               <TasksView
                 tasks={tasks}
+                schedule={schedule}
+                settings={appSettings}
+                onUpdateSettings={handleUpdateSettings}
                 onToggleTask={handleToggleTask}
+                onUpdateTask={handleUpdateTask}
+                onBatchUpdateTasks={handleBatchUpdateTasks}
                 onEditTask={openEditTaskModal}
                 onDeleteTask={handleDeleteTask}
                 onOpenNewTask={openNewTaskModal}

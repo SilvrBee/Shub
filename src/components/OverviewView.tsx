@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Plus } from 'lucide-react';
+import { ArrowRight, Clock, Pin, Plus } from 'lucide-react';
 import {
   AppSettings,
   DashboardView,
@@ -18,6 +18,12 @@ import { EmptyStateIllustration } from './EmptyStateIllustration';
 import { AnimatedMetricValue, AuroraProgressRing } from './AuroraMetrics';
 import { useDoodleCelebratePulse } from '../hooks/useCadenceStyle';
 import { DoodleHeaderScene, DoodleSquiggle } from './DoodleKit';
+import { PriorityFlagDisplay } from './PriorityFlag';
+import {
+  formatDurationLabel,
+  formatShortDateLabel,
+  sortTasksSmart,
+} from '../utils/taskUtils';
 
 interface OverviewViewProps {
   tasks: TaskItem[];
@@ -148,11 +154,27 @@ export function OverviewView({
 
   const maxMinutes = Math.max(90, ...weeklyChartData.map((d) => d.minutes));
 
+  const nextUpTasks = useMemo(
+    () =>
+      sortTasksSmart(
+        tasks.filter((t) => !t.completed),
+        settings.smartSortMode,
+        settings.quickWinMinutes,
+        todayKey
+      ).slice(0, 3),
+    [tasks, settings.smartSortMode, settings.quickWinMinutes, todayKey]
+  );
+
   const visibleTasks = useMemo(() => {
     const sorted = [...tasks].sort((a, b) => {
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
-      const weight = { High: 0, Medium: 1, Low: 2 };
-      return weight[a.priority] - weight[b.priority];
+      const weight: Record<TaskPriority, number> = {
+        [TaskPriority.High]: 0,
+        [TaskPriority.Medium]: 1,
+        [TaskPriority.Low]: 2,
+        [TaskPriority.None]: 3,
+      };
+      return (weight[a.priority] ?? 3) - (weight[b.priority] ?? 3);
     });
     if (taskFilter === 'active') return sorted.filter((t) => !t.completed).slice(0, 6);
     if (taskFilter === 'done') return sorted.filter((t) => t.completed).slice(0, 6);
@@ -170,12 +192,6 @@ export function OverviewView({
     if (!trimmed) return;
     onQuickAddTask(trimmed, settings.defaultTaskCategory, settings.defaultTaskPriority);
     setQuickTitle('');
-  };
-
-  const priorityColorClass = (priority: TaskPriority) => {
-    if (priority === TaskPriority.High) return 'text-rose-600 dark:text-rose-400';
-    if (priority === TaskPriority.Medium) return 'text-amber-600 dark:text-amber-400';
-    return 'text-slate-500 dark:text-slate-400';
   };
 
   const isAurora = settings.style === 'aurora';
@@ -460,14 +476,26 @@ export function OverviewView({
                         >
                           {task.title}
                         </p>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          <span>{task.category}</span>
-                          <span aria-hidden="true">·</span>
-                          <span className={`font-medium ${priorityColorClass(task.priority)}`}>
-                            {task.priority} priority
-                          </span>
-                          <span aria-hidden="true">·</span>
-                          <span className="font-mono tabular-nums">{task.dueDate}</span>
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          <PriorityFlagDisplay
+                            priority={task.priority}
+                            source={task.prioritySource}
+                            compact
+                          />
+                          {task.durationMinutes && (
+                            <span className="inline-flex items-center gap-1 font-mono tabular-nums">
+                              <Clock className="w-3 h-3" aria-hidden="true" />
+                              {formatDurationLabel(task.durationMinutes)}
+                            </span>
+                          )}
+                          {(task.deadlineDate || task.dueDate) && (
+                            <span className="font-mono tabular-nums">
+                              {task.deadlineDate
+                                ? `Due by ${formatShortDateLabel(task.deadlineDate, todayKey)}`
+                                : formatShortDateLabel(task.dueDate, todayKey)}
+                            </span>
+                          )}
+                          {task.category && <span>{task.category}</span>}
                         </div>
                       </div>
                     </div>
@@ -564,8 +592,91 @@ export function OverviewView({
           )}
         </div>
 
-        {/* Right Column: Schedule + Focus Timer + Quick Scratchpad */}
+        {/* Right Column: Next Up + Schedule + Focus Timer + Quick Scratchpad */}
         <div className="lg:col-span-5 space-y-6">
+          {/* Next Up Top 3 by Smart Order */}
+          <section
+            aria-label="Next up tasks"
+            className="editorial-rise editorial-rise-3 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl"
+          >
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
+              <div>
+                <span className="editorial-kicker">
+                  <span className="editorial-marker" aria-hidden="true">NEXT</span>
+                  <span className="editorial-kicker-text">Smart Order</span>
+                </span>
+                <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                  Next up
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Top 3 open tasks by smart priority &amp; urgency
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigate(DashboardView.Tasks)}
+                className="editorial-link inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
+              >
+                <span>All tasks</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {nextUpTasks.length === 0 ? (
+              <div className="px-6 py-6 text-center text-xs text-slate-500 dark:text-slate-400">
+                No open tasks queued right now.
+              </div>
+            ) : (
+              <ul className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                {nextUpTasks.map((task, idx) => (
+                  <li
+                    key={task.id}
+                    className="px-6 py-3 flex items-start gap-3 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
+                  >
+                    <span className="font-mono tabular-nums text-[11px] font-semibold text-slate-400 dark:text-slate-500 pt-1 w-4 shrink-0">
+                      {idx + 1}.
+                    </span>
+                    <TaskCheckButton
+                      checked={task.completed}
+                      label={`Mark "${task.title}" complete`}
+                      onToggle={() => onToggleTask(task.id)}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        {task.pinned && (
+                          <Pin className="w-3 h-3 text-blue-600 dark:text-blue-400 fill-current shrink-0" />
+                        )}
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                          {task.title}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        <PriorityFlagDisplay
+                          priority={task.priority}
+                          source={task.prioritySource}
+                          compact
+                        />
+                        {task.durationMinutes && (
+                          <span className="inline-flex items-center gap-1 font-mono tabular-nums">
+                            <Clock className="w-3 h-3" aria-hidden="true" />
+                            {formatDurationLabel(task.durationMinutes)}
+                          </span>
+                        )}
+                        {(task.deadlineDate || task.dueDate) && (
+                          <span className="font-mono tabular-nums">
+                            {task.deadlineDate
+                              ? `Due by ${formatShortDateLabel(task.deadlineDate, todayKey)}`
+                              : formatShortDateLabel(task.dueDate, todayKey)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
           {/* Today's Agenda */}
           <section className="editorial-rise editorial-rise-3 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl">
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">

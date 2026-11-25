@@ -92,16 +92,54 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function isSubtaskList(data) {
+      return data.subtasks is list
+        && data.subtasks.size() <= 30
+        && (data.subtasks.size() == 0 || (
+          data.subtasks[0] is map
+          && data.subtasks[0].keys().hasAll(['id', 'title', 'completed'])
+          && data.subtasks[0].keys().hasOnly(['id', 'title', 'completed'])
+          && data.subtasks[0].id is string && data.subtasks[0].id.size() >= 1 && data.subtasks[0].id.size() <= 128
+          && data.subtasks[0].title is string && data.subtasks[0].title.size() >= 1 && data.subtasks[0].title.size() <= 240
+          && data.subtasks[0].completed is bool
+        ));
+    }
+
+    function isWeekdayList(data) {
+      return data.repeatWeekdays is list
+        && data.repeatWeekdays.size() <= 7
+        && (data.repeatWeekdays.size() == 0 || (
+          data.repeatWeekdays[0] is int && data.repeatWeekdays[0] >= 0 && data.repeatWeekdays[0] <= 6
+        ));
+    }
+
     function isValidTask(data) {
-      return data.keys().hasAll(['ownerId', 'title', 'category', 'priority', 'dueDate', 'completed', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['ownerId', 'title', 'category', 'priority', 'dueDate', 'completed', 'notes', 'createdAt', 'updatedAt'])
+      return data.keys().hasAll(['ownerId', 'title', 'priority', 'completed', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'ownerId', 'title', 'category', 'priority', 'prioritySource',
+          'dueDate', 'dueTime', 'deadlineDate', 'deadlineTime',
+          'completed', 'details', 'notes', 'subtasks',
+          'repeat', 'repeatWeekdays', 'durationMinutes', 'durationSource',
+          'pinned', 'createdAt', 'updatedAt'
+        ])
         && data.ownerId is string && data.ownerId == request.auth.uid && data.ownerId.size() <= 128
         && data.title is string && data.title.size() >= 1 && data.title.size() <= 300
-        && data.category in ['Work', 'Personal', 'Health', 'Finance']
-        && data.priority in ['High', 'Medium', 'Low']
-        && data.dueDate is string && data.dueDate.size() <= 20
+        && (!('category' in data) || data.category in ['Work', 'Personal', 'Health', 'Finance'])
+        && data.priority in ['High', 'Medium', 'Low', 'None']
+        && (!('prioritySource' in data) || data.prioritySource in ['user', 'ai'])
+        && optStr(data, 'dueDate', 20)
+        && optStr(data, 'dueTime', 10)
+        && optStr(data, 'deadlineDate', 20)
+        && optStr(data, 'deadlineTime', 10)
         && data.completed is bool
+        && optStr(data, 'details', 4000)
         && optStr(data, 'notes', 2000)
+        && (!('subtasks' in data) || isSubtaskList(data))
+        && (!('repeat' in data) || data.repeat in ['none', 'daily', 'weekly', 'monthly', 'custom'])
+        && (!('repeatWeekdays' in data) || isWeekdayList(data))
+        && (!('durationMinutes' in data) || (data.durationMinutes is int && data.durationMinutes >= 1 && data.durationMinutes <= 1440))
+        && (!('durationSource' in data) || data.durationSource in ['user', 'ai'])
+        && optBool(data, 'pinned')
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
@@ -330,7 +368,17 @@ service cloud.firestore {
           && incoming().updatedAt == request.time
           && (
             incoming().diff(existing()).affectedKeys().hasOnly(['completed', 'updatedAt']) ||
-            incoming().diff(existing()).affectedKeys().hasOnly(['title', 'category', 'priority', 'dueDate', 'notes', 'completed', 'updatedAt'])
+            incoming().diff(existing()).affectedKeys().hasOnly(['priority', 'prioritySource', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['pinned', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['subtasks', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['priority', 'prioritySource', 'deadlineDate', 'deadlineTime', 'dueDate', 'dueTime', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['priority', 'prioritySource', 'durationMinutes', 'durationSource', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'category', 'priority', 'prioritySource',
+              'dueDate', 'dueTime', 'deadlineDate', 'deadlineTime',
+              'details', 'notes', 'subtasks', 'repeat', 'repeatWeekdays',
+              'durationMinutes', 'durationSource', 'pinned', 'completed', 'updatedAt'
+            ])
           );
         allow delete: if isValidId(uid) && isValidId(taskId) && isOwner(uid);
       }

@@ -1,6 +1,7 @@
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -310,18 +311,113 @@ export async function deleteUserDoc(
 }
 
 // Typed helpers for existing dashboard entities
+function serializeTaskPatch(patch: Partial<TaskItem>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const has = (k: keyof TaskItem) => Object.prototype.hasOwnProperty.call(patch, k);
+
+  if (has('title') && patch.title !== undefined) {
+    out.title = patch.title.trim().slice(0, 300);
+  }
+  if (has('category')) {
+    out.category = patch.category ? patch.category : deleteField();
+  }
+  if (has('priority') && patch.priority !== undefined) {
+    out.priority = patch.priority;
+  }
+  if (has('prioritySource')) {
+    out.prioritySource = patch.prioritySource ? patch.prioritySource : deleteField();
+  }
+  if (has('dueDate')) {
+    out.dueDate = patch.dueDate ? patch.dueDate.slice(0, 20) : deleteField();
+  }
+  if (has('dueTime')) {
+    out.dueTime = patch.dueTime ? patch.dueTime.slice(0, 10) : deleteField();
+  }
+  if (has('deadlineDate')) {
+    out.deadlineDate = patch.deadlineDate ? patch.deadlineDate.slice(0, 20) : deleteField();
+  }
+  if (has('deadlineTime')) {
+    out.deadlineTime = patch.deadlineTime ? patch.deadlineTime.slice(0, 10) : deleteField();
+  }
+  if (has('completed') && patch.completed !== undefined) {
+    out.completed = Boolean(patch.completed);
+  }
+  if (has('details')) {
+    out.details = patch.details ? patch.details.slice(0, 4000) : deleteField();
+  }
+  if (has('notes')) {
+    out.notes = patch.notes ? patch.notes.slice(0, 2000) : deleteField();
+  }
+  if (has('subtasks')) {
+    out.subtasks =
+      patch.subtasks && patch.subtasks.length > 0
+        ? patch.subtasks.slice(0, 30).map((st) => ({
+            id: st.id.slice(0, 128),
+            title: st.title.trim().slice(0, 240),
+            completed: Boolean(st.completed),
+          }))
+        : deleteField();
+  }
+  if (has('repeat')) {
+    out.repeat = patch.repeat ? patch.repeat : deleteField();
+  }
+  if (has('repeatWeekdays')) {
+    out.repeatWeekdays =
+      patch.repeatWeekdays && patch.repeatWeekdays.length > 0
+        ? patch.repeatWeekdays.slice(0, 7)
+        : deleteField();
+  }
+  if (has('durationMinutes')) {
+    out.durationMinutes =
+      typeof patch.durationMinutes === 'number' && Number.isFinite(patch.durationMinutes)
+        ? Math.max(1, Math.min(1440, Math.round(patch.durationMinutes)))
+        : deleteField();
+  }
+  if (has('durationSource')) {
+    out.durationSource = patch.durationSource ? patch.durationSource : deleteField();
+  }
+  if (has('pinned')) {
+    out.pinned = Boolean(patch.pinned);
+  }
+  return out;
+}
+
 export const fsTasks = {
   create: (uid: string, item: TaskItem) =>
     createUserDoc(uid, 'tasks', item.id, {
-      title: item.title.slice(0, 300),
+      title: item.title.trim().slice(0, 300),
       category: item.category,
       priority: item.priority,
-      dueDate: item.dueDate.slice(0, 20),
+      prioritySource: item.prioritySource ?? 'user',
+      dueDate: item.dueDate ? item.dueDate.slice(0, 20) : undefined,
+      dueTime: item.dueTime ? item.dueTime.slice(0, 10) : undefined,
+      deadlineDate: item.deadlineDate ? item.deadlineDate.slice(0, 20) : undefined,
+      deadlineTime: item.deadlineTime ? item.deadlineTime.slice(0, 10) : undefined,
       completed: item.completed,
-      notes: item.notes?.slice(0, 2000),
+      details: item.details ? item.details.slice(0, 4000) : undefined,
+      subtasks:
+        item.subtasks && item.subtasks.length > 0
+          ? item.subtasks.slice(0, 30).map((st) => ({
+              id: st.id.slice(0, 128),
+              title: st.title.trim().slice(0, 240),
+              completed: Boolean(st.completed),
+            }))
+          : undefined,
+      repeat: item.repeat && item.repeat !== 'none' ? item.repeat : undefined,
+      repeatWeekdays:
+        item.repeat === 'custom' && item.repeatWeekdays && item.repeatWeekdays.length > 0
+          ? item.repeatWeekdays.slice(0, 7)
+          : undefined,
+      durationMinutes:
+        typeof item.durationMinutes === 'number' && Number.isFinite(item.durationMinutes)
+          ? Math.max(1, Math.min(1440, Math.round(item.durationMinutes)))
+          : undefined,
+      durationSource:
+        typeof item.durationMinutes === 'number' ? item.durationSource ?? 'user' : undefined,
+      pinned: item.pinned ? true : undefined,
     }),
   update: (uid: string, id: string, patch: Partial<TaskItem>) =>
-    updateUserDoc(uid, 'tasks', id, patch as Record<string, unknown>),
+    updateUserDoc(uid, 'tasks', id, serializeTaskPatch(patch)),
   remove: (uid: string, id: string) => deleteUserDoc(uid, 'tasks', id),
 };
 
