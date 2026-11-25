@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { FocusSession } from '../types/dashboard';
+import { AppStyleId, FocusSession } from '../types/dashboard';
 import { formatDateKey, getTodayKey } from '../data/initialData';
 import { FocusTimerCard } from './FocusTimerCard';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
@@ -8,6 +8,8 @@ interface FocusViewProps {
   focusSessions: FocusSession[];
   defaultFocusMinutes?: 15 | 25 | 50;
   defaultFocusLabel?: string;
+  style?: AppStyleId;
+  reducedMotion?: boolean;
   onCompleteFocusSession: (minutes: number, label: string) => void;
 }
 
@@ -15,6 +17,8 @@ export function FocusView({
   focusSessions,
   defaultFocusMinutes = 25,
   defaultFocusLabel = 'Deep work sprint',
+  style = 'classic',
+  reducedMotion = false,
   onCompleteFocusSession,
 }: FocusViewProps) {
   const todayKey = getTodayKey();
@@ -77,19 +81,19 @@ export function FocusView({
         aria-label="Focus Metrics Summary"
         className="editorial-rise editorial-rise-2 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-800"
       >
-        <div className="p-5">
+        <div className="aurora-kpi-card p-5">
           <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">Logged Today</p>
           <p className="editorial-kpi-value mt-2 font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
             {todayMinutes} min
           </p>
         </div>
-        <div className="p-5">
+        <div className="aurora-kpi-card p-5">
           <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">Past 7 Days</p>
           <p className="editorial-kpi-value mt-2 font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
             {(weeklyMinutes / 60).toFixed(1)}h
           </p>
         </div>
-        <div className="p-5">
+        <div className="aurora-kpi-card p-5">
           <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">Completed Blocks</p>
           <p className="editorial-kpi-value mt-2 font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
             {focusSessions.length}
@@ -100,6 +104,8 @@ export function FocusView({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div className="lg:col-span-5 space-y-6">
           <FocusTimerCard
+            style={style}
+            reducedMotion={reducedMotion}
             onCompleteSession={onCompleteFocusSession}
             defaultMinutes={defaultFocusMinutes}
             defaultLabel={defaultFocusLabel}

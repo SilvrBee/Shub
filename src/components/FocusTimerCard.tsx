@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Pause, Play, RotateCcw } from 'lucide-react';
+import { AppStyleId } from '../types/dashboard';
 
 interface FocusTimerCardProps {
   onCompleteSession: (minutes: number, label: string) => void;
   compact?: boolean;
   defaultMinutes?: 15 | 25 | 50;
   defaultLabel?: string;
+  style?: AppStyleId;
+  reducedMotion?: boolean;
 }
 
 const PRESETS = [
@@ -19,6 +22,8 @@ export function FocusTimerCard({
   compact = false,
   defaultMinutes = 25,
   defaultLabel = 'Deep work sprint',
+  style = 'classic',
+  reducedMotion = false,
 }: FocusTimerCardProps) {
   const [selectedMinutes, setSelectedMinutes] = useState<number>(defaultMinutes);
   const [secondsLeft, setSecondsLeft] = useState<number>(defaultMinutes * 60);
@@ -143,25 +148,151 @@ export function FocusTimerCard({
       </div>
 
       <div className={compact ? 'py-2' : 'py-5'}>
-        <div className="flex items-baseline justify-between gap-4 mb-3">
-          <div
-            className={`editorial-timer-display font-mono tabular-nums font-semibold tracking-tight text-slate-900 dark:text-slate-100 ${
-              compact ? 'text-4xl' : 'text-5xl'
-            }`}
-          >
-            {mins}:{secs}
-          </div>
-          <span className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
-            {Math.round(progress * 100)}% elapsed
-          </span>
-        </div>
+        {style === 'celestial' ? (
+          (() => {
+            const size = compact ? 168 : 204;
+            const center = size / 2;
+            const orbitRadius = compact ? 70 : 86;
+            const orbDiameter = compact ? 104 : 128;
+            const circumference = 2 * Math.PI * orbitRadius;
+            const dashOffset = circumference * (1 - Math.min(1, Math.max(0, progress)));
+            const progressAngle = progress * Math.PI * 2 - Math.PI / 2;
+            const moteX = center + orbitRadius * Math.cos(progressAngle);
+            const moteY = center + orbitRadius * Math.sin(progressAngle);
 
-        <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-4">
-          <div
-            className="h-full bg-blue-600 dark:bg-blue-500 transition-[width] duration-300"
-            style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%` }}
-          />
-        </div>
+            return (
+              <div className="celestial-orb-stage mb-4">
+                <div
+                  className="celestial-orb-ring-wrap"
+                  style={{ width: size, height: size }}
+                >
+                  {/* Central glowing orb with gentle pulse matched to countdown */}
+                  <div
+                    aria-hidden="true"
+                    className={`celestial-orb-core ${
+                      isRunning && !reducedMotion ? 'celestial-orb-pulsing' : ''
+                    }`}
+                    style={{ width: orbDiameter, height: orbDiameter }}
+                  />
+
+                  {/* Orbiting ring of light */}
+                  <svg
+                    width={size}
+                    height={size}
+                    viewBox={`0 0 ${size} ${size}`}
+                    className="relative z-10 overflow-visible"
+                    aria-hidden="true"
+                  >
+                    <defs>
+                      <filter id={`celestial-orb-glow-${compact ? 'c' : 'f'}`} x="-40%" y="-40%" width="180%" height="180%">
+                        <feGaussianBlur stdDeviation="3.2" result="blur" />
+                        <feMerge>
+                          <feMergeNode in="blur" />
+                          <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                      </filter>
+                    </defs>
+
+                    {/* Base orbital track */}
+                    <circle
+                      cx={center}
+                      cy={center}
+                      r={orbitRadius}
+                      fill="none"
+                      stroke="rgba(186, 210, 255, 0.16)"
+                      strokeWidth="1.25"
+                    />
+
+                    {/* Subtle rotating light arc when active */}
+                    <g
+                      className="celestial-orbit-sweep"
+                      data-paused={isRunning && !reducedMotion ? 'false' : 'true'}
+                    >
+                      <circle
+                        cx={center}
+                        cy={center}
+                        r={orbitRadius + 7}
+                        fill="none"
+                        stroke="color-mix(in srgb, var(--color-blue-300) 45%, transparent)"
+                        strokeWidth="1"
+                        strokeDasharray="24 14 6 42"
+                        strokeLinecap="round"
+                      />
+                      <circle
+                        cx={center}
+                        cy={center - (orbitRadius + 7)}
+                        r="2.2"
+                        fill="var(--color-blue-200)"
+                        opacity={isRunning ? 0.9 : 0.45}
+                      />
+                    </g>
+
+                    {/* Countdown progress ring of light */}
+                    <circle
+                      cx={center}
+                      cy={center}
+                      r={orbitRadius}
+                      fill="none"
+                      stroke="var(--color-blue-400)"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={dashOffset}
+                      transform={`rotate(-90 ${center} ${center})`}
+                      filter={`url(#celestial-orb-glow-${compact ? 'c' : 'f'})`}
+                      style={{ transition: 'stroke-dashoffset 450ms ease' }}
+                    />
+
+                    {/* Luminous orbiting node at current progress angle */}
+                    <circle
+                      cx={moteX}
+                      cy={moteY}
+                      r="4.2"
+                      fill="#f8faff"
+                      filter={`url(#celestial-orb-glow-${compact ? 'c' : 'f'})`}
+                    />
+                  </svg>
+
+                  {/* Countdown readout centered over the orb */}
+                  <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center pointer-events-none">
+                    <div
+                      className={`editorial-timer-display font-mono tabular-nums font-semibold tracking-tight text-slate-100 ${
+                        compact ? 'text-2xl' : 'text-3xl'
+                      }`}
+                    >
+                      {mins}:{secs}
+                    </div>
+                    <span className="mt-1 text-[11px] font-mono tabular-nums text-slate-400">
+                      {Math.round(progress * 100)}% elapsed
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()
+        ) : (
+          <>
+            <div className="flex items-baseline justify-between gap-4 mb-3">
+              <div
+                className={`editorial-timer-display font-mono tabular-nums font-semibold tracking-tight text-slate-900 dark:text-slate-100 ${
+                  compact ? 'text-4xl' : 'text-5xl'
+                }`}
+              >
+                {mins}:{secs}
+              </div>
+              <span className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                {Math.round(progress * 100)}% elapsed
+              </span>
+            </div>
+
+            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-4">
+              <div
+                className="h-full bg-blue-600 dark:bg-blue-500 transition-[width] duration-300"
+                style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%` }}
+              />
+            </div>
+          </>
+        )}
 
         <div className="mb-4">
           <label htmlFor="focus-session-label" className="sr-only">

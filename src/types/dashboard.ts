@@ -77,7 +77,7 @@ export interface DaySummary {
 }
 
 export type AppThemeId = 'cobalt' | 'emerald' | 'indigo' | 'amber' | 'rose' | 'nord';
-export type AppStyleId = 'classic' | 'editorial' | 'aurora-glass' | 'celestial';
+export type AppStyleId = 'classic' | 'editorial' | 'aurora' | 'celestial';
 export type ColorMode = 'light' | 'dark' | 'system';
 export type LayoutDensity = 'comfortable' | 'compact';
 

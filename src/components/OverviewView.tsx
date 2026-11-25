@@ -15,6 +15,7 @@ import { FocusTimerCard } from './FocusTimerCard';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { TaskCheckButton } from './TaskCheckButton';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
+import { AnimatedMetricValue, AuroraProgressRing } from './AuroraMetrics';
 
 interface OverviewViewProps {
   tasks: TaskItem[];
@@ -175,10 +176,23 @@ export function OverviewView({
     return 'text-slate-500 dark:text-slate-400';
   };
 
+  const isAurora = settings.style === 'aurora';
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const animateAuroraMetrics = isAurora && !settings.reducedMotion && !prefersReducedMotion;
+
+  const todayTaskProgress =
+    todayTasks.length > 0
+      ? (todayTasks.length - remainingTodayCount) / todayTasks.length
+      : 1;
+  const todayFocusGoalProgress = Math.min(1, todayFocusMinutes / 120);
+
   return (
     <div className="space-y-6">
-      {/* Editorial Daily Header */}
-      <div className="editorial-rise editorial-rise-1 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      {/* Editorial Daily Header / Aurora Cinematic Header */}
+      <div className="aurora-hero-header editorial-rise editorial-rise-1 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <span className="editorial-kicker">
             <span className="editorial-marker" aria-hidden="true">EDITION</span>
@@ -208,60 +222,109 @@ export function OverviewView({
         aria-label="Daily Metrics Summary"
         className="editorial-rise editorial-rise-2 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-800"
       >
-        <div className="p-5">
-          <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">
-            Due Today
-          </p>
-          <div className="mt-2 flex items-baseline justify-between gap-2">
-            <span className="editorial-kpi-value font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
-              {remainingTodayCount}
-            </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
-              of {todayTasks.length} scheduled
-            </span>
+        <div className="aurora-kpi-card p-5 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">
+              Due Today
+            </p>
+            <div className="mt-2 flex items-baseline justify-between gap-2">
+              <span className="editorial-kpi-value font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                <AnimatedMetricValue value={remainingTodayCount} animate={animateAuroraMetrics} />
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                of {todayTasks.length} scheduled
+              </span>
+            </div>
           </div>
+          {isAurora && (
+            <AuroraProgressRing
+              progress={todayTaskProgress}
+              animate={animateAuroraMetrics}
+              label={`Today's tasks completion ${Math.round(todayTaskProgress * 100)}%`}
+            />
+          )}
         </div>
 
-        <div className="p-5">
-          <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">
-            Task Completion
-          </p>
-          <div className="mt-2 flex items-baseline justify-between gap-2">
-            <span className="editorial-kpi-value font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
-              {completionRate}%
-            </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
-              {completedTotal} of {tasks.length} done
-            </span>
+        <div className="aurora-kpi-card p-5 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">
+              Task Completion
+            </p>
+            <div className="mt-2 flex items-baseline justify-between gap-2">
+              <span className="editorial-kpi-value font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                <AnimatedMetricValue
+                  value={completionRate}
+                  suffix="%"
+                  animate={animateAuroraMetrics}
+                />
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                {completedTotal} of {tasks.length} done
+              </span>
+            </div>
           </div>
+          {isAurora && (
+            <AuroraProgressRing
+              progress={completionRate / 100}
+              animate={animateAuroraMetrics}
+              label={`Overall task completion ${completionRate}%`}
+            />
+          )}
         </div>
 
-        <div className="p-5">
-          <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">
-            Focus Logged Today
-          </p>
-          <div className="mt-2 flex items-baseline justify-between gap-2">
-            <span className="editorial-kpi-value font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
-              {(todayFocusMinutes / 60).toFixed(1)}h
-            </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
-              {(weeklyFocusMinutes / 60).toFixed(1)}h past 7 days
-            </span>
+        <div className="aurora-kpi-card p-5 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">
+              Focus Logged Today
+            </p>
+            <div className="mt-2 flex items-baseline justify-between gap-2">
+              <span className="editorial-kpi-value font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                <AnimatedMetricValue
+                  value={todayFocusMinutes / 60}
+                  decimals={1}
+                  suffix="h"
+                  animate={animateAuroraMetrics}
+                />
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                {(weeklyFocusMinutes / 60).toFixed(1)}h past 7 days
+              </span>
+            </div>
           </div>
+          {isAurora && (
+            <AuroraProgressRing
+              progress={todayFocusGoalProgress}
+              animate={animateAuroraMetrics}
+              label={`Daily focus goal ${Math.round(todayFocusGoalProgress * 100)}%`}
+            />
+          )}
         </div>
 
-        <div className="p-5">
-          <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">
-            Weekly Habit Pace
-          </p>
-          <div className="mt-2 flex items-baseline justify-between gap-2">
-            <span className="editorial-kpi-value font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
-              {habitConsistency}%
-            </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
-              {habits.length} active habits
-            </span>
+        <div className="aurora-kpi-card p-5 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">
+              Weekly Habit Pace
+            </p>
+            <div className="mt-2 flex items-baseline justify-between gap-2">
+              <span className="editorial-kpi-value font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                <AnimatedMetricValue
+                  value={habitConsistency}
+                  suffix="%"
+                  animate={animateAuroraMetrics}
+                />
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                {habits.length} active habits
+              </span>
+            </div>
           </div>
+          {isAurora && (
+            <AuroraProgressRing
+              progress={habitConsistency / 100}
+              animate={animateAuroraMetrics}
+              label={`Weekly habit pace ${habitConsistency}%`}
+            />
+          )}
         </div>
       </section>
 
@@ -550,6 +613,8 @@ export function OverviewView({
           {settings.showFocusTimer && (
             <FocusTimerCard
               compact
+              style={settings.style}
+              reducedMotion={settings.reducedMotion}
               onCompleteSession={onCompleteFocusSession}
               defaultMinutes={settings.defaultFocusMinutes}
               defaultLabel={settings.defaultFocusLabel}

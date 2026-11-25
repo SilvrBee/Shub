@@ -58,6 +58,8 @@ import { NotesView } from './components/NotesView';
 import { WorkspaceView } from './components/WorkspaceView';
 import { SettingsView } from './components/SettingsView';
 import { TaskModal } from './components/TaskModal';
+import { AuroraBackdrop } from './components/AuroraBackdrop';
+import { CelestialBackdrop } from './components/CelestialBackdrop';
 
 function makeId(prefix: string): string {
   const rand =
@@ -77,8 +79,9 @@ export default function App() {
 
   const appSettings = useMemo<AppSettings>(() => {
     const merged = { ...DEFAULT_APP_SETTINGS, ...storedSettings };
-    const normalizedStyle =
-      (merged.style as string) === 'editorial-atelier' ? 'editorial' : merged.style;
+    let normalizedStyle = merged.style as string;
+    if (normalizedStyle === 'editorial-atelier') normalizedStyle = 'editorial';
+    if (normalizedStyle === 'aurora-glass') normalizedStyle = 'aurora';
     const safeStyle: AppStyleId = VALID_STYLES.has(normalizedStyle)
       ? (normalizedStyle as AppStyleId)
       : 'classic';
@@ -200,6 +203,89 @@ export default function App() {
     appSettings.highContrast,
     appSettings.reducedMotion,
   ]);
+
+  // Cursor spotlight on card borders + subtle 3D tilt on KPI cards only (Aurora Glass)
+  useEffect(() => {
+    if (activeStyleDef.id !== 'aurora') return;
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (appSettings.reducedMotion || prefersReduced) return;
+
+    let rafId = 0;
+    let lastX = -999;
+    let lastY = -999;
+    let lastTarget: EventTarget | null = null;
+
+    const updateSpotlightAndTilt = () => {
+      rafId = 0;
+      const cards = document.querySelectorAll<HTMLElement>(
+        '.cadence-card, .aurora-kpi-card, .aurora-hero-header'
+      );
+      const hoveredKpi =
+        lastTarget instanceof Element ? lastTarget.closest('.aurora-kpi-card') : null;
+
+      cards.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        el.style.setProperty('--aurora-mx', `${lastX - rect.left}px`);
+        el.style.setProperty('--aurora-my', `${lastY - rect.top}px`);
+
+        if (el.classList.contains('aurora-kpi-card')) {
+          if (el === hoveredKpi && rect.width > 0 && rect.height > 0) {
+            const nx = ((lastX - rect.left) / rect.width) * 2 - 1;
+            const ny = ((lastY - rect.top) / rect.height) * 2 - 1;
+            const rx = Math.max(-3.2, Math.min(3.2, -ny * 3));
+            const ry = Math.max(-3.2, Math.min(3.2, nx * 3));
+            el.style.setProperty('--aurora-rx', `${rx.toFixed(2)}deg`);
+            el.style.setProperty('--aurora-ry', `${ry.toFixed(2)}deg`);
+          } else {
+            el.style.setProperty('--aurora-rx', '0deg');
+            el.style.setProperty('--aurora-ry', '0deg');
+          }
+        }
+      });
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      lastTarget = e.target;
+      if (!rafId) {
+        rafId = window.requestAnimationFrame(updateSpotlightAndTilt);
+      }
+    };
+
+    const handleReset = () => {
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+      const cards = document.querySelectorAll<HTMLElement>(
+        '.cadence-card, .aurora-kpi-card, .aurora-hero-header'
+      );
+      cards.forEach((el) => {
+        el.style.setProperty('--aurora-mx', '-999px');
+        el.style.setProperty('--aurora-my', '-999px');
+        if (el.classList.contains('aurora-kpi-card')) {
+          el.style.setProperty('--aurora-rx', '0deg');
+          el.style.setProperty('--aurora-ry', '0deg');
+        }
+      });
+    };
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    document.addEventListener('mouseleave', handleReset);
+    window.addEventListener('blur', handleReset);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('mouseleave', handleReset);
+      window.removeEventListener('blur', handleReset);
+      handleReset();
+    };
+  }, [activeStyleDef.id, appSettings.reducedMotion]);
 
   const handleUpdateSettings = (patch: Partial<AppSettings>) => {
     setStoredSettings((prev) => ({ ...DEFAULT_APP_SETTINGS, ...prev, ...patch }));
@@ -619,10 +705,17 @@ export default function App() {
 
   return (
     <div
-      className={`cadence-shell min-h-screen flex bg-slate-50 text-slate-900 dark:bg-[#0B0F17] dark:text-slate-100 ${
+      className={`cadence-shell min-h-screen flex bg-slate-50 text-slate-900 dark:bg-[#0B0F17] dark:text-slate-100 relative ${
         styleCrossFading ? 'style-crossfade' : ''
       }`}
     >
+      {activeStyleDef.id === 'aurora' && (
+        <AuroraBackdrop reducedMotion={appSettings.reducedMotion} />
+      )}
+      {activeStyleDef.id === 'celestial' && (
+        <CelestialBackdrop reducedMotion={appSettings.reducedMotion} />
+      )}
+
       <Sidebar
         activeView={activeView}
         onSelectView={setActiveView}
@@ -638,7 +731,7 @@ export default function App() {
         onSignOut={() => void handleGoogleSignOut()}
       />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative z-10">
         <Header
           activeView={activeView}
           onOpenMobileNav={() => setMobileNavOpen(true)}
@@ -692,6 +785,8 @@ export default function App() {
                 focusSessions={focusSessions}
                 defaultFocusMinutes={appSettings.defaultFocusMinutes}
                 defaultFocusLabel={appSettings.defaultFocusLabel}
+                style={appSettings.style}
+                reducedMotion={appSettings.reducedMotion}
                 onCompleteFocusSession={handleCompleteFocusSession}
               />
             )}
@@ -699,6 +794,8 @@ export default function App() {
             {activeView === DashboardView.Habits && (
               <HabitsView
                 habits={habits}
+                style={appSettings.style}
+                reducedMotion={appSettings.reducedMotion}
                 onToggleHabitDay={handleToggleHabitDay}
                 onToggleHabitDate={handleToggleHabitDate}
                 onAddHabit={handleAddHabit}

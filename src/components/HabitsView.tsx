@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Plus, Trash2 } from 'lucide-react';
-import { HabitItem } from '../types/dashboard';
+import { AppStyleId, HabitItem } from '../types/dashboard';
 import { HabitHeatmapCard } from './HabitHeatmapCard';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
 
 interface HabitsViewProps {
   habits: HabitItem[];
+  style?: AppStyleId;
+  reducedMotion?: boolean;
   onToggleHabitDay: (habitId: string, dayIndex: number) => void;
   onToggleHabitDate: (habitId: string, dateKey: string) => void;
   onAddHabit: (name: string, category: string, targetDaysPerWeek: number) => void;
@@ -28,6 +30,8 @@ const CONFETTI_PARTICLES = [
 
 export function HabitsView({
   habits,
+  style = 'classic',
+  reducedMotion = false,
   onToggleHabitDay,
   onToggleHabitDate,
   onAddHabit,
@@ -50,6 +54,9 @@ export function HabitsView({
 
   const triggerCelebration = (habitId: string) => {
     setCelebratingHabitId(habitId);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cadence:shooting-star'));
+    }
     if (celebrationTimerRef.current) {
       window.clearTimeout(celebrationTimerRef.current);
     }
@@ -91,9 +98,14 @@ export function HabitsView({
         </p>
       </div>
 
-      {/* GitHub-Style 12-Week Heatmap */}
+      {/* GitHub-Style 12-Week Heatmap / Celestial Night Sky Constellation */}
       {habits.length > 0 && (
-        <HabitHeatmapCard habits={habits} onToggleHabitDate={onToggleHabitDate} />
+        <HabitHeatmapCard
+          habits={habits}
+          style={style}
+          reducedMotion={reducedMotion}
+          onToggleHabitDate={onToggleHabitDate}
+        />
       )}
 
       {/* Weekly Habit Tracker Matrix */}
