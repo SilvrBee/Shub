@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
 import {
+  CalendarCheck,
   CalendarClock,
   CheckSquare,
   FileText,
@@ -34,7 +35,8 @@ const NAV_ITEMS: { id: DashboardView; label: string; icon: typeof LayoutDashboar
   { id: DashboardView.Overview, label: 'Overview', icon: LayoutDashboard },
   { id: DashboardView.Tasks, label: 'Tasks', icon: CheckSquare },
   { id: DashboardView.Schedule, label: 'Schedule', icon: CalendarClock },
-  { id: DashboardView.FocusHabits, label: 'Focus & Habits', icon: Timer },
+  { id: DashboardView.Focus, label: 'Focus', icon: Timer },
+  { id: DashboardView.Habits, label: 'Habits', icon: CalendarCheck },
   { id: DashboardView.Notes, label: 'Notes', icon: FileText },
   { id: DashboardView.GoogleWorkspace, label: 'Google Apps', icon: Layers },
 ];

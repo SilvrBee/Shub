@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Plus, Search, Trash2 } from 'lucide-react';
 import { NoteItem } from '../types/dashboard';
+import { EmptyStateIllustration } from './EmptyStateIllustration';
 
 interface NotesViewProps {
   notes: NoteItem[];
@@ -105,9 +106,16 @@ export function NotesView({
 
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/80">
             {filteredNotes.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-500 dark:text-slate-400">
-                No notes match your search.
-              </div>
+              <EmptyStateIllustration
+                compact
+                kind="notes"
+                title={notes.length === 0 ? 'No notes yet' : 'No matching notes'}
+                description={
+                  notes.length === 0
+                    ? 'Capture quick ideas, plans, or reference snippets.'
+                    : 'Try another search keyword.'
+                }
+              />
             ) : (
               filteredNotes.map((note) => {
                 const isSelected = activeNote?.id === note.id;
@@ -190,18 +198,22 @@ export function NotesView({
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                No note selected
-              </p>
-              <button
-                type="button"
-                onClick={handleCreate}
-                className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Create Note</span>
-              </button>
+            <div className="flex-1 flex items-center justify-center">
+              <EmptyStateIllustration
+                kind="notes"
+                title="No note selected"
+                description="Choose an existing note on the left or start a fresh page for your thoughts."
+                action={
+                  <button
+                    type="button"
+                    onClick={handleCreate}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Create Note</span>
+                  </button>
+                }
+              />
             </div>
           )}
         </div>

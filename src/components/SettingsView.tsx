@@ -104,7 +104,8 @@ const LANDING_VIEWS: Array<{ id: DashboardView; label: string }> = [
   { id: DashboardView.Overview, label: 'Overview' },
   { id: DashboardView.Tasks, label: 'Tasks' },
   { id: DashboardView.Schedule, label: 'Schedule' },
-  { id: DashboardView.FocusHabits, label: 'Focus & Habits' },
+  { id: DashboardView.Focus, label: 'Focus' },
+  { id: DashboardView.Habits, label: 'Habits' },
   { id: DashboardView.Notes, label: 'Notes' },
   { id: DashboardView.GoogleWorkspace, label: 'Google Apps' },
 ];
@@ -259,8 +260,25 @@ export function SettingsView({
             </div>
           </div>
 
-          {/* Density & Motion */}
-          <div className="pt-5 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* High Contrast, Density & Motion */}
+          <div className="pt-5 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <label className="flex items-center justify-between gap-3 cursor-pointer">
+              <div>
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                  High Contrast
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Sharper borders and text legibility
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings.highContrast}
+                onChange={(e) => onUpdateSettings({ highContrast: e.target.checked })}
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 shrink-0"
+              />
+            </label>
+
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
@@ -296,7 +314,7 @@ export function SettingsView({
                 type="checkbox"
                 checked={settings.reducedMotion}
                 onChange={(e) => onUpdateSettings({ reducedMotion: e.target.checked })}
-                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 shrink-0"
               />
             </label>
           </div>

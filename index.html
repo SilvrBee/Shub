@@ -40,6 +40,9 @@
           if (settings && settings.density) {
             document.documentElement.setAttribute('data-density', settings.density);
           }
+          if (settings && settings.highContrast) {
+            document.documentElement.classList.add('high-contrast');
+          }
           if (settings && settings.reducedMotion) {
             document.documentElement.classList.add('reduce-motion');
           }

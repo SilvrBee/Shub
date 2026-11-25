@@ -70,6 +70,7 @@
         "category": { "type": "string", "minLength": 1, "maxLength": 60 },
         "targetDaysPerWeek": { "type": "integer" },
         "completedDays": { "type": "array" },
+        "completedDates": { "type": "array" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },

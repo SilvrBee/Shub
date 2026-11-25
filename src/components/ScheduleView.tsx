@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { ScheduleBlock, TaskCategory } from '../types/dashboard';
+import { EmptyStateIllustration } from './EmptyStateIllustration';
 
 interface ScheduleViewProps {
   schedule: ScheduleBlock[];
@@ -82,14 +83,11 @@ export function ScheduleView({ schedule, onAddBlock, onDeleteBlock }: ScheduleVi
           </div>
 
           {sortedBlocks.length === 0 ? (
-            <div className="px-6 py-14 text-center">
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Your day is currently unscheduled.
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Use the form on the right to allocate focused time blocks.
-              </p>
-            </div>
+            <EmptyStateIllustration
+              kind="schedule"
+              title="Your day is unscheduled"
+              description="Use the form on the right to allocate focused time blocks for deep work, meetings, or exercise."
+            />
           ) : (
             <ul className="divide-y divide-slate-100 dark:divide-slate-800/80">
               {sortedBlocks.map((block) => {

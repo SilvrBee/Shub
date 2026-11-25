@@ -2,7 +2,8 @@ export enum DashboardView {
   Overview = 'overview',
   Tasks = 'tasks',
   Schedule = 'schedule',
-  FocusHabits = 'focus',
+  Focus = 'focus',
+  Habits = 'habits',
   Notes = 'notes',
   GoogleWorkspace = 'workspace',
   Settings = 'settings',
@@ -48,6 +49,8 @@ export interface HabitItem {
   targetDaysPerWeek: number;
   // Array of 7 booleans representing Mon..Sun of current week
   completedDays: boolean[];
+  // YYYY-MM-DD history for the 12-week heatmap
+  completedDates?: string[];
 }
 
 export interface FocusSession {
@@ -80,6 +83,7 @@ export type LayoutDensity = 'comfortable' | 'compact';
 export interface AppSettings {
   colorMode: ColorMode;
   theme: AppThemeId;
+  highContrast: boolean;
   density: LayoutDensity;
   reducedMotion: boolean;
   defaultView: DashboardView;
@@ -97,6 +101,7 @@ export interface AppSettings {
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   colorMode: 'light',
   theme: 'cobalt',
+  highContrast: false,
   density: 'comfortable',
   reducedMotion: false,
   defaultView: DashboardView.Overview,

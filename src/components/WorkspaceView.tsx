@@ -21,6 +21,7 @@ import {
 } from '../services/googleWorkspace';
 import { ScheduleBlock, TaskCategory } from '../types/dashboard';
 import { GoogleSignInButton } from './GoogleSignInButton';
+import { EmptyStateIllustration, IllustrationSvg } from './EmptyStateIllustration';
 
 interface WorkspaceViewProps {
   user: User | null;
@@ -204,29 +205,34 @@ export function WorkspaceView({
       {/* Authentication / Token Refresh Banner (only when signed out or hourly token expired) */}
       {(!user || !accessToken) && (
         <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {user
-                ? 'Refresh Google Apps session'
-                : 'Sign in with your Google Account'}
-            </h2>
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              {user
-                ? `Signed in as ${user.displayName || user.email}. Your hourly Google Workspace token has expired—refresh once to load live Calendar, Drive, Docs, and Gmail data.`
-                : 'Connecting your Google account personalizes your dashboard with your name and profile photo while granting read-only access to Google Calendar, Drive, Docs, and Gmail.'}
-            </p>
-            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 pt-1">
-              <span>Google Calendar</span>
-              <span aria-hidden="true">·</span>
-              <span>Google Drive</span>
-              <span aria-hidden="true">·</span>
-              <span>Google Docs</span>
-              <span aria-hidden="true">·</span>
-              <span>Gmail</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-5 max-w-2xl">
+            <div className="shrink-0">
+              <IllustrationSvg kind="workspace" />
             </div>
-            {authError && (
-              <p className="text-xs text-rose-600 dark:text-rose-400 pt-1">{authError}</p>
-            )}
+            <div className="space-y-2">
+              <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
+                {user
+                  ? 'Refresh Google Apps session'
+                  : 'Sign in with your Google Account'}
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                {user
+                  ? `Signed in as ${user.displayName || user.email}. Your hourly Google Workspace token has expired—refresh once to load live Calendar, Drive, Docs, and Gmail data.`
+                  : 'Connecting your Google account personalizes your dashboard with your name and profile photo while granting read-only access to Google Calendar, Drive, Docs, and Gmail.'}
+              </p>
+              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 pt-1">
+                <span>Google Calendar</span>
+                <span aria-hidden="true">·</span>
+                <span>Google Drive</span>
+                <span aria-hidden="true">·</span>
+                <span>Google Docs</span>
+                <span aria-hidden="true">·</span>
+                <span>Gmail</span>
+              </div>
+              {authError && (
+                <p className="text-xs text-rose-600 dark:text-rose-400 pt-1">{authError}</p>
+              )}
+            </div>
           </div>
 
           <div className="shrink-0">
@@ -275,9 +281,12 @@ export function WorkspaceView({
                 ))}
               </div>
             ) : events.length === 0 ? (
-              <div className="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-                No upcoming events found on your primary calendar.
-              </div>
+              <EmptyStateIllustration
+                compact
+                kind="schedule"
+                title="No upcoming events"
+                description="Nothing scheduled on your primary Google Calendar from today onward."
+              />
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {events.map((event) => (
@@ -349,11 +358,14 @@ export function WorkspaceView({
                 ))}
               </div>
             ) : displayedFiles.length === 0 ? (
-              <div className="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-                {fileFilter === 'docs'
-                  ? 'No recent Google Docs files found.'
-                  : 'No recent Google Drive files found.'}
-              </div>
+              <EmptyStateIllustration
+                compact
+                kind="workspace"
+                title={
+                  fileFilter === 'docs' ? 'No Google Docs found' : 'No Drive files found'
+                }
+                description="Recent documents and files from Google Drive will appear here."
+              />
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {displayedFiles.slice(0, 6).map((file) => (
@@ -408,9 +420,12 @@ export function WorkspaceView({
                 ))}
               </div>
             ) : messages.length === 0 ? (
-              <div className="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-                No recent messages found in your inbox.
-              </div>
+              <EmptyStateIllustration
+                compact
+                kind="workspace"
+                title="Inbox is empty"
+                description="No recent Gmail messages found in your primary inbox."
+              />
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {messages.map((msg) => (

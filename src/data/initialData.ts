@@ -25,6 +25,59 @@ export function getTodayKey(): string {
   return formatDateKey(new Date());
 }
 
+/** Returns YYYY-MM-DD keys for Mon..Sun of the current local week. */
+export function getCurrentWeekDateKeys(referenceDate = new Date()): string[] {
+  const day = referenceDate.getDay(); // 0 = Sun, 1 = Mon ... 6 = Sat
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    referenceDate.getDate() + diffToMonday
+  );
+  const keys: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+    keys.push(formatDateKey(d));
+  }
+  return keys;
+}
+
+function buildSeedHabitDates(
+  completedThisWeek: boolean[],
+  seedSalt: number,
+  targetPerWeek: number
+): string[] {
+  const weekKeys = getCurrentWeekDateKeys();
+  const todayKey = getTodayKey();
+  const dates = new Set<string>();
+
+  // Prior 11 full weeks
+  const firstDayOfCurrentWeek = new Date(`${weekKeys[0]}T00:00:00`);
+  for (let w = 11; w >= 1; w--) {
+    for (let d = 0; d < 7; d++) {
+      const score = ((w * 13 + d * 7 + seedSalt * 5) % 10) + 1;
+      if (score <= targetPerWeek + 1) {
+        const dt = new Date(
+          firstDayOfCurrentWeek.getFullYear(),
+          firstDayOfCurrentWeek.getMonth(),
+          firstDayOfCurrentWeek.getDate() - w * 7 + d
+        );
+        const key = formatDateKey(dt);
+        if (key <= todayKey) dates.add(key);
+      }
+    }
+  }
+
+  // Current week aligned with completedDays booleans
+  completedThisWeek.forEach((done, idx) => {
+    if (done && weekKeys[idx]) {
+      dates.add(weekKeys[idx]);
+    }
+  });
+
+  return Array.from(dates).sort();
+}
+
 export const INITIAL_TASKS: TaskItem[] = [
   {
     id: 'task-1',
@@ -144,6 +197,7 @@ export const INITIAL_HABITS: HabitItem[] = [
     category: 'Focus',
     targetDaysPerWeek: 5,
     completedDays: [true, true, true, true, false, false, false],
+    completedDates: buildSeedHabitDates([true, true, true, true, false, false, false], 1, 5),
   },
   {
     id: 'habit-2',
@@ -151,6 +205,7 @@ export const INITIAL_HABITS: HabitItem[] = [
     category: 'Learning',
     targetDaysPerWeek: 7,
     completedDays: [true, true, false, true, true, false, false],
+    completedDates: buildSeedHabitDates([true, true, false, true, true, false, false], 2, 7),
   },
   {
     id: 'habit-3',
@@ -158,6 +213,7 @@ export const INITIAL_HABITS: HabitItem[] = [
     category: 'Health',
     targetDaysPerWeek: 4,
     completedDays: [true, false, true, false, true, false, false],
+    completedDates: buildSeedHabitDates([true, false, true, false, true, false, false], 3, 4),
   },
   {
     id: 'habit-4',
@@ -165,6 +221,7 @@ export const INITIAL_HABITS: HabitItem[] = [
     category: 'Recovery',
     targetDaysPerWeek: 6,
     completedDays: [true, true, true, false, false, false, false],
+    completedDates: buildSeedHabitDates([true, true, true, false, false, false, false], 4, 6),
   },
 ];
 

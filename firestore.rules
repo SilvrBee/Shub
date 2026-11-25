@@ -121,12 +121,13 @@ service cloud.firestore {
 
     function isValidHabit(data) {
       return data.keys().hasAll(['ownerId', 'name', 'category', 'targetDaysPerWeek', 'completedDays', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['ownerId', 'name', 'category', 'targetDaysPerWeek', 'completedDays', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'name', 'category', 'targetDaysPerWeek', 'completedDays', 'completedDates', 'createdAt', 'updatedAt'])
         && data.ownerId is string && data.ownerId == request.auth.uid && data.ownerId.size() <= 128
         && data.name is string && data.name.size() >= 1 && data.name.size() <= 160
         && data.category is string && data.category.size() >= 1 && data.category.size() <= 60
         && data.targetDaysPerWeek is int && data.targetDaysPerWeek >= 1 && data.targetDaysPerWeek <= 7
         && isBoolList7(data, 'completedDays')
+        && (!('completedDates' in data) || isStringList(data, 'completedDates', 400))
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
@@ -364,7 +365,9 @@ service cloud.firestore {
           && incoming().updatedAt == request.time
           && (
             incoming().diff(existing()).affectedKeys().hasOnly(['completedDays', 'updatedAt']) ||
-            incoming().diff(existing()).affectedKeys().hasOnly(['name', 'category', 'targetDaysPerWeek', 'completedDays', 'updatedAt'])
+            incoming().diff(existing()).affectedKeys().hasOnly(['completedDates', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['completedDays', 'completedDates', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['name', 'category', 'targetDaysPerWeek', 'completedDays', 'completedDates', 'updatedAt'])
           );
         allow delete: if isValidId(uid) && isValidId(habitId) && isOwner(uid);
       }

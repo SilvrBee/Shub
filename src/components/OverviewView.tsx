@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Check, Plus } from 'lucide-react';
+import { ArrowRight, Plus } from 'lucide-react';
 import {
   AppSettings,
   DashboardView,
@@ -13,6 +13,8 @@ import {
 import { formatDateKey, getTodayKey } from '../data/initialData';
 import { FocusTimerCard } from './FocusTimerCard';
 import { GoogleSignInButton } from './GoogleSignInButton';
+import { TaskCheckButton } from './TaskCheckButton';
+import { EmptyStateIllustration } from './EmptyStateIllustration';
 
 interface OverviewViewProps {
   tasks: TaskItem[];
@@ -316,21 +318,30 @@ export function OverviewView({
             </form>
 
             {visibleTasks.length === 0 ? (
-              <div className="px-6 py-10 text-center">
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  {taskFilter === 'active'
-                    ? 'All caught up — no pending tasks in this view.'
-                    : 'No tasks match this filter yet.'}
-                </p>
-                <button
-                  type="button"
-                  onClick={onOpenNewTaskModal}
-                  className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Create Task</span>
-                </button>
-              </div>
+              <EmptyStateIllustration
+                compact
+                kind="tasks"
+                title={
+                  taskFilter === 'active'
+                    ? 'All caught up'
+                    : 'No tasks in this view'
+                }
+                description={
+                  taskFilter === 'active'
+                    ? 'No pending priorities remain in your queue.'
+                    : 'Add a quick task above or create a detailed one.'
+                }
+                action={
+                  <button
+                    type="button"
+                    onClick={onOpenNewTaskModal}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Create Task</span>
+                  </button>
+                }
+              />
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {visibleTasks.map((task) => (
@@ -339,18 +350,15 @@ export function OverviewView({
                     className="px-6 py-3.5 flex items-start justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
                   >
                     <div className="flex items-start gap-3.5 min-w-0">
-                      <button
-                        type="button"
-                        onClick={() => onToggleTask(task.id)}
-                        aria-label={task.completed ? `Mark "${task.title}" incomplete` : `Mark "${task.title}" complete`}
-                        className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+                      <TaskCheckButton
+                        checked={task.completed}
+                        label={
                           task.completed
-                            ? 'bg-blue-600 border-blue-600 dark:bg-blue-500 dark:border-blue-500 text-white'
-                            : 'border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-blue-400'
-                        }`}
-                      >
-                        {task.completed && <Check className="w-3.5 h-3.5" strokeWidth={2.5} />}
-                      </button>
+                            ? `Mark "${task.title}" incomplete`
+                            : `Mark "${task.title}" complete`
+                        }
+                        onToggle={() => onToggleTask(task.id)}
+                      />
 
                       <div className="min-w-0">
                         <p
@@ -485,11 +493,21 @@ export function OverviewView({
             </div>
 
             {sortedSchedule.length === 0 ? (
-              <div className="px-6 py-8 text-center">
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  No time blocks scheduled for today.
-                </p>
-              </div>
+              <EmptyStateIllustration
+                compact
+                kind="schedule"
+                title="No blocks scheduled"
+                description="Reserve deep work or meetings on your daily timeline."
+                action={
+                  <button
+                    type="button"
+                    onClick={() => onNavigate(DashboardView.Schedule)}
+                    className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Plan Schedule
+                  </button>
+                }
+              />
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {sortedSchedule.slice(0, 5).map((block) => (

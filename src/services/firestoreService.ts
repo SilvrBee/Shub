@@ -344,9 +344,18 @@ export const fsHabits = {
       category: item.category.slice(0, 60),
       targetDaysPerWeek: item.targetDaysPerWeek,
       completedDays: item.completedDays,
+      completedDates: (item.completedDates ?? []).slice(-400),
     }),
   update: (uid: string, id: string, patch: Partial<HabitItem>) =>
-    updateUserDoc(uid, 'habits', id, patch as Record<string, unknown>),
+    updateUserDoc(uid, 'habits', id, {
+      ...(patch.name !== undefined ? { name: patch.name.slice(0, 160) } : {}),
+      ...(patch.category !== undefined ? { category: patch.category.slice(0, 60) } : {}),
+      ...(patch.targetDaysPerWeek !== undefined ? { targetDaysPerWeek: patch.targetDaysPerWeek } : {}),
+      ...(patch.completedDays !== undefined ? { completedDays: patch.completedDays } : {}),
+      ...(patch.completedDates !== undefined
+        ? { completedDates: patch.completedDates.slice(-400) }
+        : {}),
+    }),
   remove: (uid: string, id: string) => deleteUserDoc(uid, 'habits', id),
 };
 

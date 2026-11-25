@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { User } from 'firebase/auth';
 import {
   DEFAULT_SCRATCHPAD,
+  getCurrentWeekDateKeys,
   getTodayKey,
   INITIAL_FOCUS_SESSIONS,
   INITIAL_HABITS,
@@ -45,7 +46,8 @@ import { Header } from './components/Header';
 import { OverviewView } from './components/OverviewView';
 import { TasksView } from './components/TasksView';
 import { ScheduleView } from './components/ScheduleView';
-import { FocusHabitsView } from './components/FocusHabitsView';
+import { FocusView } from './components/FocusView';
+import { HabitsView } from './components/HabitsView';
 import { NotesView } from './components/NotesView';
 import { WorkspaceView } from './components/WorkspaceView';
 import { SettingsView } from './components/SettingsView';
@@ -123,12 +125,23 @@ export default function App() {
     }
     root.setAttribute('data-theme', appSettings.theme);
     root.setAttribute('data-density', appSettings.density);
+    if (appSettings.highContrast) {
+      root.classList.add('high-contrast');
+    } else {
+      root.classList.remove('high-contrast');
+    }
     if (appSettings.reducedMotion) {
       root.classList.add('reduce-motion');
     } else {
       root.classList.remove('reduce-motion');
     }
-  }, [isDark, appSettings.theme, appSettings.density, appSettings.reducedMotion]);
+  }, [
+    isDark,
+    appSettings.theme,
+    appSettings.density,
+    appSettings.highContrast,
+    appSettings.reducedMotion,
+  ]);
 
   const handleUpdateSettings = (patch: Partial<AppSettings>) => {
     setStoredSettings((prev) => ({ ...DEFAULT_APP_SETTINGS, ...prev, ...patch }));
@@ -355,12 +368,63 @@ export default function App() {
     const target = habits.find((h) => h.id === habitId);
     if (!target) return;
     const nextDays = [...target.completedDays];
-    nextDays[dayIndex] = !nextDays[dayIndex];
+    const nextDone = !nextDays[dayIndex];
+    nextDays[dayIndex] = nextDone;
+
+    const weekKeys = getCurrentWeekDateKeys();
+    const dateKey = weekKeys[dayIndex];
+    const dateSet = new Set(target.completedDates ?? []);
+    if (dateKey) {
+      if (nextDone) dateSet.add(dateKey);
+      else dateSet.delete(dateKey);
+    }
+    const nextDates = Array.from(dateSet).sort().slice(-400);
+
     if (uid) {
-      void fsHabits.update(uid, habitId, { completedDays: nextDays });
+      void fsHabits.update(uid, habitId, {
+        completedDays: nextDays,
+        completedDates: nextDates,
+      });
     } else {
       setLocalHabits((prev) =>
-        prev.map((h) => (h.id === habitId ? { ...h, completedDays: nextDays } : h))
+        prev.map((h) =>
+          h.id === habitId ? { ...h, completedDays: nextDays, completedDates: nextDates } : h
+        )
+      );
+    }
+  };
+
+  const handleToggleHabitDate = (habitId: string, dateKey: string) => {
+    const target = habits.find((h) => h.id === habitId);
+    if (!target) return;
+    const weekKeys = getCurrentWeekDateKeys();
+    const dateSet = new Set(target.completedDates ?? []);
+    // Ensure current week booleans are reflected in set before toggling
+    weekKeys.forEach((dk, idx) => {
+      if (target.completedDays[idx]) dateSet.add(dk);
+    });
+
+    const willAdd = !dateSet.has(dateKey);
+    if (willAdd) dateSet.add(dateKey);
+    else dateSet.delete(dateKey);
+
+    const nextDates = Array.from(dateSet).sort().slice(-400);
+    const weekIdx = weekKeys.indexOf(dateKey);
+    const nextDays = [...target.completedDays];
+    if (weekIdx !== -1) {
+      nextDays[weekIdx] = willAdd;
+    }
+
+    if (uid) {
+      void fsHabits.update(uid, habitId, {
+        completedDays: nextDays,
+        completedDates: nextDates,
+      });
+    } else {
+      setLocalHabits((prev) =>
+        prev.map((h) =>
+          h.id === habitId ? { ...h, completedDays: nextDays, completedDates: nextDates } : h
+        )
       );
     }
   };
@@ -372,6 +436,7 @@ export default function App() {
       category,
       targetDaysPerWeek,
       completedDays: [false, false, false, false, false, false, false],
+      completedDates: [],
     };
     if (uid) {
       void fsHabits.create(uid, newHabit);
@@ -517,99 +582,107 @@ export default function App() {
           onNewTask={openNewTaskModal}
         />
 
-        <main className="flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-8 py-6 sm:py-8 space-y-6">
-          {activeView === DashboardView.Overview && (
-            <OverviewView
-              tasks={tasks}
-              schedule={schedule}
-              habits={habits}
-              focusSessions={focusSessions}
-              scratchpad={scratchpad}
-              settings={appSettings}
-              userFirstName={userFirstName}
-              isSignedIn={Boolean(user)}
-              hasWorkspaceToken={Boolean(accessToken)}
-              isSigningIn={isSigningIn}
-              onSignIn={() => void handleGoogleSignIn()}
-              onUpdateScratchpad={handleUpdateScratchpad}
-              onToggleTask={handleToggleTask}
-              onQuickAddTask={handleQuickAddTask}
-              onCompleteFocusSession={handleCompleteFocusSession}
-              onNavigate={setActiveView}
-              onOpenNewTaskModal={openNewTaskModal}
-            />
-          )}
+        <main className="flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-8 py-6 sm:py-8">
+          <div key={activeView} className="tab-transition-enter space-y-6">
+            {activeView === DashboardView.Overview && (
+              <OverviewView
+                tasks={tasks}
+                schedule={schedule}
+                habits={habits}
+                focusSessions={focusSessions}
+                scratchpad={scratchpad}
+                settings={appSettings}
+                userFirstName={userFirstName}
+                isSignedIn={Boolean(user)}
+                hasWorkspaceToken={Boolean(accessToken)}
+                isSigningIn={isSigningIn}
+                onSignIn={() => void handleGoogleSignIn()}
+                onUpdateScratchpad={handleUpdateScratchpad}
+                onToggleTask={handleToggleTask}
+                onQuickAddTask={handleQuickAddTask}
+                onCompleteFocusSession={handleCompleteFocusSession}
+                onNavigate={setActiveView}
+                onOpenNewTaskModal={openNewTaskModal}
+              />
+            )}
 
-          {activeView === DashboardView.Tasks && (
-            <TasksView
-              tasks={tasks}
-              onToggleTask={handleToggleTask}
-              onEditTask={openEditTaskModal}
-              onDeleteTask={handleDeleteTask}
-              onOpenNewTask={openNewTaskModal}
-            />
-          )}
+            {activeView === DashboardView.Tasks && (
+              <TasksView
+                tasks={tasks}
+                onToggleTask={handleToggleTask}
+                onEditTask={openEditTaskModal}
+                onDeleteTask={handleDeleteTask}
+                onOpenNewTask={openNewTaskModal}
+              />
+            )}
 
-          {activeView === DashboardView.Schedule && (
-            <ScheduleView
-              schedule={schedule}
-              onAddBlock={handleAddScheduleBlock}
-              onDeleteBlock={handleDeleteScheduleBlock}
-            />
-          )}
+            {activeView === DashboardView.Schedule && (
+              <ScheduleView
+                schedule={schedule}
+                onAddBlock={handleAddScheduleBlock}
+                onDeleteBlock={handleDeleteScheduleBlock}
+              />
+            )}
 
-          {activeView === DashboardView.FocusHabits && (
-            <FocusHabitsView
-              habits={habits}
-              focusSessions={focusSessions}
-              defaultFocusMinutes={appSettings.defaultFocusMinutes}
-              defaultFocusLabel={appSettings.defaultFocusLabel}
-              onToggleHabitDay={handleToggleHabitDay}
-              onAddHabit={handleAddHabit}
-              onDeleteHabit={handleDeleteHabit}
-              onCompleteFocusSession={handleCompleteFocusSession}
-            />
-          )}
+            {activeView === DashboardView.Focus && (
+              <FocusView
+                focusSessions={focusSessions}
+                defaultFocusMinutes={appSettings.defaultFocusMinutes}
+                defaultFocusLabel={appSettings.defaultFocusLabel}
+                onCompleteFocusSession={handleCompleteFocusSession}
+              />
+            )}
 
-          {activeView === DashboardView.Notes && (
-            <NotesView
-              notes={notes}
-              onCreateNote={handleCreateNote}
-              onUpdateNote={handleUpdateNote}
-              onDeleteNote={handleDeleteNote}
-            />
-          )}
+            {activeView === DashboardView.Habits && (
+              <HabitsView
+                habits={habits}
+                onToggleHabitDay={handleToggleHabitDay}
+                onToggleHabitDate={handleToggleHabitDate}
+                onAddHabit={handleAddHabit}
+                onDeleteHabit={handleDeleteHabit}
+              />
+            )}
 
-          {activeView === DashboardView.GoogleWorkspace && (
-            <WorkspaceView
-              user={user}
-              accessToken={accessToken}
-              isSigningIn={isSigningIn}
-              authError={authError}
-              onSignIn={handleGoogleSignIn}
-              onSignOut={handleGoogleSignOut}
-              onTokenExpired={() => {
-                clearAccessToken();
-                setAccessToken(null);
-              }}
-              onImportCalendarEvent={handleAddScheduleBlock}
-            />
-          )}
+            {activeView === DashboardView.Notes && (
+              <NotesView
+                notes={notes}
+                onCreateNote={handleCreateNote}
+                onUpdateNote={handleUpdateNote}
+                onDeleteNote={handleDeleteNote}
+              />
+            )}
 
-          {activeView === DashboardView.Settings && (
-            <SettingsView
-              settings={appSettings}
-              onUpdateSettings={handleUpdateSettings}
-              onResetSettings={handleResetSettings}
-              onResetWorkspace={handleResetWorkspace}
-              onExportWorkspace={handleExportWorkspace}
-              user={user}
-              hasWorkspaceToken={Boolean(accessToken)}
-              isSigningIn={isSigningIn}
-              onSignIn={() => void handleGoogleSignIn()}
-              onSignOut={() => void handleGoogleSignOut()}
-            />
-          )}
+            {activeView === DashboardView.GoogleWorkspace && (
+              <WorkspaceView
+                user={user}
+                accessToken={accessToken}
+                isSigningIn={isSigningIn}
+                authError={authError}
+                onSignIn={handleGoogleSignIn}
+                onSignOut={handleGoogleSignOut}
+                onTokenExpired={() => {
+                  clearAccessToken();
+                  setAccessToken(null);
+                }}
+                onImportCalendarEvent={handleAddScheduleBlock}
+              />
+            )}
+
+            {activeView === DashboardView.Settings && (
+              <SettingsView
+                settings={appSettings}
+                onUpdateSettings={handleUpdateSettings}
+                onResetSettings={handleResetSettings}
+                onResetWorkspace={handleResetWorkspace}
+                onExportWorkspace={handleExportWorkspace}
+                user={user}
+                hasWorkspaceToken={Boolean(accessToken)}
+                isSigningIn={isSigningIn}
+                onSignIn={() => void handleGoogleSignIn()}
+                onSignOut={() => void handleGoogleSignOut()}
+              />
+            )}
+          </div>
         </main>
       </div>
 

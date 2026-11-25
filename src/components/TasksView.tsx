@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Check, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { TaskCategory, TaskItem, TaskPriority } from '../types/dashboard';
+import { TaskCheckButton } from './TaskCheckButton';
+import { EmptyStateIllustration } from './EmptyStateIllustration';
 
 interface TasksViewProps {
   tasks: TaskItem[];
@@ -135,22 +137,29 @@ export function TasksView({
       {/* High-Density Clean Task Table */}
       <div className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         {filteredTasks.length === 0 ? (
-          <div className="px-6 py-14 text-center">
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              No tasks found matching your criteria.
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Clear your filters or create a new task to get started.
-            </p>
-            <button
-              type="button"
-              onClick={onOpenNewTask}
-              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Create Task</span>
-            </button>
-          </div>
+          <EmptyStateIllustration
+            kind="tasks"
+            title={
+              tasks.length === 0
+                ? 'No tasks yet'
+                : 'No tasks match your filters'
+            }
+            description={
+              tasks.length === 0
+                ? 'Create your first task to organize daily priorities and track progress.'
+                : 'Try clearing your search or switching category and status filters.'
+            }
+            action={
+              <button
+                type="button"
+                onClick={onOpenNewTask}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Create Task</span>
+              </button>
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -171,18 +180,15 @@ export function TasksView({
                     className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
                   >
                     <td className="py-3.5 pl-6 pr-3 align-top">
-                      <button
-                        type="button"
-                        onClick={() => onToggleTask(task.id)}
-                        aria-label={task.completed ? `Mark "${task.title}" incomplete` : `Mark "${task.title}" complete`}
-                        className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
+                      <TaskCheckButton
+                        checked={task.completed}
+                        label={
                           task.completed
-                            ? 'bg-blue-600 border-blue-600 dark:bg-blue-500 dark:border-blue-500 text-white'
-                            : 'border-slate-300 dark:border-slate-600 hover:border-blue-500'
-                        }`}
-                      >
-                        {task.completed && <Check className="w-3.5 h-3.5" strokeWidth={2.5} />}
-                      </button>
+                            ? `Mark "${task.title}" incomplete`
+                            : `Mark "${task.title}" complete`
+                        }
+                        onToggle={() => onToggleTask(task.id)}
+                      />
                     </td>
                     <td className="py-3.5 px-3 align-top">
                       <p
