@@ -17,6 +17,12 @@
   --cadence-bg-header: rgba(255, 255, 255, 0.95);
   --cadence-bg-card: #ffffff;
   --cadence-bg-input: var(--color-slate-50);
+  --cadence-bg-popover: #ffffff;
+  --cadence-bg-popover-hover: #f1f5f9;
+  --cadence-popover-text: #0f172a;
+  --cadence-popover-muted: #64748b;
+  --cadence-popover-shadow: 0 16px 38px -12px rgb(15 23 42 / 0.18), 0 4px 12px -4px rgb(15 23 42 / 0.08);
+  --cadence-blur-popover: 0px;
 
   --cadence-shadow-card: none;
   --cadence-shadow-elevated: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -41,6 +47,11 @@ html.dark {
   --cadence-bg-header: rgba(15, 21, 33, 0.95);
   --cadence-bg-card: #121927;
   --cadence-bg-input: #0b0f17;
+  --cadence-bg-popover: #141c2c;
+  --cadence-bg-popover-hover: rgba(30, 41, 59, 0.82);
+  --cadence-popover-text: #f1f5f9;
+  --cadence-popover-muted: #94a3b8;
+  --cadence-popover-shadow: 0 18px 42px -12px rgb(0 0 0 / 0.65), 0 4px 14px -4px rgb(0 0 0 / 0.4);
 }
 
 @layer base {
@@ -140,10 +151,71 @@ html[data-density="compact"] main {
   }
 }
 
-.cadence-input {
+.cadence-input,
+.cadence-control {
   background-color: var(--cadence-bg-input);
+  color: var(--cadence-popover-text);
   border-width: var(--cadence-border-width);
   border-style: solid;
   border-color: var(--cadence-border-color);
   border-radius: var(--cadence-radius-control);
+  font-family: var(--cadence-font-sans);
 }
+
+.cadence-control:focus-visible {
+  outline: 2px solid var(--color-blue-600);
+  outline-offset: 2px;
+}
+
+.cadence-popover {
+  font-family: var(--cadence-font-sans);
+  background-color: var(--cadence-bg-popover);
+  color: var(--cadence-popover-text);
+  border-width: var(--cadence-border-width);
+  border-style: solid;
+  border-color: var(--cadence-border-color);
+  border-radius: var(--cadence-radius-control);
+  box-shadow: var(--cadence-popover-shadow);
+  backdrop-filter: blur(var(--cadence-blur-popover));
+  -webkit-backdrop-filter: blur(var(--cadence-blur-popover));
+}
+
+.cadence-popover-item:hover,
+.cadence-popover-item[data-highlighted="true"] {
+  background-color: var(--cadence-bg-popover-hover);
+}
+
+.cadence-checkbox-box {
+  border-radius: var(--cadence-radius-sm);
+  border-width: var(--cadence-border-width);
+  border-style: solid;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+/* Theme-immune Priority Flag Semantic Colors (High=Red, Medium=Orange, Low=Blue, None=Grey) */
+.cadence-flag-high {
+  color: #dc2626;
+}
+.cadence-flag-medium {
+  color: #ea580c;
+}
+.cadence-flag-low {
+  color: #2563eb;
+}
+.cadence-flag-none {
+  color: #64748b;
+}
+
+html.dark .cadence-flag-high {
+  color: #f87171;
+}
+html.dark .cadence-flag-medium {
+  color: #fb923c;
+}
+html.dark .cadence-flag-low {
+  color: #60a5fa;
+}
+html.dark .cadence-flag-none {
+  color: #94a3b8;
+}
+

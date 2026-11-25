@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { AppStyleId, HabitItem } from '../types/dashboard';
 import { formatDateKey, getCurrentWeekDateKeys, getTodayKey } from '../data/initialData';
+import { CustomSelect } from './ui/CustomSelect';
 
 interface HabitHeatmapCardProps {
   habits: HabitItem[];
@@ -266,22 +267,19 @@ export function HabitHeatmapCard({
         </div>
 
         <div className="flex items-center gap-3">
-          <label htmlFor="heatmap-habit-filter" className="sr-only">
-            Filter heatmap by habit
-          </label>
-          <select
+          <CustomSelect
             id="heatmap-habit-filter"
+            ariaLabel="Filter heatmap by habit"
             value={effectiveFilterId}
-            onChange={(e) => setSelectedHabitId(e.target.value)}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-600"
-          >
-            <option value="all">All Habits ({habits.length})</option>
-            {habits.map((h) => (
-              <option key={h.id} value={h.id}>
-                {h.name}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectedHabitId}
+            matchTriggerWidth={false}
+            align="end"
+            className="min-w-[160px]"
+            options={[
+              { value: 'all', label: `All Habits (${habits.length})` },
+              ...habits.map((h) => ({ value: h.id, label: h.name })),
+            ]}
+          />
         </div>
       </div>
 

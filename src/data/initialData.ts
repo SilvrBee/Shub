@@ -96,7 +96,6 @@ export const INITIAL_TASKS: TaskItem[] = [
       { id: 'sub-2', title: 'Draft milestone sequence', completed: false },
     ],
     durationMinutes: 60,
-    durationSource: 'user',
     pinned: true,
     createdAt: new Date().toISOString(),
   },
@@ -110,7 +109,6 @@ export const INITIAL_TASKS: TaskItem[] = [
     completed: false,
     details: 'Verify index fund auto-deposit and update Q4 spreadsheet.',
     durationMinutes: 30,
-    durationSource: 'user',
     repeat: 'monthly',
     createdAt: new Date().toISOString(),
   },
@@ -124,7 +122,6 @@ export const INITIAL_TASKS: TaskItem[] = [
     completed: true,
     details: 'Shared annotated notes in Figma.',
     durationMinutes: 15,
-    durationSource: 'user',
     createdAt: new Date().toISOString(),
   },
   {
@@ -137,7 +134,6 @@ export const INITIAL_TASKS: TaskItem[] = [
     dueTime: '17:45',
     completed: false,
     durationMinutes: 45,
-    durationSource: 'user',
     repeat: 'custom',
     repeatWeekdays: [1, 3, 5],
     createdAt: new Date().toISOString(),
@@ -162,7 +158,6 @@ export const INITIAL_TASKS: TaskItem[] = [
     dueDate: getOffsetDateKey(1),
     completed: false,
     durationMinutes: 5,
-    durationSource: 'user',
     createdAt: new Date().toISOString(),
   },
   {
@@ -174,7 +169,6 @@ export const INITIAL_TASKS: TaskItem[] = [
     dueDate: getOffsetDateKey(-1),
     completed: true,
     durationMinutes: 5,
-    durationSource: 'user',
     createdAt: new Date().toISOString(),
   },
 ];

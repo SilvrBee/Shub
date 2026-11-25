@@ -4,6 +4,7 @@ import { AppStyleId, DashboardView, HabitItem } from '../types/dashboard';
 import { HabitHeatmapCard } from './HabitHeatmapCard';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
 import { DoodleConfettiBurst, DoodleHeaderScene } from './DoodleKit';
+import { CustomSelect } from './ui/CustomSelect';
 
 interface HabitsViewProps {
   habits: HabitItem[];
@@ -286,18 +287,17 @@ export function HabitsView({
             aria-label="Habit category"
             className="sm:w-28 px-3 py-2 rounded-lg text-sm bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600"
           />
-          <select
-            aria-label="Weekly target days"
-            value={newHabitTarget}
-            onChange={(e) => setNewHabitTarget(Number(e.target.value))}
-            className="px-3 py-2 rounded-lg text-xs font-medium bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:border-blue-600"
-          >
-            {[3, 4, 5, 6, 7].map((n) => (
-              <option key={n} value={n}>
-                {n} days/wk
-              </option>
-            ))}
-          </select>
+          <CustomSelect
+            ariaLabel="Weekly target days"
+            value={String(newHabitTarget)}
+            onChange={(v) => setNewHabitTarget(Number(v))}
+            matchTriggerWidth={false}
+            className="min-w-[120px]"
+            options={[3, 4, 5, 6, 7].map((n) => ({
+              value: String(n),
+              label: `${n} days/wk`,
+            }))}
+          />
           <button
             type="submit"
             disabled={!newHabitName.trim()}

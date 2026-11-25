@@ -19,6 +19,15 @@ html[data-style="celestial"] {
   --cadence-bg-card: rgba(5, 9, 24, 0.28);
   --cadence-bg-input: rgba(5, 10, 24, 0.62);
   --cadence-bg-modal: rgba(6, 11, 28, 0.88);
+  --cadence-bg-popover: rgba(6, 11, 28, 0.94);
+  --cadence-bg-popover-hover: rgba(30, 50, 96, 0.56);
+  --cadence-popover-text: #eef2ff;
+  --cadence-popover-muted: #a6b6d8;
+  --cadence-popover-shadow:
+    0 20px 48px -16px rgba(0, 0, 0, 0.88),
+    0 0 36px -10px color-mix(in srgb, var(--color-blue-400) 32%, transparent),
+    inset 0 1px 0 rgba(226, 238, 255, 0.2);
+  --cadence-blur-popover: 16px;
 
   --cadence-shadow-card:
     0 14px 36px -18px rgba(0, 0, 0, 0.72),

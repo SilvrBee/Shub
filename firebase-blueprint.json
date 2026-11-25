@@ -29,14 +29,14 @@
     },
     "Task": {
       "title": "Task",
-      "description": "Personal task item with optional scheduling, deadlines, subtasks, recurrence, duration estimates, pinning, and AI attribution.",
+      "description": "Personal task item with optional scheduling, deadlines, subtasks, recurrence, duration estimates, and pinning.",
       "type": "object",
       "properties": {
         "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
         "title": { "type": "string", "minLength": 1, "maxLength": 300 },
-        "category": { "type": "string", "enum": ["Work", "Personal", "Health", "Finance"] },
+        "category": { "type": "string", "minLength": 1, "maxLength": 60 },
         "priority": { "type": "string", "enum": ["High", "Medium", "Low", "None"] },
-        "prioritySource": { "type": "string", "enum": ["user", "ai"] },
+        "prioritySource": { "type": "string", "enum": ["user"] },
         "dueDate": { "type": "string", "maxLength": 20 },
         "dueTime": { "type": "string", "maxLength": 10 },
         "deadlineDate": { "type": "string", "maxLength": 20 },
@@ -48,7 +48,6 @@
         "repeat": { "type": "string", "enum": ["none", "daily", "weekly", "monthly", "custom"] },
         "repeatWeekdays": { "type": "array" },
         "durationMinutes": { "type": "integer" },
-        "durationSource": { "type": "string", "enum": ["user", "ai"] },
         "pinned": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
@@ -64,7 +63,7 @@
         "title": { "type": "string", "minLength": 1, "maxLength": 200 },
         "startTime": { "type": "string", "maxLength": 10 },
         "endTime": { "type": "string", "maxLength": 10 },
-        "category": { "type": "string", "enum": ["Work", "Personal", "Health", "Finance"] },
+        "category": { "type": "string", "minLength": 1, "maxLength": 60 },
         "location": { "type": "string", "maxLength": 200 },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }

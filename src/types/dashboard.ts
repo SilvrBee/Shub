@@ -16,12 +16,28 @@ export enum TaskPriority {
   None = 'None',
 }
 
-export enum TaskCategory {
-  Work = 'Work',
-  Personal = 'Personal',
-  Health = 'Health',
-  Finance = 'Finance',
+export type TaskCategory = string;
+
+export const TaskCategory = {
+  Work: 'Work',
+  Personal: 'Personal',
+  Health: 'Health',
+  Finance: 'Finance',
+} as const;
+
+export interface CategoryItem {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
 }
+
+export const DEFAULT_CATEGORIES: CategoryItem[] = [
+  { id: 'cat-work', name: 'Work', icon: 'Briefcase', color: '#2563eb' },
+  { id: 'cat-personal', name: 'Personal', icon: 'User', color: '#7c3aed' },
+  { id: 'cat-health', name: 'Health', icon: 'HeartPulse', color: '#059669' },
+  { id: 'cat-finance', name: 'Finance', icon: 'Wallet', color: '#d97706' },
+];
 
 export interface SubtaskItem {
   id: string;
@@ -30,12 +46,12 @@ export interface SubtaskItem {
 }
 
 export type TaskRepeatFrequency = 'none' | 'daily' | 'weekly' | 'monthly' | 'custom';
-export type FieldSource = 'user' | 'ai';
+export type FieldSource = 'user';
 
 export interface TaskItem {
   id: string;
   title: string;
-  category?: TaskCategory;
+  category?: string;
   priority: TaskPriority;
   prioritySource?: FieldSource;
   dueDate?: string; // YYYY-MM-DD
@@ -49,21 +65,19 @@ export interface TaskItem {
   repeat?: TaskRepeatFrequency;
   repeatWeekdays?: number[]; // 0 (Sun) .. 6 (Sat)
   durationMinutes?: number;
-  durationSource?: FieldSource;
   pinned?: boolean;
   createdAt: string;
 }
 
 export type SmartSortMode = 'balanced' | 'priority' | 'deadline' | 'quick-wins';
 export type MatrixImportantRule = 'high-medium' | 'high-only';
-export type AiPriorityMode = 'suggest' | 'auto-unflagged' | 'off';
 
 export interface ScheduleBlock {
   id: string;
   title: string;
   startTime: string; // HH:MM (24h)
-  endTime: string;   // HH:MM (24h)
-  category: TaskCategory;
+  endTime: string; // HH:MM (24h)
+  category: string;
   location?: string;
 }
 
@@ -83,7 +97,7 @@ export interface FocusSession {
   label: string;
   minutes: number;
   completedAt: string; // ISO string
-  dateKey: string;     // YYYY-MM-DD
+  dateKey: string; // YYYY-MM-DD
 }
 
 export interface NoteItem {
@@ -117,15 +131,13 @@ export interface AppSettings {
   timeFormat: '24h' | '12h';
   defaultFocusMinutes: 15 | 25 | 50;
   defaultFocusLabel: string;
-  defaultTaskCategory: TaskCategory;
+  defaultTaskCategory: string;
   defaultTaskPriority: TaskPriority;
   smartSortMode: SmartSortMode;
   quickWinMinutes: number;
   matrixImportantRule: MatrixImportantRule;
   matrixUrgentDays: number;
-  aiPriorityMode: AiPriorityMode;
-  aiAutoSort: boolean;
-  aiDailyCap: number;
+  categories: CategoryItem[];
   showFocusChart: boolean;
   showFocusTimer: boolean;
   showScratchpad: boolean;
@@ -143,15 +155,13 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   timeFormat: '24h',
   defaultFocusMinutes: 25,
   defaultFocusLabel: 'Deep work sprint',
-  defaultTaskCategory: TaskCategory.Work,
+  defaultTaskCategory: 'Work',
   defaultTaskPriority: TaskPriority.None,
   smartSortMode: 'balanced',
   quickWinMinutes: 5,
   matrixImportantRule: 'high-medium',
   matrixUrgentDays: 2,
-  aiPriorityMode: 'auto-unflagged',
-  aiAutoSort: false,
-  aiDailyCap: 20,
+  categories: DEFAULT_CATEGORIES,
   showFocusChart: true,
   showFocusTimer: true,
   showScratchpad: true,

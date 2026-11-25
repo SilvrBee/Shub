@@ -86,9 +86,27 @@ html.style-transitioning .cadence-input {
 }
 
 .task-check-draw path,
-.task-check-draw polyline {
+.task-check-draw polyline,
+.task-check-draw line,
+.cadence-checkbox-tick path,
+.cadence-checkbox-dash line {
   stroke-dasharray: 24;
-  animation: taskCheckDraw 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: taskCheckDraw 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cadence-popover-enter {
+  animation: popoverFadeIn 140ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Habit Target Celebration (Pulse + Micro Confetti) */

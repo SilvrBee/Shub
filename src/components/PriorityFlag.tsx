@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { Flag } from 'lucide-react';
-import { FieldSource, TaskPriority } from '../types/dashboard';
+import { KeyboardEvent as ReactKeyboardEvent, useEffect, useRef, useState } from 'react';
+import { Check } from 'lucide-react';
+import { TaskPriority } from '../types/dashboard';
+import { PortalPopover } from './ui/PortalPopover';
 
 export const FLAG_META: Record<
   TaskPriority,
@@ -8,42 +9,32 @@ export const FLAG_META: Record<
     label: string;
     shortLabel: string;
     ariaLabel: string;
-    iconClass: string;
-    fillClass: string;
-    textClass: string;
+    colorClass: string;
   }
 > = {
   [TaskPriority.High]: {
     label: 'High',
     shortLabel: 'High',
-    ariaLabel: 'High priority flag',
-    iconClass: 'text-rose-600 dark:text-rose-400',
-    fillClass: 'fill-rose-600/20 dark:fill-rose-400/25',
-    textClass: 'text-rose-700 dark:text-rose-300',
+    ariaLabel: 'High priority flag (solid)',
+    colorClass: 'cadence-flag-high',
   },
   [TaskPriority.Medium]: {
     label: 'Medium',
     shortLabel: 'Med',
-    ariaLabel: 'Medium priority flag',
-    iconClass: 'text-orange-500 dark:text-orange-400',
-    fillClass: 'fill-orange-500/20 dark:fill-orange-400/25',
-    textClass: 'text-orange-700 dark:text-orange-300',
+    ariaLabel: 'Medium priority flag (half-filled)',
+    colorClass: 'cadence-flag-medium',
   },
   [TaskPriority.Low]: {
     label: 'Low',
     shortLabel: 'Low',
-    ariaLabel: 'Low priority flag',
-    iconClass: 'text-blue-600 dark:text-blue-400',
-    fillClass: 'fill-blue-600/20 dark:fill-blue-400/25',
-    textClass: 'text-blue-700 dark:text-blue-300',
+    ariaLabel: 'Low priority flag (outlined with dot)',
+    colorClass: 'cadence-flag-low',
   },
   [TaskPriority.None]: {
     label: 'None',
     shortLabel: 'None',
-    ariaLabel: 'No priority flag',
-    iconClass: 'text-slate-400 dark:text-slate-500',
-    fillClass: '',
-    textClass: 'text-slate-500 dark:text-slate-400',
+    ariaLabel: 'No priority flag (dashed outline)',
+    colorClass: 'cadence-flag-none',
   },
 };
 
@@ -54,47 +45,116 @@ export const PRIORITY_ORDER: TaskPriority[] = [
   TaskPriority.None,
 ];
 
-export function AiSourceBadge({ label = 'AI' }: { label?: string }) {
+/**
+ * Distinct shape + fill treatment per priority level so flags remain
+ * immediately distinguishable without relying on color alone:
+ * - High: Solid filled pennant
+ * - Medium: Half-filled (striped diagonal/bottom fill + crisp outline)
+ * - Low: Hollow outline with center dot
+ * - None: Faint dashed outline
+ */
+export function PriorityFlagGlyph({
+  priority,
+  className = 'w-3.5 h-3.5 shrink-0',
+}: {
+  priority: TaskPriority;
+  className?: string;
+}) {
+  const meta = FLAG_META[priority] ?? FLAG_META[TaskPriority.None];
+
   return (
-    <span
-      className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-mono font-semibold uppercase tracking-wider bg-indigo-500/12 text-indigo-700 dark:bg-indigo-400/15 dark:text-indigo-300 border border-indigo-500/25 leading-none shrink-0"
-      title="Suggested by AI"
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+      className={`${className} ${meta.colorClass}`}
     >
-      {label}
-    </span>
+      {/* Flag pole */}
+      <path
+        d="M3 2.25V14"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        opacity={priority === TaskPriority.None ? 0.72 : 1}
+      />
+
+      {priority === TaskPriority.High && (
+        <path
+          d="M3.5 2.5H13.2L11.1 5.9L13.2 9.3H3.5V2.5Z"
+          fill="currentColor"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinejoin="round"
+        />
+      )}
+
+      {priority === TaskPriority.Medium && (
+        <>
+          <path
+            d="M3.5 2.5H13.2L11.1 5.9L13.2 9.3H3.5V2.5Z"
+            stroke="currentColor"
+            strokeWidth="1.35"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M3.5 5.9H11.1L13.2 9.3H3.5V5.9Z"
+            fill="currentColor"
+            fillOpacity="0.88"
+          />
+        </>
+      )}
+
+      {priority === TaskPriority.Low && (
+        <>
+          <path
+            d="M3.5 2.5H13.2L11.1 5.9L13.2 9.3H3.5V2.5Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.35"
+            strokeLinejoin="round"
+          />
+          <circle cx="7.4" cy="5.9" r="1.25" fill="currentColor" />
+        </>
+      )}
+
+      {priority === TaskPriority.None && (
+        <path
+          d="M3.5 2.5H13.2L11.1 5.9L13.2 9.3H3.5V2.5Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.25"
+          strokeDasharray="2 1.7"
+          strokeLinejoin="round"
+          opacity="0.72"
+        />
+      )}
+    </svg>
   );
 }
 
 interface PriorityFlagDisplayProps {
   priority: TaskPriority;
-  source?: FieldSource;
   compact?: boolean;
 }
 
 export function PriorityFlagDisplay({
   priority,
-  source,
   compact = false,
 }: PriorityFlagDisplayProps) {
   const meta = FLAG_META[priority] ?? FLAG_META[TaskPriority.None];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 text-xs font-medium ${meta.textClass}`}
+      className={`inline-flex items-center gap-1.5 text-xs font-medium ${meta.colorClass}`}
       aria-label={meta.ariaLabel}
     >
-      <Flag
-        className={`w-3.5 h-3.5 shrink-0 ${meta.iconClass} ${meta.fillClass}`}
-        aria-hidden="true"
-      />
+      <PriorityFlagGlyph priority={priority} />
       <span>{compact ? meta.shortLabel : meta.label}</span>
-      {source === 'ai' && priority !== TaskPriority.None && <AiSourceBadge />}
     </span>
   );
 }
 
 interface PriorityFlagPickerProps {
   priority: TaskPriority;
-  source?: FieldSource;
   taskTitle: string;
   compact?: boolean;
   onChange: (nextPriority: TaskPriority) => void;
@@ -102,36 +162,55 @@ interface PriorityFlagPickerProps {
 
 export function PriorityFlagPicker({
   priority,
-  source,
   taskTitle,
   compact = false,
   onChange,
 }: PriorityFlagPickerProps) {
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [highlightedIdx, setHighlightedIdx] = useState(() =>
+    Math.max(0, PRIORITY_ORDER.indexOf(priority))
+  );
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const meta = FLAG_META[priority] ?? FLAG_META[TaskPriority.None];
 
   useEffect(() => {
     if (!open) return;
-    const handleOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', handleOutside);
-    window.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('mousedown', handleOutside);
-      window.removeEventListener('keydown', handleKey);
-    };
-  }, [open]);
+    const currentIdx = Math.max(0, PRIORITY_ORDER.indexOf(priority));
+    setHighlightedIdx(currentIdx);
+    const t = window.setTimeout(() => {
+      itemRefs.current[currentIdx]?.focus();
+    }, 15);
+    return () => window.clearTimeout(t);
+  }, [open, priority]);
+
+  const handleMenuKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const next = (highlightedIdx + 1) % PRIORITY_ORDER.length;
+      setHighlightedIdx(next);
+      itemRefs.current[next]?.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const next = (highlightedIdx - 1 + PRIORITY_ORDER.length) % PRIORITY_ORDER.length;
+      setHighlightedIdx(next);
+      itemRefs.current[next]?.focus();
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      setHighlightedIdx(0);
+      itemRefs.current[0]?.focus();
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      const last = PRIORITY_ORDER.length - 1;
+      setHighlightedIdx(last);
+      itemRefs.current[last]?.focus();
+    }
+  };
 
   return (
-    <div ref={containerRef} className="relative inline-flex items-center">
+    <>
       <button
+        ref={triggerRef}
         type="button"
         onClick={(e) => {
           e.stopPropagation();
@@ -141,59 +220,61 @@ export function PriorityFlagPicker({
         aria-expanded={open}
         aria-label={`Set priority flag for "${taskTitle}" (currently ${meta.label})`}
         title={`Priority: ${meta.label} — click to change`}
-        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium border border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-colors whitespace-nowrap ${meta.textClass}`}
+        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium border border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-colors whitespace-nowrap ${meta.colorClass}`}
       >
-        <Flag
-          className={`w-3.5 h-3.5 shrink-0 ${meta.iconClass} ${meta.fillClass}`}
-          aria-hidden="true"
-        />
+        <PriorityFlagGlyph priority={priority} />
         <span>{compact ? meta.shortLabel : meta.label}</span>
-        {source === 'ai' && priority !== TaskPriority.None && <AiSourceBadge />}
       </button>
 
-      {open && (
-        <div
-          role="menu"
-          aria-label={`Priority options for ${taskTitle}`}
-          className="absolute left-0 top-full mt-1 z-40 min-w-[132px] p-1 rounded-lg bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-700 shadow-lg"
-        >
-          {PRIORITY_ORDER.map((option) => {
+      <PortalPopover
+        open={open}
+        anchorEl={triggerRef.current}
+        onClose={() => {
+          setOpen(false);
+          triggerRef.current?.focus();
+        }}
+        minWidth={150}
+        maxWidth={190}
+        maxHeight={220}
+        role="menu"
+        ariaLabel={`Priority options for ${taskTitle}`}
+        className="p-1"
+      >
+        <div onKeyDown={handleMenuKeyDown} className="space-y-0.5">
+          {PRIORITY_ORDER.map((option, idx) => {
             const optMeta = FLAG_META[option];
             const active = priority === option;
             return (
               <button
                 key={option}
+                ref={(el) => {
+                  itemRefs.current[idx] = el;
+                }}
                 type="button"
                 role="menuitemradio"
                 aria-checked={active}
+                data-highlighted={idx === highlightedIdx ? 'true' : undefined}
+                onMouseEnter={() => setHighlightedIdx(idx)}
                 onClick={(e) => {
                   e.stopPropagation();
                   onChange(option);
                   setOpen(false);
+                  triggerRef.current?.focus();
                 }}
-                className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-left transition-colors ${
-                  active
-                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                }`}
+                className="cadence-popover-item w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-left transition-colors"
               >
                 <span className="inline-flex items-center gap-2">
-                  <Flag
-                    className={`w-3.5 h-3.5 shrink-0 ${optMeta.iconClass} ${optMeta.fillClass}`}
-                    aria-hidden="true"
-                  />
-                  <span>{optMeta.label}</span>
+                  <PriorityFlagGlyph priority={option} />
+                  <span className={optMeta.colorClass}>{optMeta.label}</span>
                 </span>
                 {active && (
-                  <span className="text-[10px] font-mono text-blue-600 dark:text-blue-400">
-                    Active
-                  </span>
+                  <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
                 )}
               </button>
             );
           })}
         </div>
-      )}
-    </div>
+      </PortalPopover>
+    </>
   );
 }

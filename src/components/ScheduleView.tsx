@@ -1,12 +1,20 @@
-import { useMemo, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
-import { DashboardView, ScheduleBlock, TaskCategory } from '../types/dashboard';
+import { useEffect, useMemo, useState } from 'react';
+import { Plus, Settings2, Trash2 } from 'lucide-react';
+import { CategoryItem, DashboardView, ScheduleBlock } from '../types/dashboard';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
 import { useCadenceStyle } from '../hooks/useCadenceStyle';
 import { DoodleHeaderScene } from './DoodleKit';
+import { CustomSelect } from './ui/CustomSelect';
+import { TimePickerField } from './ui/CustomDateTimePicker';
+import { CategoryBadge, CategoryIcon } from './ui/CategoryBadge';
+import { formatTimeShort } from '../utils/taskUtils';
 
 interface ScheduleViewProps {
   schedule: ScheduleBlock[];
+  categories: CategoryItem[];
+  defaultCategory?: string;
+  timeFormat?: '12h' | '24h';
+  onOpenCategoryManager: () => void;
   onAddBlock: (block: Omit<ScheduleBlock, 'id'>) => void;
   onDeleteBlock: (id: string) => void;
 }
@@ -17,14 +25,33 @@ function calcDurationMinutes(start: string, end: string): number {
   return Math.max(0, eh * 60 + em - (sh * 60 + sm));
 }
 
-export function ScheduleView({ schedule, onAddBlock, onDeleteBlock }: ScheduleViewProps) {
+export function ScheduleView({
+  schedule,
+  categories,
+  defaultCategory,
+  timeFormat = '24h',
+  onOpenCategoryManager,
+  onAddBlock,
+  onDeleteBlock,
+}: ScheduleViewProps) {
   const activeStyle = useCadenceStyle();
   const [title, setTitle] = useState('');
   const [startTime, setStartTime] = useState('16:00');
   const [endTime, setEndTime] = useState('17:00');
-  const [category, setCategory] = useState<TaskCategory>(TaskCategory.Work);
+  const [category, setCategory] = useState<string>(
+    defaultCategory || categories[0]?.name || 'Work'
+  );
   const [location, setLocation] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (categories.length === 0) return;
+    if (!categories.some((c) => c.name === category)) {
+      setCategory(defaultCategory && categories.some((c) => c.name === defaultCategory)
+        ? defaultCategory
+        : categories[0].name);
+    }
+  }, [categories, category, defaultCategory]);
 
   const sortedBlocks = useMemo(
     () => [...schedule].sort((a, b) => a.startTime.localeCompare(b.startTime)),
@@ -47,7 +74,7 @@ export function ScheduleView({ schedule, onAddBlock, onDeleteBlock }: ScheduleVi
       setError('Enter a block title.');
       return;
     }
-    if (calcDurationMinutes(startTime, endTime) <= 0) {
+    if (!startTime || !endTime || calcDurationMinutes(startTime, endTime) <= 0) {
       setError('End time must be later than start time.');
       return;
     }
@@ -56,7 +83,7 @@ export function ScheduleView({ schedule, onAddBlock, onDeleteBlock }: ScheduleVi
       title: trimmed,
       startTime,
       endTime,
-      category,
+      category: category || categories[0]?.name || 'Work',
       location: location.trim() || undefined,
     });
     setTitle('');
@@ -111,9 +138,10 @@ export function ScheduleView({ schedule, onAddBlock, onDeleteBlock }: ScheduleVi
                     className="px-6 py-4 flex items-start justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-6 min-w-0">
-                      <div className="w-32 shrink-0">
+                      <div className="w-36 shrink-0">
                         <span className="font-mono tabular-nums text-sm font-medium text-slate-900 dark:text-slate-100">
-                          {block.startTime} – {block.endTime}
+                          {formatTimeShort(block.startTime, timeFormat)} –{' '}
+                          {formatTimeShort(block.endTime, timeFormat)}
                         </span>
                         <p className="font-mono tabular-nums text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                           {duration} min
@@ -124,10 +152,13 @@ export function ScheduleView({ schedule, onAddBlock, onDeleteBlock }: ScheduleVi
                         <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
                           {block.title}
                         </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {block.category}
-                          {block.location ? ` · ${block.location}` : ''}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          <CategoryBadge
+                            name={block.category}
+                            categories={categories}
+                          />
+                          {block.location && <span>· {block.location}</span>}
+                        </div>
                       </div>
                     </div>
 
@@ -170,7 +201,7 @@ export function ScheduleView({ schedule, onAddBlock, onDeleteBlock }: ScheduleVi
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., Code review & PR triage"
-                className="w-full px-3.5 py-2.5 rounded-lg text-sm bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 dark:focus:border-blue-400"
+                className="cadence-input w-full px-3.5 py-2.5 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 dark:focus:border-blue-400"
               />
             </div>
 
@@ -179,24 +210,26 @@ export function ScheduleView({ schedule, onAddBlock, onDeleteBlock }: ScheduleVi
                 <label htmlFor="block-start" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                   Start
                 </label>
-                <input
+                <TimePickerField
                   id="block-start"
-                  type="time"
+                  ariaLabel="Start time"
                   value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg text-sm font-mono tabular-nums bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 dark:focus:border-blue-400"
+                  onChange={(v) => setStartTime(v || '16:00')}
+                  timeFormat={timeFormat}
+                  allowClear={false}
                 />
               </div>
               <div>
                 <label htmlFor="block-end" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                   End
                 </label>
-                <input
+                <TimePickerField
                   id="block-end"
-                  type="time"
+                  ariaLabel="End time"
                   value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg text-sm font-mono tabular-nums bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 dark:focus:border-blue-400"
+                  onChange={(v) => setEndTime(v || '17:00')}
+                  timeFormat={timeFormat}
+                  allowClear={false}
                 />
               </div>
             </div>
@@ -205,18 +238,25 @@ export function ScheduleView({ schedule, onAddBlock, onDeleteBlock }: ScheduleVi
               <label htmlFor="block-category" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                 Category
               </label>
-              <select
+              <CustomSelect
                 id="block-category"
+                ariaLabel="Schedule block category"
                 value={category}
-                onChange={(e) => setCategory(e.target.value as TaskCategory)}
-                className="w-full px-3 py-2.5 rounded-lg text-sm bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 dark:focus:border-blue-400"
-              >
-                {Object.values(TaskCategory).map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
+                onChange={setCategory}
+                options={categories.map((cat) => ({
+                  value: cat.name,
+                  label: cat.name,
+                  color: cat.color,
+                  icon: <CategoryIcon icon={cat.icon} className="w-3.5 h-3.5" />,
+                }))}
+                className="w-full"
+                size="md"
+                footerAction={{
+                  label: 'Manage categories',
+                  icon: <Settings2 className="w-3.5 h-3.5" />,
+                  onClick: onOpenCategoryManager,
+                }}
+              />
             </div>
 
             <div>
@@ -229,7 +269,7 @@ export function ScheduleView({ schedule, onAddBlock, onDeleteBlock }: ScheduleVi
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="e.g., Study or Video Call"
-                className="w-full px-3.5 py-2.5 rounded-lg text-sm bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 dark:focus:border-blue-400"
+                className="cadence-input w-full px-3.5 py-2.5 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 dark:focus:border-blue-400"
               />
             </div>
 

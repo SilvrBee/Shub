@@ -19,6 +19,13 @@ html[data-style="doodle"] {
   --cadence-bg-card: #ffffff;
   --cadence-bg-input: #fffdf7;
   --cadence-bg-modal: #ffffff;
+  --cadence-bg-popover: #ffffff;
+  --cadence-bg-popover-hover: #f6f2e6;
+  --cadence-popover-text: #161b26;
+  --cadence-popover-muted: #4a5468;
+  --cadence-popover-shadow:
+    3px 3px 0 0 var(--doodle-paper-shadow-1),
+    5px 5px 0 0 var(--doodle-paper-shadow-2);
 
   --doodle-ink: #1e2433;
   --doodle-stroke: #1e2433;
@@ -77,6 +84,13 @@ html.dark[data-style="doodle"] {
   --cadence-bg-card: #1f2436;
   --cadence-bg-input: #141826;
   --cadence-bg-modal: #1f2436;
+  --cadence-bg-popover: #1f2436;
+  --cadence-bg-popover-hover: #2b3248;
+  --cadence-popover-text: #f1f5f9;
+  --cadence-popover-muted: #a5b4cf;
+  --cadence-popover-shadow:
+    3px 3px 0 0 var(--doodle-paper-shadow-1),
+    5px 5px 0 0 var(--doodle-paper-shadow-2);
 
   --doodle-ink: #f1f5f9;
   --doodle-stroke: #dbe4f5;
@@ -153,10 +167,17 @@ html[data-style="doodle"] .cadence-header {
   border-bottom: 2px solid var(--doodle-stroke);
 }
 
-html[data-style="doodle"]:not(.high-contrast) main :is(input:not([type="checkbox"]), textarea, select) {
+html[data-style="doodle"]:not(.high-contrast) main :is(input:not([type="checkbox"]), textarea, select),
+html[data-style="doodle"]:not(.high-contrast) .cadence-control {
   border-width: 2px;
   border-color: var(--doodle-stroke);
   border-radius: 13px 11px 14px 12px;
+}
+
+html[data-style="doodle"]:not(.high-contrast) .cadence-popover {
+  border-width: 2px;
+  border-color: var(--doodle-stroke);
+  border-radius: 15px 13px 16px 14px;
 }
 
 html[data-style="doodle"]:not(.high-contrast) main input[type="text"].bg-transparent,

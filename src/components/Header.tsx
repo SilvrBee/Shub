@@ -1,10 +1,9 @@
-import { Menu, Plus } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { DashboardView } from '../types/dashboard';
 
 interface HeaderProps {
   activeView: DashboardView;
   onOpenMobileNav: () => void;
-  onNewTask: () => void;
 }
 
 const VIEW_LABELS: Record<DashboardView, string> = {
@@ -18,7 +17,7 @@ const VIEW_LABELS: Record<DashboardView, string> = {
   [DashboardView.Settings]: 'Settings',
 };
 
-export function Header({ activeView, onOpenMobileNav, onNewTask }: HeaderProps) {
+export function Header({ activeView, onOpenMobileNav }: HeaderProps) {
   return (
     <header className="cadence-header sticky top-0 z-30 h-16 bg-white/95 dark:bg-[#0F1521]/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 flex items-center justify-between gap-8">
       <div className="flex items-center gap-3 min-w-0">
@@ -40,17 +39,6 @@ export function Header({ activeView, onOpenMobileNav, onNewTask }: HeaderProps) 
             {VIEW_LABELS[activeView]}
           </span>
         </div>
-      </div>
-
-      <div className="flex items-center shrink-0">
-        <button
-          type="button"
-          onClick={onNewTask}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>New Task</span>
-        </button>
       </div>
     </header>
   );

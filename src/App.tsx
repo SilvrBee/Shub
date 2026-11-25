@@ -18,6 +18,7 @@ import {
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { clearAccessToken, googleSignIn, initAuth, logout } from './services/googleAuth';
 import {
+  clearLegacyTaskAiFields,
   ensureUserRootProfile,
   fsFocus,
   fsHabits,
@@ -30,6 +31,7 @@ import {
   updateUserScratchpad,
 } from './services/firestoreService';
 import { buildNextRecurrenceTask, migrateTask, migrateTasks } from './utils/taskUtils';
+import { normalizeCategories } from './utils/categoryUtils';
 import {
   getStyleDefinition,
   resolveEffectiveColorMode,
@@ -38,13 +40,14 @@ import {
 import {
   AppSettings,
   AppStyleId,
+  CategoryItem,
   DashboardView,
   DEFAULT_APP_SETTINGS,
+  DEFAULT_CATEGORIES,
   FocusSession,
   HabitItem,
   NoteItem,
   ScheduleBlock,
-  TaskCategory,
   TaskItem,
   TaskPriority,
 } from './types/dashboard';
@@ -59,6 +62,7 @@ import { NotesView } from './components/NotesView';
 import { WorkspaceView } from './components/WorkspaceView';
 import { SettingsView } from './components/SettingsView';
 import { TaskModal } from './components/TaskModal';
+import { CategoryManagerModal } from './components/ui/CategoryManagerModal';
 import { AuroraBackdrop } from './components/AuroraBackdrop';
 import { CelestialBackdrop } from './components/CelestialBackdrop';
 
@@ -86,13 +90,25 @@ export default function App() {
     const safeStyle: AppStyleId = VALID_STYLES.has(normalizedStyle)
       ? (normalizedStyle as AppStyleId)
       : 'classic';
-    return { ...merged, style: safeStyle };
+    const safeCategories = normalizeCategories(merged.categories);
+    const safeDefaultCategory = safeCategories.some(
+      (c) => c.name === merged.defaultTaskCategory
+    )
+      ? merged.defaultTaskCategory
+      : safeCategories[0].name;
+    return {
+      ...merged,
+      style: safeStyle,
+      categories: safeCategories,
+      defaultTaskCategory: safeDefaultCategory,
+    };
   }, [storedSettings]);
 
   const [activeView, setActiveView] = useState<DashboardView>(() =>
     VALID_VIEWS.has(appSettings.defaultView) ? appSettings.defaultView : DashboardView.Overview
   );
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
 
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -366,6 +382,34 @@ export default function App() {
     };
   }, [uid, user]);
 
+  const migratedCloudIdsRef = useRef<Set<string>>(new Set());
+
+  // Clean up any legacy AI fields ('prioritySource: "ai"', 'durationSource') in Firestore & localStorage
+  useEffect(() => {
+    if (!uid) {
+      migratedCloudIdsRef.current.clear();
+      return;
+    }
+    for (const raw of cloudTasks) {
+      if (migratedCloudIdsRef.current.has(raw.id)) continue;
+      const legacy = raw as unknown as Record<string, unknown>;
+      if ('durationSource' in legacy || legacy.prioritySource === 'ai') {
+        migratedCloudIdsRef.current.add(raw.id);
+        void clearLegacyTaskAiFields(uid, raw.id);
+      }
+    }
+  }, [uid, cloudTasks]);
+
+  useEffect(() => {
+    const hasLegacy = localTasks.some((t) => {
+      const legacy = t as unknown as Record<string, unknown>;
+      return 'durationSource' in legacy || legacy.prioritySource === 'ai' || 'notes' in legacy;
+    });
+    if (hasLegacy) {
+      setLocalTasks((prev) => migrateTasks(prev));
+    }
+  }, [localTasks, setLocalTasks]);
+
   // Active workspace datasets (with task schema migration applied)
   const rawTasks = uid ? cloudTasks : localTasks;
   const tasks = useMemo(() => migrateTasks(rawTasks), [rawTasks]);
@@ -449,26 +493,93 @@ export default function App() {
     }
   };
 
-  const handleBatchUpdateTasks = (patches: Array<{ id: string; patch: Partial<TaskItem> }>) => {
-    if (patches.length === 0) return;
+  const propagateCategoryName = (fromName: string, toName: string) => {
+    if (!fromName || !toName || fromName === toName) return;
     if (uid) {
-      for (const { id, patch } of patches) {
-        void fsTasks.update(uid, id, patch);
+      for (const t of tasks) {
+        if (t.category === fromName) {
+          void fsTasks.update(uid, t.id, { category: toName });
+        }
+      }
+      for (const b of schedule) {
+        if (b.category === fromName) {
+          void fsSchedule.update(uid, b.id, { category: toName });
+        }
       }
     } else {
-      const patchMap = new Map(patches.map((p) => [p.id, p.patch]));
       setLocalTasks((prev) =>
-        prev.map((t) => {
-          const patch = patchMap.get(t.id);
-          return patch ? migrateTask({ ...t, ...patch }) : t;
-        })
+        prev.map((t) =>
+          t.category === fromName ? migrateTask({ ...t, category: toName }) : t
+        )
+      );
+      setLocalSchedule((prev) =>
+        prev.map((b) =>
+          b.category === fromName ? { ...b, category: toName } : b
+        )
       );
     }
   };
 
+  const handleAddCategory = (category: CategoryItem) => {
+    const nextCategories = [...appSettings.categories, category];
+    handleUpdateSettings({ categories: nextCategories });
+  };
+
+  const handleUpdateCategory = (id: string, patch: Partial<CategoryItem>) => {
+    const existing = appSettings.categories.find((c) => c.id === id);
+    if (!existing) return;
+
+    const nextName = patch.name !== undefined ? patch.name.trim() : existing.name;
+    const nextCategories = appSettings.categories.map((c) =>
+      c.id === id ? { ...c, ...patch, name: nextName } : c
+    );
+
+    const nextDefault =
+      patch.name !== undefined && appSettings.defaultTaskCategory === existing.name
+        ? nextName
+        : appSettings.defaultTaskCategory;
+
+    handleUpdateSettings({
+      categories: nextCategories,
+      defaultTaskCategory: nextDefault,
+    });
+
+    if (patch.name !== undefined && nextName !== existing.name) {
+      propagateCategoryName(existing.name, nextName);
+    }
+  };
+
+  const handleReorderCategories = (nextOrder: CategoryItem[]) => {
+    const safeOrder = nextOrder.length > 0 ? nextOrder : DEFAULT_CATEGORIES;
+    handleUpdateSettings({ categories: safeOrder });
+  };
+
+  const handleDeleteCategory = (id: string, reassignToName: string) => {
+    if (appSettings.categories.length <= 1) return;
+    const target = appSettings.categories.find((c) => c.id === id);
+    if (!target) return;
+
+    const remaining = appSettings.categories.filter((c) => c.id !== id);
+    const fallbackTarget = remaining.some((c) => c.name === reassignToName)
+      ? reassignToName
+      : remaining[0].name;
+
+    const nextDefault =
+      appSettings.defaultTaskCategory === target.name
+        ? fallbackTarget
+        : appSettings.defaultTaskCategory;
+
+    handleUpdateSettings({
+      categories: remaining,
+      defaultTaskCategory: nextDefault,
+    });
+
+    propagateCategoryName(target.name, fallbackTarget);
+  };
+
   const handleQuickAddTask = (
     title: string,
-    category: TaskCategory,
+    category: string,
     priority: TaskPriority
   ) => {
     const newTask: TaskItem = {
@@ -774,7 +885,6 @@ export default function App() {
         <Header
           activeView={activeView}
           onOpenMobileNav={() => setMobileNavOpen(true)}
-          onNewTask={openNewTaskModal}
         />
 
         <main className="cadence-main flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-8 py-6 sm:py-8">
@@ -804,21 +914,24 @@ export default function App() {
             {activeView === DashboardView.Tasks && (
               <TasksView
                 tasks={tasks}
-                schedule={schedule}
                 settings={appSettings}
                 onUpdateSettings={handleUpdateSettings}
                 onToggleTask={handleToggleTask}
                 onUpdateTask={handleUpdateTask}
-                onBatchUpdateTasks={handleBatchUpdateTasks}
                 onEditTask={openEditTaskModal}
                 onDeleteTask={handleDeleteTask}
                 onOpenNewTask={openNewTaskModal}
+                onOpenCategoryManager={() => setCategoryManagerOpen(true)}
               />
             )}
 
             {activeView === DashboardView.Schedule && (
               <ScheduleView
                 schedule={schedule}
+                categories={appSettings.categories}
+                defaultCategory={appSettings.defaultTaskCategory}
+                timeFormat={appSettings.timeFormat}
+                onOpenCategoryManager={() => setCategoryManagerOpen(true)}
                 onAddBlock={handleAddScheduleBlock}
                 onDeleteBlock={handleDeleteScheduleBlock}
               />
@@ -875,8 +988,14 @@ export default function App() {
             {activeView === DashboardView.Settings && (
               <SettingsView
                 settings={appSettings}
+                tasks={tasks}
+                schedule={schedule}
                 isDark={isDark}
                 onUpdateSettings={handleUpdateSettings}
+                onAddCategory={handleAddCategory}
+                onUpdateCategory={handleUpdateCategory}
+                onReorderCategories={handleReorderCategories}
+                onDeleteCategory={handleDeleteCategory}
                 onResetSettings={handleResetSettings}
                 onResetWorkspace={handleResetWorkspace}
                 onExportWorkspace={handleExportWorkspace}
@@ -894,10 +1013,25 @@ export default function App() {
       <TaskModal
         isOpen={taskModalOpen}
         initialTask={editingTask}
+        categories={appSettings.categories}
         defaultCategory={appSettings.defaultTaskCategory}
         defaultPriority={appSettings.defaultTaskPriority}
+        timeFormat={appSettings.timeFormat}
+        onOpenCategoryManager={() => setCategoryManagerOpen(true)}
         onClose={() => setTaskModalOpen(false)}
         onSave={handleSaveTaskModal}
+      />
+
+      <CategoryManagerModal
+        isOpen={categoryManagerOpen}
+        onClose={() => setCategoryManagerOpen(false)}
+        categories={appSettings.categories}
+        tasks={tasks}
+        schedule={schedule}
+        onAddCategory={handleAddCategory}
+        onUpdateCategory={handleUpdateCategory}
+        onReorderCategories={handleReorderCategories}
+        onDeleteCategory={handleDeleteCategory}
       />
     </div>
   );

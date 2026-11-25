@@ -19,6 +19,11 @@ html[data-style="editorial"] {
   --cadence-bg-card: transparent;
   --cadence-bg-input: #f3efe6;
   --cadence-bg-modal: #fbf9f5;
+  --cadence-bg-popover: #fbf9f5;
+  --cadence-bg-popover-hover: #efeae1;
+  --cadence-popover-text: #1c1917;
+  --cadence-popover-muted: #66605a;
+  --cadence-popover-shadow: 0 12px 32px rgba(28, 25, 23, 0.14);
 
   --cadence-shadow-card: none;
   --cadence-shadow-elevated: 0 12px 32px rgba(28, 25, 23, 0.1);
@@ -60,6 +65,11 @@ html.dark[data-style="editorial"] {
   --cadence-bg-card: transparent;
   --cadence-bg-input: #1e1b18;
   --cadence-bg-modal: #1b1815;
+  --cadence-bg-popover: #1b1815;
+  --cadence-bg-popover-hover: #292524;
+  --cadence-popover-text: #f3efe6;
+  --cadence-popover-muted: #ada599;
+  --cadence-popover-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
 
   --cadence-shadow-card: none;
   --cadence-shadow-elevated: 0 16px 36px rgba(0, 0, 0, 0.55);

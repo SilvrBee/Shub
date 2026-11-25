@@ -19,6 +19,15 @@ html[data-style="aurora"] {
   --cadence-bg-card: rgba(11, 17, 36, 0.66);
   --cadence-bg-input: rgba(6, 10, 22, 0.74);
   --cadence-bg-modal: rgba(9, 15, 32, 0.9);
+  --cadence-bg-popover: rgba(9, 15, 32, 0.94);
+  --cadence-bg-popover-hover: rgba(30, 41, 59, 0.78);
+  --cadence-popover-text: #f1f5f9;
+  --cadence-popover-muted: #a2b3cb;
+  --cadence-popover-shadow:
+    0 24px 52px -16px rgba(0, 0, 0, 0.85),
+    0 0 42px -14px color-mix(in srgb, var(--color-blue-400) 30%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --cadence-blur-popover: 22px;
 
   --cadence-shadow-card:
     0 18px 42px -18px rgba(0, 0, 0, 0.76),

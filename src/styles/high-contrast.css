@@ -17,6 +17,12 @@ html.high-contrast {
   --cadence-bg-header: #ffffff;
   --cadence-bg-card: #ffffff;
   --cadence-bg-input: #ffffff;
+  --cadence-bg-popover: #ffffff;
+  --cadence-bg-popover-hover: #e2e8f0;
+  --cadence-popover-text: #020617;
+  --cadence-popover-muted: #1e293b;
+  --cadence-popover-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  --cadence-blur-popover: 0px;
   --cadence-border-color: #475569;
   --cadence-border-subtle: #94a3b8;
   --cadence-blur-card: 0px;
@@ -43,6 +49,12 @@ html.high-contrast.dark {
   --cadence-bg-header: #05070c;
   --cadence-bg-card: #05070c;
   --cadence-bg-input: #000000;
+  --cadence-bg-popover: #05070c;
+  --cadence-bg-popover-hover: #1e293b;
+  --cadence-popover-text: #ffffff;
+  --cadence-popover-muted: #cbd5e1;
+  --cadence-popover-shadow: 0 12px 32px rgba(0, 0, 0, 0.85);
+  --cadence-blur-popover: 0px;
   --cadence-border-color: #94a3b8;
   --cadence-border-subtle: #64748b;
   --cadence-blur-card: 0px;
@@ -67,7 +79,33 @@ html.high-contrast.dark [role="dialog"] > div {
   background-color: #05070c;
 }
 
-html.high-contrast :is(button, a, input, select, textarea):focus-visible {
+html.high-contrast :is(button, a, input, select, textarea, [role="checkbox"], [role="combobox"]):focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 2px;
+}
+
+html.high-contrast .cadence-flag-high {
+  color: #b91c1c;
+}
+html.high-contrast .cadence-flag-medium {
+  color: #c2410c;
+}
+html.high-contrast .cadence-flag-low {
+  color: #1d4ed8;
+}
+html.high-contrast .cadence-flag-none {
+  color: #334155;
+}
+
+html.high-contrast.dark .cadence-flag-high {
+  color: #fca5a5;
+}
+html.high-contrast.dark .cadence-flag-medium {
+  color: #fdba74;
+}
+html.high-contrast.dark .cadence-flag-low {
+  color: #93c5fd;
+}
+html.high-contrast.dark .cadence-flag-none {
+  color: #cbd5e1;
 }

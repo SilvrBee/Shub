@@ -10,7 +10,6 @@ import {
   Palette,
   RotateCcw,
   Sliders,
-  Sparkles,
   Sun,
 } from 'lucide-react';
 import {
@@ -20,25 +19,36 @@ import {
   STYLE_DEFINITIONS,
 } from '../styles/stylesConfig';
 import {
-  AiPriorityMode,
   AppSettings,
   AppThemeId,
+  CategoryItem,
   ColorMode,
   DashboardView,
   LayoutDensity,
   MatrixImportantRule,
+  ScheduleBlock,
   SmartSortMode,
-  TaskCategory,
+  TaskItem,
   TaskPriority,
 } from '../types/dashboard';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { DoodleHeaderScene } from './DoodleKit';
-import { getAiUsageToday } from '../services/aiTaskSort';
+import { CustomCheckbox } from './ui/CustomCheckbox';
+import { CustomSelect } from './ui/CustomSelect';
+import { CategoryIcon } from './ui/CategoryBadge';
+import { CategoryManager } from './ui/CategoryManager';
+import { FLAG_META, PRIORITY_ORDER, PriorityFlagGlyph } from './PriorityFlag';
 
 interface SettingsViewProps {
   settings: AppSettings;
+  tasks: TaskItem[];
+  schedule: ScheduleBlock[];
   isDark?: boolean;
   onUpdateSettings: (patch: Partial<AppSettings>) => void;
+  onAddCategory: (category: CategoryItem) => void;
+  onUpdateCategory: (id: string, patch: Partial<CategoryItem>) => void;
+  onReorderCategories: (nextOrder: CategoryItem[]) => void;
+  onDeleteCategory: (id: string, reassignToName: string) => void;
   onResetSettings: () => void;
   onResetWorkspace: () => void;
   onExportWorkspace: () => void;
@@ -113,20 +123,26 @@ const COLOR_MODES: Array<{ id: ColorMode; label: string; icon: typeof Sun }> = [
   { id: 'system', label: 'System', icon: Monitor },
 ];
 
-const LANDING_VIEWS: Array<{ id: DashboardView; label: string }> = [
-  { id: DashboardView.Overview, label: 'Overview' },
-  { id: DashboardView.Tasks, label: 'Tasks' },
-  { id: DashboardView.Schedule, label: 'Schedule' },
-  { id: DashboardView.Focus, label: 'Focus' },
-  { id: DashboardView.Habits, label: 'Habits' },
-  { id: DashboardView.Notes, label: 'Notes' },
-  { id: DashboardView.GoogleWorkspace, label: 'Google Apps' },
+const LANDING_VIEWS: Array<{ value: DashboardView; label: string }> = [
+  { value: DashboardView.Overview, label: 'Overview' },
+  { value: DashboardView.Tasks, label: 'Tasks' },
+  { value: DashboardView.Schedule, label: 'Schedule' },
+  { value: DashboardView.Focus, label: 'Focus' },
+  { value: DashboardView.Habits, label: 'Habits' },
+  { value: DashboardView.Notes, label: 'Notes' },
+  { value: DashboardView.GoogleWorkspace, label: 'Google Apps' },
 ];
 
 export function SettingsView({
   settings,
+  tasks,
+  schedule,
   isDark = false,
   onUpdateSettings,
+  onAddCategory,
+  onUpdateCategory,
+  onReorderCategories,
+  onDeleteCategory,
   onResetSettings,
   onResetWorkspace,
   onExportWorkspace,
@@ -167,7 +183,7 @@ export function SettingsView({
             Settings
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Customize appearance, styles, themes, overview layout, productivity defaults, and workspace data
+            Customize appearance, styles, themes, categories, overview layout, and workspace data
           </p>
         </div>
 
@@ -316,7 +332,6 @@ export function SettingsView({
                             : undefined,
                       }}
                     >
-                      {/* Mini sidebar */}
                       <div
                         className="w-12 h-full shrink-0 p-2 flex flex-col justify-between border-r"
                         style={{
@@ -341,7 +356,6 @@ export function SettingsView({
                         />
                       </div>
 
-                      {/* Mini canvas + cards */}
                       <div className="flex-1 p-2.5 flex flex-col gap-2 min-w-0">
                         <div className="flex items-center justify-between">
                           <span
@@ -385,7 +399,6 @@ export function SettingsView({
                       </div>
                     </div>
 
-                    {/* Card Details */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -475,22 +488,22 @@ export function SettingsView({
 
           {/* High Contrast, Density & Motion */}
           <div className="pt-5 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <label className="flex items-center justify-between gap-3 cursor-pointer">
-              <div>
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="settings-high-contrast" className="cursor-pointer">
                 <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
                   High Contrast
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Sharper borders and text legibility
                 </p>
-              </div>
-              <input
-                type="checkbox"
+              </label>
+              <CustomCheckbox
+                id="settings-high-contrast"
                 checked={settings.highContrast}
-                onChange={(e) => onUpdateSettings({ highContrast: e.target.checked })}
-                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 shrink-0"
+                onChange={(checked) => onUpdateSettings({ highContrast: checked })}
+                ariaLabel="Toggle High Contrast mode"
               />
-            </label>
+            </div>
 
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -501,35 +514,37 @@ export function SettingsView({
                   Adjust outer workspace padding
                 </p>
               </div>
-              <select
-                aria-label="Layout density"
+              <CustomSelect
+                ariaLabel="Layout density"
                 value={settings.density}
-                onChange={(e) =>
-                  onUpdateSettings({ density: e.target.value as LayoutDensity })
-                }
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200"
-              >
-                <option value="comfortable">Comfortable</option>
-                <option value="compact">Compact</option>
-              </select>
+                onChange={(val) => onUpdateSettings({ density: val as LayoutDensity })}
+                size="sm"
+                matchTriggerWidth={false}
+                align="end"
+                className="min-w-[126px]"
+                options={[
+                  { value: 'comfortable', label: 'Comfortable' },
+                  { value: 'compact', label: 'Compact' },
+                ]}
+              />
             </div>
 
-            <label className="flex items-center justify-between gap-3 cursor-pointer">
-              <div>
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="settings-reduce-motion" className="cursor-pointer">
                 <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
                   Reduce Motion
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Minimize UI transitions and animations
                 </p>
-              </div>
-              <input
-                type="checkbox"
+              </label>
+              <CustomCheckbox
+                id="settings-reduce-motion"
                 checked={settings.reducedMotion}
-                onChange={(e) => onUpdateSettings({ reducedMotion: e.target.checked })}
-                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 shrink-0"
+                onChange={(checked) => onUpdateSettings({ reducedMotion: checked })}
+                ariaLabel="Toggle Reduce Motion"
               />
-            </label>
+            </div>
           </div>
         </div>
       </section>
@@ -561,20 +576,17 @@ export function SettingsView({
               >
                 Default Landing Tab
               </label>
-              <select
+              <CustomSelect
                 id="settings-default-view"
+                ariaLabel="Default landing tab"
                 value={settings.defaultView}
-                onChange={(e) =>
-                  onUpdateSettings({ defaultView: e.target.value as DashboardView })
+                onChange={(val) =>
+                  onUpdateSettings({ defaultView: val as DashboardView })
                 }
-                className="w-full px-3.5 py-2 rounded-lg text-sm bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
-              >
-                {LANDING_VIEWS.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.label}
-                  </option>
-                ))}
-              </select>
+                size="md"
+                className="w-full"
+                options={LANDING_VIEWS}
+              />
             </div>
 
             <div>
@@ -584,17 +596,20 @@ export function SettingsView({
               >
                 Clock Format
               </label>
-              <select
+              <CustomSelect
                 id="settings-time-format"
+                ariaLabel="Clock format"
                 value={settings.timeFormat}
-                onChange={(e) =>
-                  onUpdateSettings({ timeFormat: e.target.value as '24h' | '12h' })
+                onChange={(val) =>
+                  onUpdateSettings({ timeFormat: val as '24h' | '12h' })
                 }
-                className="w-full px-3.5 py-2 rounded-lg text-sm bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
-              >
-                <option value="24h">24-hour (14:30)</option>
-                <option value="12h">12-hour (2:30 PM)</option>
-              </select>
+                size="md"
+                className="w-full"
+                options={[
+                  { value: '24h', label: '24-hour (14:30)' },
+                  { value: '12h', label: '12-hour (2:30 PM)' },
+                ]}
+              />
             </div>
           </div>
 
@@ -609,27 +624,31 @@ export function SettingsView({
                 { key: 'showScratchpad' as const, label: 'Quick Scratchpad' },
                 { key: 'showGoogleCard' as const, label: 'Google Workspace Card' },
               ].map((item) => (
-                <label
+                <div
                   key={item.key}
-                  className="editorial-subtle-box flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#0B0F17]/50 cursor-pointer"
+                  className="editorial-subtle-box flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#0B0F17]/50"
                 >
-                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <label
+                    htmlFor={`settings-overview-${item.key}`}
+                    className="text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer flex-1"
+                  >
                     {item.label}
-                  </span>
-                  <input
-                    type="checkbox"
+                  </label>
+                  <CustomCheckbox
+                    id={`settings-overview-${item.key}`}
+                    size="sm"
                     checked={settings[item.key]}
-                    onChange={(e) => onUpdateSettings({ [item.key]: e.target.checked })}
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+                    onChange={(checked) => onUpdateSettings({ [item.key]: checked })}
+                    ariaLabel={`Show ${item.label}`}
                   />
-                </label>
+                </div>
               ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Section 3: Tasks & Focus Timer Defaults */}
+      {/* Section 3: Tasks, Categories & Focus Defaults */}
       <section className="editorial-rise editorial-rise-4 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
           <span className="editorial-kicker">
@@ -640,311 +659,241 @@ export function SettingsView({
             Tasks &amp; Focus Defaults
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Pre-selected defaults when starting timers or creating new tasks
+            Pre-selected defaults, priority &amp; matrix rules, and custom categories
           </p>
         </div>
 
-        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <div>
-            <label
-              htmlFor="settings-focus-minutes"
-              className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
-            >
-              Default Focus Duration
-            </label>
-            <select
-              id="settings-focus-minutes"
-              value={settings.defaultFocusMinutes}
-              onChange={(e) =>
-                onUpdateSettings({
-                  defaultFocusMinutes: Number(e.target.value) as 15 | 25 | 50,
-                })
-              }
-              className="w-full px-3.5 py-2 rounded-lg text-sm bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
-            >
-              <option value={15}>15 minutes</option>
-              <option value={25}>25 minutes</option>
-              <option value={50}>50 minutes</option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="settings-focus-label"
-              className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
-            >
-              Default Focus Label
-            </label>
-            <input
-              id="settings-focus-label"
-              type="text"
-              value={settings.defaultFocusLabel}
-              onChange={(e) => onUpdateSettings({ defaultFocusLabel: e.target.value })}
-              placeholder="Deep work sprint"
-              className="w-full px-3.5 py-2 rounded-lg text-sm bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="settings-task-category"
-              className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
-            >
-              Default Task Category
-            </label>
-            <select
-              id="settings-task-category"
-              value={settings.defaultTaskCategory}
-              onChange={(e) =>
-                onUpdateSettings({ defaultTaskCategory: e.target.value as TaskCategory })
-              }
-              className="w-full px-3.5 py-2 rounded-lg text-sm bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
-            >
-              {Object.values(TaskCategory).map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="settings-task-priority"
-              className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
-            >
-              Default Task Priority
-            </label>
-            <select
-              id="settings-task-priority"
-              value={settings.defaultTaskPriority}
-              onChange={(e) =>
-                onUpdateSettings({ defaultTaskPriority: e.target.value as TaskPriority })
-              }
-              className="w-full px-3.5 py-2 rounded-lg text-sm bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
-            >
-              {Object.values(TaskPriority).map((prio) => (
-                <option key={prio} value={prio}>
-                  {prio}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="settings-smart-sort"
-              className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
-            >
-              Smart Order Default Mode
-            </label>
-            <select
-              id="settings-smart-sort"
-              value={settings.smartSortMode}
-              onChange={(e) =>
-                onUpdateSettings({ smartSortMode: e.target.value as SmartSortMode })
-              }
-              className="w-full px-3.5 py-2 rounded-lg text-sm bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
-            >
-              <option value="balanced">Balanced</option>
-              <option value="priority">Priority first</option>
-              <option value="deadline">Deadline first</option>
-              <option value="quick-wins">Quick wins first</option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="settings-quick-win-mins"
-              className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
-            >
-              Quick-Win Threshold (minutes)
-            </label>
-            <input
-              id="settings-quick-win-mins"
-              type="number"
-              min={1}
-              max={60}
-              value={settings.quickWinMinutes}
-              onChange={(e) => {
-                const parsed = Number(e.target.value);
-                if (Number.isFinite(parsed) && parsed >= 1) {
-                  onUpdateSettings({ quickWinMinutes: Math.min(60, Math.round(parsed)) });
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label
+                htmlFor="settings-focus-minutes"
+                className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+              >
+                Default Focus Duration
+              </label>
+              <CustomSelect
+                id="settings-focus-minutes"
+                ariaLabel="Default focus duration"
+                value={String(settings.defaultFocusMinutes)}
+                onChange={(val) =>
+                  onUpdateSettings({
+                    defaultFocusMinutes: Number(val) as 15 | 25 | 50,
+                  })
                 }
-              }}
-              className="w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="settings-matrix-important"
-              className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
-            >
-              Matrix &ldquo;Important&rdquo; Rule
-            </label>
-            <select
-              id="settings-matrix-important"
-              value={settings.matrixImportantRule}
-              onChange={(e) =>
-                onUpdateSettings({ matrixImportantRule: e.target.value as MatrixImportantRule })
-              }
-              className="w-full px-3.5 py-2 rounded-lg text-sm bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
-            >
-              <option value="high-medium">High or Medium flag</option>
-              <option value="high-only">High flag only</option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="settings-matrix-urgent-days"
-              className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
-            >
-              Matrix &ldquo;Urgent&rdquo; Window (days)
-            </label>
-            <input
-              id="settings-matrix-urgent-days"
-              type="number"
-              min={0}
-              max={30}
-              value={settings.matrixUrgentDays}
-              onChange={(e) => {
-                const parsed = Number(e.target.value);
-                if (Number.isFinite(parsed) && parsed >= 0) {
-                  onUpdateSettings({ matrixUrgentDays: Math.min(30, Math.round(parsed)) });
-                }
-              }}
-              className="w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Section 4: AI Task Ordering & Suggestions */}
-      <section className="editorial-rise editorial-rise-4 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
-          <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-          <div>
-            <span className="editorial-kicker">
-              <span className="editorial-marker" aria-hidden="true">04</span>
-              <span className="editorial-kicker-text">Optional Assistance</span>
-            </span>
-            <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-              AI
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Optional Gemini task ordering &amp; priority suggestions on top of score order
-            </p>
-          </div>
-        </div>
-
-        <div className="p-6 space-y-5">
-          <div>
-            <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
-              AI Priority &amp; Duration Changes
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                {
-                  id: 'suggest' as AiPriorityMode,
-                  title: 'Suggest only',
-                  desc: 'Show accept/ignore chips on tasks without changing fields automatically.',
-                },
-                {
-                  id: 'auto-unflagged' as AiPriorityMode,
-                  title: 'Auto-apply to unflagged tasks only',
-                  desc: 'Fill missing flags & durations, never overwriting user-set priorities.',
-                },
-                {
-                  id: 'off' as AiPriorityMode,
-                  title: 'Off',
-                  desc: 'Do not suggest or apply priority flag changes.',
-                },
-              ].map((opt) => {
-                const selected = settings.aiPriorityMode === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => {
-                      onUpdateSettings({ aiPriorityMode: opt.id });
-                      showNotice(`AI priority mode: ${opt.title}`);
-                    }}
-                    className={`text-left p-3.5 rounded-xl border transition-colors ${
-                      selected
-                        ? 'border-blue-600 dark:border-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
-                        : 'editorial-subtle-box border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-[#0B0F17]/50'
-                    }`}
-                  >
-                    <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                      {opt.title}
-                    </p>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                      {opt.desc}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-2 gap-5 items-center">
-            <label className="flex items-center justify-between gap-3 cursor-pointer">
-              <div>
-                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                  Auto AI Sort
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Automatically refresh AI order when open tasks change
-                </p>
-              </div>
-              <input
-                type="checkbox"
-                checked={settings.aiAutoSort}
-                onChange={(e) => onUpdateSettings({ aiAutoSort: e.target.checked })}
-                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 shrink-0"
+                size="md"
+                className="w-full"
+                options={[
+                  { value: '15', label: '15 minutes' },
+                  { value: '25', label: '25 minutes' },
+                  { value: '50', label: '50 minutes' },
+                ]}
               />
-            </label>
+            </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label
-                  htmlFor="settings-ai-daily-cap"
-                  className="text-sm font-medium text-slate-900 dark:text-slate-100"
-                >
-                  Daily AI Usage Cap
-                </label>
-                <span className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
-                  Used today: {getAiUsageToday()}/{settings.aiDailyCap}
-                </span>
-              </div>
+              <label
+                htmlFor="settings-focus-label"
+                className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+              >
+                Default Focus Label
+              </label>
               <input
-                id="settings-ai-daily-cap"
+                id="settings-focus-label"
+                type="text"
+                value={settings.defaultFocusLabel}
+                onChange={(e) => onUpdateSettings({ defaultFocusLabel: e.target.value })}
+                placeholder="Deep work sprint"
+                className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm text-slate-900 dark:text-slate-100"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="settings-task-category"
+                className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+              >
+                Default Task Category
+              </label>
+              <CustomSelect
+                id="settings-task-category"
+                ariaLabel="Default task category"
+                value={settings.defaultTaskCategory}
+                onChange={(val) => onUpdateSettings({ defaultTaskCategory: val })}
+                size="md"
+                className="w-full"
+                options={settings.categories.map((cat) => ({
+                  value: cat.name,
+                  label: cat.name,
+                  color: cat.color,
+                  icon: <CategoryIcon icon={cat.icon} className="w-3.5 h-3.5" />,
+                }))}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="settings-task-priority"
+                className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+              >
+                Default Task Priority
+              </label>
+              <CustomSelect
+                id="settings-task-priority"
+                ariaLabel="Default task priority"
+                value={settings.defaultTaskPriority}
+                onChange={(val) =>
+                  onUpdateSettings({ defaultTaskPriority: val as TaskPriority })
+                }
+                size="md"
+                className="w-full"
+                options={PRIORITY_ORDER.map((prio) => ({
+                  value: prio,
+                  label: FLAG_META[prio].label,
+                  icon: <PriorityFlagGlyph priority={prio} />,
+                }))}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="settings-smart-sort"
+                className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+              >
+                Default Task Sort Mode
+              </label>
+              <CustomSelect
+                id="settings-smart-sort"
+                ariaLabel="Default task sort mode"
+                value={settings.smartSortMode}
+                onChange={(val) =>
+                  onUpdateSettings({ smartSortMode: val as SmartSortMode })
+                }
+                size="md"
+                className="w-full"
+                options={[
+                  { value: 'balanced', label: 'Balanced' },
+                  { value: 'priority', label: 'Priority first' },
+                  { value: 'deadline', label: 'Deadline first' },
+                  { value: 'quick-wins', label: 'Quick wins first' },
+                ]}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="settings-quick-win-mins"
+                className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+              >
+                Quick-Win Threshold (minutes)
+              </label>
+              <input
+                id="settings-quick-win-mins"
                 type="number"
                 min={1}
-                max={200}
-                value={settings.aiDailyCap}
+                max={60}
+                value={settings.quickWinMinutes}
                 onChange={(e) => {
                   const parsed = Number(e.target.value);
                   if (Number.isFinite(parsed) && parsed >= 1) {
-                    onUpdateSettings({ aiDailyCap: Math.min(200, Math.round(parsed)) });
+                    onUpdateSettings({ quickWinMinutes: Math.min(60, Math.round(parsed)) });
                   }
                 }}
-                className="w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100"
+                className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums text-slate-900 dark:text-slate-100"
               />
             </div>
+
+            <div>
+              <label
+                htmlFor="settings-matrix-important"
+                className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+              >
+                Matrix &ldquo;Important&rdquo; Rule
+              </label>
+              <CustomSelect
+                id="settings-matrix-important"
+                ariaLabel="Matrix important rule"
+                value={settings.matrixImportantRule}
+                onChange={(val) =>
+                  onUpdateSettings({
+                    matrixImportantRule: val as MatrixImportantRule,
+                  })
+                }
+                size="md"
+                className="w-full"
+                options={[
+                  { value: 'high-medium', label: 'High or Medium flag' },
+                  { value: 'high-only', label: 'High flag only' },
+                ]}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="settings-matrix-urgent-days"
+                className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+              >
+                Matrix &ldquo;Urgent&rdquo; Window (days)
+              </label>
+              <input
+                id="settings-matrix-urgent-days"
+                type="number"
+                min={0}
+                max={30}
+                value={settings.matrixUrgentDays}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isFinite(parsed) && parsed >= 0) {
+                    onUpdateSettings({ matrixUrgentDays: Math.min(30, Math.round(parsed)) });
+                  }
+                }}
+                className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums text-slate-900 dark:text-slate-100"
+              />
+            </div>
+          </div>
+
+          {/* Editable Categories */}
+          <div className="pt-5 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
+            <div>
+              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                Categories
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Add, rename, reorder, choose icons &amp; colors, or delete and reassign categories
+              </p>
+            </div>
+            <CategoryManager
+              categories={settings.categories}
+              tasks={tasks}
+              schedule={schedule}
+              onAddCategory={(cat) => {
+                onAddCategory(cat);
+                showNotice(`Added category "${cat.name}"`);
+              }}
+              onUpdateCategory={(id, patch) => {
+                onUpdateCategory(id, patch);
+                showNotice('Categories updated');
+              }}
+              onReorderCategories={(nextOrder) => {
+                onReorderCategories(nextOrder);
+                showNotice('Category order saved');
+              }}
+              onDeleteCategory={(id, reassignToName) => {
+                onDeleteCategory(id, reassignToName);
+                showNotice('Category deleted');
+              }}
+            />
           </div>
         </div>
       </section>
 
-      {/* Section 5: Google Account & Connected Apps */}
+      {/* Section 4: Google Account & Connected Apps */}
       <section className="editorial-rise editorial-rise-5 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
           <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
           <div>
             <span className="editorial-kicker">
-              <span className="editorial-marker" aria-hidden="true">05</span>
+              <span className="editorial-marker" aria-hidden="true">04</span>
               <span className="editorial-kicker-text">Cloud Sync</span>
             </span>
             <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
@@ -1011,13 +960,13 @@ export function SettingsView({
         </div>
       </section>
 
-      {/* Section 6: Data, Backup & Reset */}
+      {/* Section 5: Data, Backup & Reset */}
       <section className="editorial-rise editorial-rise-6 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
           <Database className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
           <div>
             <span className="editorial-kicker">
-              <span className="editorial-marker" aria-hidden="true">06</span>
+              <span className="editorial-marker" aria-hidden="true">05</span>
               <span className="editorial-kicker-text">Archive &amp; Reset</span>
             </span>
             <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">

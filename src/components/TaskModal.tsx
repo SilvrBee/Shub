@@ -1,21 +1,27 @@
 import { useEffect, useState } from 'react';
-import { Check, Flag, Pin, Plus, Repeat, Trash2, X } from 'lucide-react';
+import { Pin, Plus, Repeat, Settings2, Trash2, X } from 'lucide-react';
 import {
-  FieldSource,
+  CategoryItem,
   SubtaskItem,
-  TaskCategory,
   TaskItem,
   TaskPriority,
   TaskRepeatFrequency,
 } from '../types/dashboard';
-import { FLAG_META, PRIORITY_ORDER } from './PriorityFlag';
+import { FLAG_META, PRIORITY_ORDER, PriorityFlagGlyph } from './PriorityFlag';
 import { DURATION_CHIPS, WEEKDAY_OPTIONS } from '../utils/taskUtils';
+import { CustomSelect } from './ui/CustomSelect';
+import { CustomCheckbox } from './ui/CustomCheckbox';
+import { DatePickerField, TimePickerField } from './ui/CustomDateTimePicker';
+import { CategoryIcon } from './ui/CategoryBadge';
 
 interface TaskModalProps {
   isOpen: boolean;
   initialTask?: TaskItem | null;
-  defaultCategory?: TaskCategory;
+  categories: CategoryItem[];
+  defaultCategory?: string;
   defaultPriority?: TaskPriority;
+  timeFormat?: '12h' | '24h';
+  onOpenCategoryManager: () => void;
   onClose: () => void;
   onSave: (taskData: Omit<TaskItem, 'id' | 'createdAt' | 'completed'>, existingId?: string) => void;
 }
@@ -24,24 +30,33 @@ function makeSubtaskId(): string {
   return `sub_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
+const REPEAT_OPTIONS = [
+  { value: 'none', label: 'Does not repeat' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'custom', label: 'Custom weekdays' },
+];
+
 export function TaskModal({
   isOpen,
   initialTask,
+  categories,
   defaultPriority = TaskPriority.None,
+  timeFormat = '24h',
+  onOpenCategoryManager,
   onClose,
   onSave,
 }: TaskModalProps) {
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
-  const [category, setCategory] = useState<TaskCategory | ''>('');
+  const [category, setCategory] = useState<string>('');
   const [priority, setPriority] = useState<TaskPriority>(defaultPriority);
-  const [prioritySource, setPrioritySource] = useState<FieldSource>('user');
   const [dueDate, setDueDate] = useState('');
   const [dueTime, setDueTime] = useState('');
   const [deadlineDate, setDeadlineDate] = useState('');
   const [deadlineTime, setDeadlineTime] = useState('');
   const [durationMinutes, setDurationMinutes] = useState<string>('');
-  const [durationSource, setDurationSource] = useState<FieldSource>('user');
   const [repeat, setRepeat] = useState<TaskRepeatFrequency>('none');
   const [repeatWeekdays, setRepeatWeekdays] = useState<number[]>([]);
   const [pinned, setPinned] = useState(false);
@@ -55,7 +70,6 @@ export function TaskModal({
       setDetails(initialTask.details ?? initialTask.notes ?? '');
       setCategory(initialTask.category ?? '');
       setPriority(initialTask.priority ?? TaskPriority.None);
-      setPrioritySource(initialTask.prioritySource ?? 'user');
       setDueDate(initialTask.dueDate ?? '');
       setDueTime(initialTask.dueTime ?? '');
       setDeadlineDate(initialTask.deadlineDate ?? '');
@@ -65,7 +79,6 @@ export function TaskModal({
           ? String(initialTask.durationMinutes)
           : ''
       );
-      setDurationSource(initialTask.durationSource ?? 'user');
       setRepeat(initialTask.repeat ?? 'none');
       setRepeatWeekdays(initialTask.repeatWeekdays ?? []);
       setPinned(Boolean(initialTask.pinned));
@@ -76,13 +89,11 @@ export function TaskModal({
       setDetails('');
       setCategory('');
       setPriority(defaultPriority ?? TaskPriority.None);
-      setPrioritySource('user');
       setDueDate('');
       setDueTime('');
       setDeadlineDate('');
       setDeadlineTime('');
       setDurationMinutes('');
-      setDurationSource('user');
       setRepeat('none');
       setRepeatWeekdays([]);
       setPinned(false);
@@ -91,10 +102,25 @@ export function TaskModal({
     }
   }, [isOpen, initialTask, defaultPriority]);
 
+  // If categories were renamed or removed while modal was open, keep selected category consistent
+  useEffect(() => {
+    if (!isOpen || !category) return;
+    if (!categories.some((c) => c.name === category)) {
+      setCategory('');
+    }
+  }, [categories, category, isOpen]);
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (
+        e.key === 'Escape' &&
+        !e.defaultPrevented &&
+        !document.querySelector('[data-portal-popover="true"]') &&
+        !document.querySelector('[data-category-manager-modal="true"]')
+      ) {
+        onClose();
+      }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
@@ -102,23 +128,12 @@ export function TaskModal({
 
   if (!isOpen) return null;
 
-  const handleSelectPriority = (next: TaskPriority) => {
-    setPriority(next);
-    setPrioritySource('user');
-  };
-
   const handleSelectDurationChip = (mins: number) => {
     if (Number(durationMinutes) === mins) {
       setDurationMinutes('');
     } else {
       setDurationMinutes(String(mins));
     }
-    setDurationSource('user');
-  };
-
-  const handleDurationInputChange = (val: string) => {
-    setDurationMinutes(val);
-    setDurationSource('user');
   };
 
   const handleToggleWeekday = (dayValue: number) => {
@@ -164,18 +179,12 @@ export function TaskModal({
         details: details.trim() || undefined,
         category: category || undefined,
         priority,
-        prioritySource: initialTask && priority === initialTask.priority ? prioritySource : 'user',
+        prioritySource: 'user',
         dueDate: dueDate.trim() || undefined,
-        dueTime: dueDate.trim() && dueTime.trim() ? dueTime.trim() : dueTime.trim() || undefined,
+        dueTime: dueTime.trim() || undefined,
         deadlineDate: deadlineDate.trim() || undefined,
         deadlineTime: deadlineTime.trim() || undefined,
         durationMinutes: validDuration,
-        durationSource:
-          validDuration !== undefined
-            ? initialTask && validDuration === initialTask.durationMinutes
-              ? durationSource
-              : 'user'
-            : undefined,
         repeat,
         repeatWeekdays: repeat === 'custom' ? repeatWeekdays : undefined,
         pinned,
@@ -187,6 +196,16 @@ export function TaskModal({
   };
 
   const numericDuration = Number(durationMinutes);
+
+  const categoryOptions = [
+    { value: '', label: 'None' },
+    ...categories.map((cat) => ({
+      value: cat.name,
+      label: cat.name,
+      color: cat.color,
+      icon: <CategoryIcon icon={cat.icon} className="w-3.5 h-3.5" />,
+    })),
+  ];
 
   return (
     <div
@@ -245,7 +264,7 @@ export function TaskModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What needs to get done?"
-              className="w-full px-3.5 py-2.5 rounded-lg text-sm bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 dark:focus:border-blue-400"
+              className="cadence-input w-full px-3.5 py-2.5 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 dark:focus:border-blue-400"
             />
           </div>
 
@@ -263,7 +282,7 @@ export function TaskModal({
               value={details}
               onChange={(e) => setDetails(e.target.value)}
               placeholder="Links, context, or next steps..."
-              className="w-full px-3.5 py-2 rounded-lg text-sm bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 dark:focus:border-blue-400 resize-y"
+              className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 dark:focus:border-blue-400 resize-y"
             />
           </div>
 
@@ -283,17 +302,15 @@ export function TaskModal({
                       type="button"
                       role="radio"
                       aria-checked={selected}
-                      onClick={() => handleSelectPriority(prio)}
+                      aria-label={meta.ariaLabel}
+                      onClick={() => setPriority(prio)}
                       className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium border transition-colors ${
                         selected
                           ? 'border-blue-600 dark:border-blue-400 bg-blue-50/70 dark:bg-blue-950/40 text-slate-900 dark:text-slate-100'
                           : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0B0F17] text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
                       }`}
                     >
-                      <Flag
-                        className={`w-3.5 h-3.5 shrink-0 ${meta.iconClass} ${meta.fillClass}`}
-                        aria-hidden="true"
-                      />
+                      <PriorityFlagGlyph priority={prio} />
                       <span>{meta.label}</span>
                     </button>
                   );
@@ -308,19 +325,20 @@ export function TaskModal({
               >
                 Category <span className="text-slate-400 font-normal">(optional)</span>
               </label>
-              <select
+              <CustomSelect
                 id="task-category"
+                ariaLabel="Task category"
                 value={category}
-                onChange={(e) => setCategory((e.target.value || '') as TaskCategory | '')}
-                className="w-full px-3 py-2 rounded-lg text-sm bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 dark:focus:border-blue-400"
-              >
-                <option value="">None</option>
-                {Object.values(TaskCategory).map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
+                onChange={setCategory}
+                options={categoryOptions}
+                placeholder="None"
+                className="w-full"
+                footerAction={{
+                  label: 'Manage categories',
+                  icon: <Settings2 className="w-3.5 h-3.5" />,
+                  onClick: onOpenCategoryManager,
+                }}
+              />
             </div>
           </div>
 
@@ -345,21 +363,18 @@ export function TaskModal({
                 )}
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <input
+                <DatePickerField
                   id="task-due-date"
-                  type="date"
-                  aria-label="Due date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-md text-xs font-mono tabular-nums bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600"
+                  ariaLabel="Due date"
+                  value={dueDate || undefined}
+                  onChange={(v) => setDueDate(v ?? '')}
                 />
-                <input
+                <TimePickerField
                   id="task-due-time"
-                  type="time"
-                  aria-label="Due time"
-                  value={dueTime}
-                  onChange={(e) => setDueTime(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-md text-xs font-mono tabular-nums bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600"
+                  ariaLabel="Due time"
+                  value={dueTime || undefined}
+                  onChange={(v) => setDueTime(v ?? '')}
+                  timeFormat={timeFormat}
                 />
               </div>
             </div>
@@ -383,21 +398,18 @@ export function TaskModal({
                 )}
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <input
+                <DatePickerField
                   id="task-deadline-date"
-                  type="date"
-                  aria-label="Deadline date"
-                  value={deadlineDate}
-                  onChange={(e) => setDeadlineDate(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-md text-xs font-mono tabular-nums bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600"
+                  ariaLabel="Deadline date"
+                  value={deadlineDate || undefined}
+                  onChange={(v) => setDeadlineDate(v ?? '')}
                 />
-                <input
+                <TimePickerField
                   id="task-deadline-time"
-                  type="time"
-                  aria-label="Deadline time"
-                  value={deadlineTime}
-                  onChange={(e) => setDeadlineTime(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-md text-xs font-mono tabular-nums bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600"
+                  ariaLabel="Deadline time"
+                  value={deadlineTime || undefined}
+                  onChange={(v) => setDeadlineTime(v ?? '')}
+                  timeFormat={timeFormat}
                 />
               </div>
             </div>
@@ -412,7 +424,7 @@ export function TaskModal({
               {durationMinutes && (
                 <button
                   type="button"
-                  onClick={() => handleDurationInputChange('')}
+                  onClick={() => setDurationMinutes('')}
                   className="text-[11px] text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                 >
                   Clear
@@ -444,10 +456,10 @@ export function TaskModal({
                   max={1440}
                   step={1}
                   value={durationMinutes}
-                  onChange={(e) => handleDurationInputChange(e.target.value)}
+                  onChange={(e) => setDurationMinutes(e.target.value)}
                   placeholder="Custom"
                   aria-label="Custom estimated duration in minutes"
-                  className="w-24 px-2.5 py-1.5 rounded-md text-xs font-mono tabular-nums bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
+                  className="cadence-input w-24 px-2.5 py-1.5 rounded-md text-xs font-mono tabular-nums text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
                 />
                 <span className="text-xs text-slate-500 dark:text-slate-400">min</span>
               </div>
@@ -464,18 +476,16 @@ export function TaskModal({
                 <Repeat className="w-3.5 h-3.5 text-slate-400" />
                 <span>Repeat</span>
               </label>
-              <select
+              <CustomSelect
                 id="task-repeat"
+                ariaLabel="Repeat schedule"
                 value={repeat}
-                onChange={(e) => setRepeat(e.target.value as TaskRepeatFrequency)}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600"
-              >
-                <option value="none">Does not repeat</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="custom">Custom weekdays</option>
-              </select>
+                onChange={(v) => setRepeat(v as TaskRepeatFrequency)}
+                options={REPEAT_OPTIONS}
+                matchTriggerWidth={false}
+                align="end"
+                className="min-w-[170px]"
+              />
             </div>
 
             {repeat === 'custom' && (
@@ -523,20 +533,14 @@ export function TaskModal({
                     key={st.id}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800"
                   >
-                    <button
-                      type="button"
-                      onClick={() => handleToggleSubtask(st.id)}
-                      aria-label={
+                    <CustomCheckbox
+                      size="sm"
+                      checked={st.completed}
+                      onChange={() => handleToggleSubtask(st.id)}
+                      ariaLabel={
                         st.completed ? `Mark "${st.title}" incomplete` : `Mark "${st.title}" done`
                       }
-                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                        st.completed
-                          ? 'bg-blue-600 border-blue-600 text-white'
-                          : 'border-slate-300 dark:border-slate-600'
-                      }`}
-                    >
-                      {st.completed && <Check className="w-3 h-3" />}
-                    </button>
+                    />
                     <input
                       type="text"
                       value={st.title}
@@ -581,7 +585,7 @@ export function TaskModal({
                 }}
                 placeholder="Add a subtask step..."
                 aria-label="New subtask"
-                className="flex-1 px-3 py-1.5 rounded-lg text-xs bg-white dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
+                className="cadence-input flex-1 px-3 py-1.5 rounded-lg text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
               />
               <button
                 type="button"

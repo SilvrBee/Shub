@@ -319,13 +319,14 @@ function serializeTaskPatch(patch: Partial<TaskItem>): Record<string, unknown> {
     out.title = patch.title.trim().slice(0, 300);
   }
   if (has('category')) {
-    out.category = patch.category ? patch.category : deleteField();
+    out.category =
+      patch.category && patch.category.trim() ? patch.category.trim().slice(0, 60) : deleteField();
   }
   if (has('priority') && patch.priority !== undefined) {
     out.priority = patch.priority;
   }
   if (has('prioritySource')) {
-    out.prioritySource = patch.prioritySource ? patch.prioritySource : deleteField();
+    out.prioritySource = 'user';
   }
   if (has('dueDate')) {
     out.dueDate = patch.dueDate ? patch.dueDate.slice(0, 20) : deleteField();
@@ -373,22 +374,26 @@ function serializeTaskPatch(patch: Partial<TaskItem>): Record<string, unknown> {
         ? Math.max(1, Math.min(1440, Math.round(patch.durationMinutes)))
         : deleteField();
   }
-  if (has('durationSource')) {
-    out.durationSource = patch.durationSource ? patch.durationSource : deleteField();
-  }
   if (has('pinned')) {
     out.pinned = Boolean(patch.pinned);
   }
   return out;
 }
 
+export async function clearLegacyTaskAiFields(uid: string, taskId: string): Promise<void> {
+  await updateUserDoc(uid, 'tasks', taskId, {
+    prioritySource: 'user',
+    durationSource: deleteField(),
+  });
+}
+
 export const fsTasks = {
   create: (uid: string, item: TaskItem) =>
     createUserDoc(uid, 'tasks', item.id, {
       title: item.title.trim().slice(0, 300),
-      category: item.category,
+      category: item.category?.trim() ? item.category.trim().slice(0, 60) : undefined,
       priority: item.priority,
-      prioritySource: item.prioritySource ?? 'user',
+      prioritySource: 'user',
       dueDate: item.dueDate ? item.dueDate.slice(0, 20) : undefined,
       dueTime: item.dueTime ? item.dueTime.slice(0, 10) : undefined,
       deadlineDate: item.deadlineDate ? item.deadlineDate.slice(0, 20) : undefined,
@@ -412,8 +417,6 @@ export const fsTasks = {
         typeof item.durationMinutes === 'number' && Number.isFinite(item.durationMinutes)
           ? Math.max(1, Math.min(1440, Math.round(item.durationMinutes)))
           : undefined,
-      durationSource:
-        typeof item.durationMinutes === 'number' ? item.durationSource ?? 'user' : undefined,
       pinned: item.pinned ? true : undefined,
     }),
   update: (uid: string, id: string, patch: Partial<TaskItem>) =>
@@ -427,8 +430,18 @@ export const fsSchedule = {
       title: item.title.slice(0, 200),
       startTime: item.startTime.slice(0, 10),
       endTime: item.endTime.slice(0, 10),
-      category: item.category,
+      category: item.category.trim().slice(0, 60) || 'Work',
       location: item.location?.slice(0, 200),
+    }),
+  update: (uid: string, id: string, patch: Partial<ScheduleBlock>) =>
+    updateUserDoc(uid, 'schedule', id, {
+      ...(patch.title !== undefined ? { title: patch.title.slice(0, 200) } : {}),
+      ...(patch.startTime !== undefined ? { startTime: patch.startTime.slice(0, 10) } : {}),
+      ...(patch.endTime !== undefined ? { endTime: patch.endTime.slice(0, 10) } : {}),
+      ...(patch.category !== undefined
+        ? { category: patch.category.trim().slice(0, 60) || 'Work' }
+        : {}),
+      ...(patch.location !== undefined ? { location: patch.location?.slice(0, 200) } : {}),
     }),
   remove: (uid: string, id: string) => deleteUserDoc(uid, 'schedule', id),
 };

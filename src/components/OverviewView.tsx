@@ -6,7 +6,6 @@ import {
   FocusSession,
   HabitItem,
   ScheduleBlock,
-  TaskCategory,
   TaskItem,
   TaskPriority,
 } from '../types/dashboard';
@@ -19,6 +18,7 @@ import { AnimatedMetricValue, AuroraProgressRing } from './AuroraMetrics';
 import { useDoodleCelebratePulse } from '../hooks/useCadenceStyle';
 import { DoodleHeaderScene, DoodleSquiggle } from './DoodleKit';
 import { PriorityFlagDisplay } from './PriorityFlag';
+import { CategoryBadge } from './ui/CategoryBadge';
 import {
   formatDurationLabel,
   formatShortDateLabel,
@@ -39,7 +39,7 @@ interface OverviewViewProps {
   onSignIn: () => void;
   onUpdateScratchpad: (value: string) => void;
   onToggleTask: (id: string) => void;
-  onQuickAddTask: (title: string, category: TaskCategory, priority: TaskPriority) => void;
+  onQuickAddTask: (title: string, category: string, priority: TaskPriority) => void;
   onCompleteFocusSession: (minutes: number, label: string) => void;
   onNavigate: (view: DashboardView) => void;
   onOpenNewTaskModal: () => void;
@@ -450,57 +450,66 @@ export function OverviewView({
               />
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                {visibleTasks.map((task) => (
-                  <li
-                    key={task.id}
-                    className="px-6 py-3.5 flex items-start justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
-                  >
-                    <div className="flex items-start gap-3.5 min-w-0">
-                      <TaskCheckButton
-                        checked={task.completed}
-                        label={
-                          task.completed
-                            ? `Mark "${task.title}" incomplete`
-                            : `Mark "${task.title}" complete`
-                        }
-                        onToggle={() => onToggleTask(task.id)}
-                      />
-
-                      <div className="min-w-0">
-                        <p
-                          className={`text-sm font-medium leading-snug ${
+                {visibleTasks.map((task) => {
+                  const subtasks = task.subtasks ?? [];
+                  const doneSubs = subtasks.filter((s) => s.completed).length;
+                  const isPartial =
+                    !task.completed && doneSubs > 0 && doneSubs < subtasks.length;
+                  return (
+                    <li
+                      key={task.id}
+                      className="px-6 py-3.5 flex items-start justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
+                    >
+                      <div className="flex items-start gap-3.5 min-w-0">
+                        <TaskCheckButton
+                          checked={task.completed}
+                          indeterminate={isPartial}
+                          label={
                             task.completed
-                              ? 'line-through text-slate-400 dark:text-slate-500'
-                              : 'text-slate-900 dark:text-slate-100'
-                          }`}
-                        >
-                          {task.title}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          <PriorityFlagDisplay
-                            priority={task.priority}
-                            source={task.prioritySource}
-                            compact
-                          />
-                          {task.durationMinutes && (
-                            <span className="inline-flex items-center gap-1 font-mono tabular-nums">
-                              <Clock className="w-3 h-3" aria-hidden="true" />
-                              {formatDurationLabel(task.durationMinutes)}
-                            </span>
-                          )}
-                          {(task.deadlineDate || task.dueDate) && (
-                            <span className="font-mono tabular-nums">
-                              {task.deadlineDate
-                                ? `Due by ${formatShortDateLabel(task.deadlineDate, todayKey)}`
-                                : formatShortDateLabel(task.dueDate, todayKey)}
-                            </span>
-                          )}
-                          {task.category && <span>{task.category}</span>}
+                              ? `Mark "${task.title}" incomplete`
+                              : `Mark "${task.title}" complete`
+                          }
+                          onToggle={() => onToggleTask(task.id)}
+                        />
+
+                        <div className="min-w-0">
+                          <p
+                            className={`text-sm font-medium leading-snug ${
+                              task.completed
+                                ? 'line-through text-slate-400 dark:text-slate-500'
+                                : 'text-slate-900 dark:text-slate-100'
+                            }`}
+                          >
+                            {task.title}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            <PriorityFlagDisplay priority={task.priority} compact />
+                            {task.durationMinutes && (
+                              <span className="inline-flex items-center gap-1 font-mono tabular-nums">
+                                <Clock className="w-3 h-3" aria-hidden="true" />
+                                {formatDurationLabel(task.durationMinutes)}
+                              </span>
+                            )}
+                            {(task.deadlineDate || task.dueDate) && (
+                              <span className="font-mono tabular-nums">
+                                {task.deadlineDate
+                                  ? `Due by ${formatShortDateLabel(task.deadlineDate, todayKey)}`
+                                  : formatShortDateLabel(task.dueDate, todayKey)}
+                              </span>
+                            )}
+                            {task.category && (
+                              <CategoryBadge
+                                name={task.category}
+                                categories={settings.categories}
+                                compact
+                              />
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             )}
 
@@ -628,51 +637,61 @@ export function OverviewView({
               </div>
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                {nextUpTasks.map((task, idx) => (
-                  <li
-                    key={task.id}
-                    className="px-6 py-3 flex items-start gap-3 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
-                  >
-                    <span className="font-mono tabular-nums text-[11px] font-semibold text-slate-400 dark:text-slate-500 pt-1 w-4 shrink-0">
-                      {idx + 1}.
-                    </span>
-                    <TaskCheckButton
-                      checked={task.completed}
-                      label={`Mark "${task.title}" complete`}
-                      onToggle={() => onToggleTask(task.id)}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        {task.pinned && (
-                          <Pin className="w-3 h-3 text-blue-600 dark:text-blue-400 fill-current shrink-0" />
-                        )}
-                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                          {task.title}
-                        </p>
+                {nextUpTasks.map((task, idx) => {
+                  const subtasks = task.subtasks ?? [];
+                  const doneSubs = subtasks.filter((s) => s.completed).length;
+                  const isPartial =
+                    !task.completed && doneSubs > 0 && doneSubs < subtasks.length;
+                  return (
+                    <li
+                      key={task.id}
+                      className="px-6 py-3 flex items-start gap-3 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
+                    >
+                      <span className="font-mono tabular-nums text-[11px] font-semibold text-slate-400 dark:text-slate-500 pt-1 w-4 shrink-0">
+                        {idx + 1}.
+                      </span>
+                      <TaskCheckButton
+                        checked={task.completed}
+                        indeterminate={isPartial}
+                        label={`Mark "${task.title}" complete`}
+                        onToggle={() => onToggleTask(task.id)}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          {task.pinned && (
+                            <Pin className="w-3 h-3 text-blue-600 dark:text-blue-400 fill-current shrink-0" />
+                          )}
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                            {task.title}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          <PriorityFlagDisplay priority={task.priority} compact />
+                          {task.durationMinutes && (
+                            <span className="inline-flex items-center gap-1 font-mono tabular-nums">
+                              <Clock className="w-3 h-3" aria-hidden="true" />
+                              {formatDurationLabel(task.durationMinutes)}
+                            </span>
+                          )}
+                          {(task.deadlineDate || task.dueDate) && (
+                            <span className="font-mono tabular-nums">
+                              {task.deadlineDate
+                                ? `Due by ${formatShortDateLabel(task.deadlineDate, todayKey)}`
+                                : formatShortDateLabel(task.dueDate, todayKey)}
+                            </span>
+                          )}
+                          {task.category && (
+                            <CategoryBadge
+                              name={task.category}
+                              categories={settings.categories}
+                              compact
+                            />
+                          )}
+                        </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        <PriorityFlagDisplay
-                          priority={task.priority}
-                          source={task.prioritySource}
-                          compact
-                        />
-                        {task.durationMinutes && (
-                          <span className="inline-flex items-center gap-1 font-mono tabular-nums">
-                            <Clock className="w-3 h-3" aria-hidden="true" />
-                            {formatDurationLabel(task.durationMinutes)}
-                          </span>
-                        )}
-                        {(task.deadlineDate || task.dueDate) && (
-                          <span className="font-mono tabular-nums">
-                            {task.deadlineDate
-                              ? `Due by ${formatShortDateLabel(task.deadlineDate, todayKey)}`
-                              : formatShortDateLabel(task.dueDate, todayKey)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>
@@ -728,10 +747,14 @@ export function OverviewView({
                       <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
                         {block.title}
                       </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        {block.category}
-                        {block.location ? ` · ${block.location}` : ''}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        <CategoryBadge
+                          name={block.category}
+                          categories={settings.categories}
+                          compact
+                        />
+                        {block.location && <span>· {block.location}</span>}
+                      </div>
                     </div>
                   </li>
                 ))}

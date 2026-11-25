@@ -4,7 +4,6 @@ import {
   MatrixImportantRule,
   SmartSortMode,
   SubtaskItem,
-  TaskCategory,
   TaskItem,
   TaskPriority,
   TaskRepeatFrequency,
@@ -25,7 +24,6 @@ export const WEEKDAY_OPTIONS: Array<{ value: number; short: string; label: strin
 ];
 
 const VALID_PRIORITIES = new Set<string>(Object.values(TaskPriority));
-const VALID_CATEGORIES = new Set<string>(Object.values(TaskCategory));
 const VALID_REPEATS = new Set<string>(['none', 'daily', 'weekly', 'monthly', 'custom']);
 
 export function normalizePriority(raw: unknown): TaskPriority {
@@ -38,26 +36,18 @@ export function normalizePriority(raw: unknown): TaskPriority {
 /**
  * Migrates legacy or partial TaskItem records safely:
  * - Maps legacy High / Medium / Low to matching flags with prioritySource: 'user'
+ * - Converts any legacy 'ai' source markers to 'user'
  * - Maps legacy `notes` into `details`
+ * - Preserves custom category names cleanly
  * - Ensures missing priority defaults to TaskPriority.None
  */
 export function migrateTask(raw: Partial<TaskItem> & { id: string; title?: string }): TaskItem {
   const priority = normalizePriority(raw.priority);
-  const prioritySource =
-    raw.prioritySource === 'ai' || raw.prioritySource === 'user'
-      ? raw.prioritySource
-      : 'user';
+  const prioritySource = 'user' as const;
 
   const durationMinutes =
     typeof raw.durationMinutes === 'number' && Number.isFinite(raw.durationMinutes) && raw.durationMinutes > 0
       ? Math.round(raw.durationMinutes)
-      : undefined;
-
-  const durationSource =
-    durationMinutes !== undefined
-      ? raw.durationSource === 'ai' || raw.durationSource === 'user'
-        ? raw.durationSource
-        : 'user'
       : undefined;
 
   const details =
@@ -94,8 +84,8 @@ export function migrateTask(raw: Partial<TaskItem> & { id: string; title?: strin
     : undefined;
 
   const category =
-    typeof raw.category === 'string' && VALID_CATEGORIES.has(raw.category)
-      ? (raw.category as TaskCategory)
+    typeof raw.category === 'string' && raw.category.trim()
+      ? raw.category.trim().slice(0, 60)
       : undefined;
 
   return {
@@ -120,7 +110,6 @@ export function migrateTask(raw: Partial<TaskItem> & { id: string; title?: strin
     repeat,
     repeatWeekdays: repeat === 'custom' ? repeatWeekdays : undefined,
     durationMinutes,
-    durationSource,
     pinned: Boolean(raw.pinned),
     createdAt: typeof raw.createdAt === 'string' && raw.createdAt ? raw.createdAt : new Date().toISOString(),
   };
@@ -355,23 +344,6 @@ export function sortTasksSmart(
   return [...tasks].sort((a, b) => compareTasksSmart(a, b, mode, quickWinMinutes, todayKey));
 }
 
-export function filterTasksFittingMinutes(
-  tasks: TaskItem[],
-  availableMinutes: number,
-  mode: SmartSortMode,
-  quickWinMinutes = 5,
-  todayKey = getTodayKey()
-): TaskItem[] {
-  const open = tasks.filter(
-    (t) =>
-      !t.completed &&
-      typeof t.durationMinutes === 'number' &&
-      t.durationMinutes > 0 &&
-      t.durationMinutes <= availableMinutes
-  );
-  return sortTasksSmart(open, mode, quickWinMinutes, todayKey);
-}
-
 export function isTaskImportant(task: TaskItem, rule: MatrixImportantRule): boolean {
   if (rule === 'high-only') {
     return task.priority === TaskPriority.High;
@@ -467,49 +439,6 @@ export function computeQuadrantDropPatch(
     deadlineDate: nextDeadlineDate,
     dueDate: nextDueDate,
   };
-}
-
-/**
- * Applies an AI-recommended ordering of open task IDs while keeping every pinned task
- * anchored at its exact current slot index in the baseline list.
- */
-export function applyAiOrderWithPinnedLock(
-  baselineOpenTasks: TaskItem[],
-  aiOrderedIds: string[]
-): TaskItem[] {
-  if (baselineOpenTasks.length === 0) return [];
-
-  const taskById = new Map(baselineOpenTasks.map((t) => [t.id, t]));
-  const result: Array<TaskItem | null> = baselineOpenTasks.map((t) => (t.pinned ? t : null));
-  const pinnedIds = new Set(baselineOpenTasks.filter((t) => t.pinned).map((t) => t.id));
-
-  const aiQueue: TaskItem[] = [];
-  const seen = new Set<string>();
-
-  for (const id of aiOrderedIds) {
-    if (pinnedIds.has(id) || seen.has(id)) continue;
-    const found = taskById.get(id);
-    if (found) {
-      seen.add(id);
-      aiQueue.push(found);
-    }
-  }
-
-  // Append any open unpinned tasks missing from AI output in baseline order
-  for (const t of baselineOpenTasks) {
-    if (!pinnedIds.has(t.id) && !seen.has(t.id)) {
-      seen.add(t.id);
-      aiQueue.push(t);
-    }
-  }
-
-  let cursor = 0;
-  return result.map((slot) => {
-    if (slot) return slot;
-    const next = aiQueue[cursor];
-    cursor += 1;
-    return next;
-  });
 }
 
 export function formatDurationLabel(minutes?: number): string {
