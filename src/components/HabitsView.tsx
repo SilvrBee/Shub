@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Plus, Trash2 } from 'lucide-react';
-import { AppStyleId, HabitItem } from '../types/dashboard';
+import { AppStyleId, DashboardView, HabitItem } from '../types/dashboard';
 import { HabitHeatmapCard } from './HabitHeatmapCard';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
+import { DoodleConfettiBurst, DoodleHeaderScene } from './DoodleKit';
 
 interface HabitsViewProps {
   habits: HabitItem[];
@@ -56,6 +57,7 @@ export function HabitsView({
     setCelebratingHabitId(habitId);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('cadence:shooting-star'));
+      window.dispatchEvent(new CustomEvent('cadence:doodle-celebrate', { detail: { source: 'habit' } }));
     }
     if (celebrationTimerRef.current) {
       window.clearTimeout(celebrationTimerRef.current);
@@ -85,17 +87,26 @@ export function HabitsView({
 
   return (
     <div className="space-y-6">
-      <div className="editorial-rise editorial-rise-1">
-        <span className="editorial-kicker">
-          <span className="editorial-marker" aria-hidden="true">EDITION</span>
-          <span className="editorial-kicker-text">Rituals &amp; Pace</span>
-        </span>
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-          Habits
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Build weekly consistency and monitor your 12-week completion heatmap
-        </p>
+      <div className="editorial-rise editorial-rise-1 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <span className="editorial-kicker">
+            <span className="editorial-marker" aria-hidden="true">EDITION</span>
+            <span className="editorial-kicker-text">Rituals &amp; Pace</span>
+          </span>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+            Habits
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Build weekly consistency and monitor your 12-week completion heatmap
+          </p>
+        </div>
+
+        {style === 'doodle' && (
+          <DoodleHeaderScene
+            tab={DashboardView.Habits}
+            mascotOverride={celebratingHabitId ? 'celebrating' : 'idle'}
+          />
+        )}
       </div>
 
       {/* GitHub-Style 12-Week Heatmap / Celestial Night Sky Constellation */}
@@ -198,25 +209,29 @@ export function HabitsView({
                       <td className="py-3.5 px-3 text-right font-mono tabular-nums text-xs whitespace-nowrap">
                         <div className="relative inline-flex items-center justify-end">
                           {isCelebrating && (
-                            <span
-                              aria-hidden="true"
-                              className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-visible"
-                            >
-                              {CONFETTI_PARTICLES.map((p, idx) => (
-                                <span
-                                  key={idx}
-                                  className="confetti-particle absolute w-1.5 h-1.5 rounded-[2px]"
-                                  style={
-                                    {
-                                      backgroundColor: p.color,
-                                      '--tx': p.tx,
-                                      '--ty': p.ty,
-                                      '--rot': p.rot,
-                                    } as React.CSSProperties
-                                  }
-                                />
-                              ))}
-                            </span>
+                            style === 'doodle' ? (
+                              <DoodleConfettiBurst />
+                            ) : (
+                              <span
+                                aria-hidden="true"
+                                className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-visible"
+                              >
+                                {CONFETTI_PARTICLES.map((p, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="confetti-particle absolute w-1.5 h-1.5 rounded-[2px]"
+                                    style={
+                                      {
+                                        backgroundColor: p.color,
+                                        '--tx': p.tx,
+                                        '--ty': p.ty,
+                                        '--rot': p.rot,
+                                      } as React.CSSProperties
+                                    }
+                                  />
+                                ))}
+                              </span>
+                            )
                           )}
                           <span
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md transition-colors ${

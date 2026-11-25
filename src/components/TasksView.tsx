@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
-import { TaskCategory, TaskItem, TaskPriority } from '../types/dashboard';
+import { DashboardView, TaskCategory, TaskItem, TaskPriority } from '../types/dashboard';
 import { TaskCheckButton } from './TaskCheckButton';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
+import { useCadenceStyle, useDoodleCelebratePulse } from '../hooks/useCadenceStyle';
+import { DoodleHeaderScene } from './DoodleKit';
 
 interface TasksViewProps {
   tasks: TaskItem[];
@@ -19,6 +21,8 @@ export function TasksView({
   onDeleteTask,
   onOpenNewTask,
 }: TasksViewProps) {
+  const activeStyle = useCadenceStyle();
+  const isDoodleCelebrating = useDoodleCelebratePulse(1800);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [categoryFilter, setCategoryFilter] = useState<'All' | TaskCategory>('All');
@@ -70,14 +74,28 @@ export function TasksView({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onOpenNewTask}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors whitespace-nowrap shrink-0 self-start sm:self-auto"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Add Task</span>
-        </button>
+        <div className="flex items-center gap-3 self-start sm:self-auto">
+          {activeStyle === 'doodle' && (
+            <DoodleHeaderScene
+              tab={DashboardView.Tasks}
+              mascotOverride={
+                isDoodleCelebrating
+                  ? 'celebrating'
+                  : tasks.length === 0
+                    ? 'sleeping'
+                    : 'idle'
+              }
+            />
+          )}
+          <button
+            type="button"
+            onClick={onOpenNewTask}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors whitespace-nowrap shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Task</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter & Search Toolbar */}

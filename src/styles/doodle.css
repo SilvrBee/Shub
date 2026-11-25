@@ -1,0 +1,412 @@
+/* Style: Doodle — strictly scoped under data-style="doodle" */
+
+html[data-style="doodle"] {
+  --cadence-font-display: "Fredoka", "Plus Jakarta Sans", sans-serif;
+  --cadence-font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --cadence-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --cadence-radius-card: 1.25rem;
+  --cadence-radius-control: 0.875rem;
+  --cadence-radius-sm: 0.625rem;
+
+  --cadence-border-width: 2px;
+  --cadence-border-color: #1e2433;
+  --cadence-border-subtle: rgba(30, 36, 51, 0.14);
+
+  --cadence-bg-canvas: #fffcf3;
+  --cadence-bg-sidebar: #fffef9;
+  --cadence-bg-header: rgba(255, 252, 243, 0.94);
+  --cadence-bg-card: #ffffff;
+  --cadence-bg-input: #fffdf7;
+  --cadence-bg-modal: #ffffff;
+
+  --doodle-ink: #1e2433;
+  --doodle-stroke: #1e2433;
+  --doodle-accent: var(--color-blue-500);
+  --doodle-accent-deep: var(--color-blue-600);
+  --doodle-accent-soft: var(--color-blue-200);
+  --doodle-accent-tint: var(--color-blue-50);
+  --doodle-sun: color-mix(in srgb, #fbbc04 86%, var(--color-blue-300));
+  --doodle-coral: color-mix(in srgb, #fb7185 84%, var(--color-blue-400));
+  --doodle-mint: color-mix(in srgb, #34d399 84%, var(--color-blue-300));
+  --doodle-paper-shadow-1: var(--color-blue-200);
+  --doodle-paper-shadow-2: #1e2433;
+  --doodle-illustration-surface: #fffdf7;
+
+  /* Layered paper-cut shadow */
+  --cadence-shadow-card:
+    4px 4px 0 0 var(--doodle-paper-shadow-1),
+    7px 7px 0 0 var(--doodle-paper-shadow-2);
+  --cadence-shadow-elevated:
+    6px 6px 0 0 var(--doodle-paper-shadow-1),
+    10px 10px 0 0 var(--doodle-paper-shadow-2);
+
+  --cadence-blur-card: 0px;
+  --cadence-blur-header: 4px;
+
+  --cadence-space-card: 1.5rem;
+  --cadence-space-section: 1.75rem;
+  --cadence-space-main-x: 2rem;
+  --cadence-space-main-y: 2rem;
+
+  /* Subtle tactile paper-grain texture (inline SVG noise) */
+  --cadence-bg-layer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='dg'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.14 0 0 0 0 0.14 0 0 0 0 0.18 0 0 0 0.036 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23dg)'/%3E%3C/svg%3E");
+}
+
+html[data-style="doodle"]:not(.high-contrast) {
+  --color-slate-50: #fffcf4;
+  --color-slate-100: #f6f2e6;
+  --color-slate-200: #d9d3c3;
+  --color-slate-300: #9da4b3;
+  --color-slate-400: #5c667a;
+  --color-slate-500: #4a5468;
+  --color-slate-600: #374151;
+  --color-slate-700: #272f40;
+  --color-slate-800: #1e2433;
+  --color-slate-900: #161b26;
+  --color-slate-950: #0f131c;
+}
+
+html.dark[data-style="doodle"] {
+  --cadence-border-color: #cbd5e1;
+  --cadence-border-subtle: rgba(203, 213, 225, 0.18);
+
+  --cadence-bg-canvas: #151824;
+  --cadence-bg-sidebar: #1a1e2e;
+  --cadence-bg-header: rgba(21, 24, 36, 0.94);
+  --cadence-bg-card: #1f2436;
+  --cadence-bg-input: #141826;
+  --cadence-bg-modal: #1f2436;
+
+  --doodle-ink: #f1f5f9;
+  --doodle-stroke: #dbe4f5;
+  --doodle-paper-shadow-1: color-mix(in srgb, var(--color-blue-700) 58%, #0b1020);
+  --doodle-paper-shadow-2: #090c14;
+  --doodle-illustration-surface: #262d42;
+
+  --cadence-shadow-card:
+    4px 4px 0 0 var(--doodle-paper-shadow-1),
+    7px 7px 0 0 var(--doodle-paper-shadow-2);
+  --cadence-shadow-elevated:
+    6px 6px 0 0 var(--doodle-paper-shadow-1),
+    10px 10px 0 0 var(--doodle-paper-shadow-2);
+
+  --cadence-bg-layer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='dg'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.95 0 0 0 0 0.96 0 0 0 0 1 0 0 0 0.032 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23dg)'/%3E%3C/svg%3E");
+}
+
+html.dark[data-style="doodle"]:not(.high-contrast) {
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #dbe4f5;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #a5b4cf;
+  --color-slate-500: #93a3c0;
+  --color-slate-600: #6e7e9c;
+  --color-slate-700: #39425a;
+  --color-slate-800: #2b3248;
+  --color-slate-900: #181c2b;
+  --color-slate-950: #0e111b;
+}
+
+/* Tile subtle SVG grain without stretching */
+html[data-style="doodle"]:not(.high-contrast) body,
+html[data-style="doodle"]:not(.high-contrast) .cadence-shell {
+  background-repeat: repeat;
+  background-size: 180px 180px;
+}
+
+/* Chunky rounded typography */
+html[data-style="doodle"] main h1 {
+  font-family: var(--cadence-font-display);
+  font-size: clamp(1.9rem, 2.8vw, 2.5rem);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+}
+
+html[data-style="doodle"] .cadence-card h2,
+html[data-style="doodle"] .doodle-heading {
+  font-family: var(--cadence-font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+html[data-style="doodle"] .editorial-kpi-value {
+  font-family: var(--cadence-font-display);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Slightly wonky handmade paper-cut cards & crisp ink borders */
+html[data-style="doodle"] .cadence-card {
+  background-color: var(--cadence-bg-card);
+  border: 2px solid var(--doodle-stroke);
+  border-radius: 22px 17px 21px 18px;
+  box-shadow: var(--cadence-shadow-card);
+}
+
+html[data-style="doodle"] .cadence-sidebar {
+  border-right: 2px solid var(--doodle-stroke);
+}
+
+html[data-style="doodle"] .cadence-header {
+  border-bottom: 2px solid var(--doodle-stroke);
+}
+
+html[data-style="doodle"]:not(.high-contrast) main :is(input:not([type="checkbox"]), textarea, select) {
+  border-width: 2px;
+  border-color: var(--doodle-stroke);
+  border-radius: 13px 11px 14px 12px;
+}
+
+html[data-style="doodle"]:not(.high-contrast) main input[type="text"].bg-transparent,
+html[data-style="doodle"]:not(.high-contrast) main textarea.bg-transparent {
+  border-color: transparent;
+}
+
+html[data-style="doodle"]:not(.high-contrast) .editorial-subtle-box {
+  border-width: 2px;
+  border-color: var(--doodle-stroke);
+  border-radius: 12px 14px 11px 13px;
+}
+
+/* Bouncy spring interaction on primary interactive controls */
+html[data-style="doodle"]:not(.reduce-motion) main button:not(:disabled) {
+  transition:
+    transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+html[data-style="doodle"]:not(.reduce-motion) main button:not(:disabled):active {
+  transform: translateY(1.5px) scale(0.97);
+}
+
+/* Playful pop-in entrance with slight spring overshoot */
+@keyframes doodlePopIn {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.012);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+html[data-style="doodle"]:not(.reduce-motion) .tab-transition-enter .editorial-rise {
+  animation: doodlePopIn 440ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+html[data-style="doodle"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-1 {
+  animation-delay: 0ms;
+}
+
+html[data-style="doodle"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-2 {
+  animation-delay: 60ms;
+}
+
+html[data-style="doodle"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-3 {
+  animation-delay: 120ms;
+}
+
+html[data-style="doodle"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-4 {
+  animation-delay: 180ms;
+}
+
+html[data-style="doodle"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-5 {
+  animation-delay: 240ms;
+}
+
+html[data-style="doodle"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-6 {
+  animation-delay: 300ms;
+}
+
+/* Mascot & Doodle Vector Animations */
+@keyframes doodleBlink {
+  0%, 44%, 48%, 92%, 96%, 100% {
+    transform: scaleY(1);
+  }
+  46%, 94% {
+    transform: scaleY(0.12);
+  }
+}
+
+@keyframes doodleWobble {
+  0%, 100% {
+    transform: rotate(-1.6deg) translateY(0px);
+  }
+  50% {
+    transform: rotate(1.8deg) translateY(-2.5px);
+  }
+}
+
+@keyframes doodleWaveArm {
+  0%, 100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(22deg);
+  }
+}
+
+@keyframes doodleCelebrateJump {
+  0%, 100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  25% {
+    transform: translateY(-7px) scale(0.96, 1.05) rotate(-3deg);
+  }
+  55% {
+    transform: translateY(1px) scale(1.05, 0.95);
+  }
+  75% {
+    transform: translateY(-4px) scale(0.98, 1.03) rotate(3deg);
+  }
+}
+
+@keyframes doodleSleepFloat {
+  0%, 100% {
+    transform: scaleY(1) translateY(0px);
+  }
+  50% {
+    transform: scaleY(0.96) translateY(1.5px);
+  }
+}
+
+@keyframes doodleZzzDrift {
+  0% {
+    opacity: 0;
+    transform: translate(0px, 4px) scale(0.75);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(8px, -13px) scale(1.08);
+  }
+}
+
+@keyframes doodleFocusBob {
+  0%, 100% {
+    transform: translateY(0px) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-2.5px) rotate(1.5deg);
+  }
+}
+
+@keyframes doodleSparkleTwinkle {
+  0%, 100% {
+    transform: scale(0.85) rotate(0deg);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.15) rotate(14deg);
+    opacity: 1;
+  }
+}
+
+.doodle-eye-blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: doodleBlink 5.2s ease-in-out infinite;
+}
+
+.doodle-wobble {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: doodleWobble 3.4s ease-in-out infinite;
+}
+
+.doodle-wave-arm {
+  transform-box: fill-box;
+  transform-origin: 20% 80%;
+  animation: doodleWaveArm 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+
+.doodle-celebrate-jump {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: doodleCelebrateJump 0.85s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+
+.doodle-sleep-breathe {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: doodleSleepFloat 3.6s ease-in-out infinite;
+}
+
+.doodle-zzz-1 {
+  animation: doodleZzzDrift 2.6s ease-out infinite;
+}
+
+.doodle-zzz-2 {
+  animation: doodleZzzDrift 2.6s ease-out 1.2s infinite;
+}
+
+.doodle-focus-bob {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: doodleFocusBob 2.2s ease-in-out infinite;
+}
+
+.doodle-sparkle-twinkle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: doodleSparkleTwinkle 2.4s ease-in-out infinite;
+}
+
+/* Header vignette cardlet */
+.doodle-scene-frame {
+  background-color: var(--doodle-illustration-surface);
+  border: 2px solid var(--doodle-stroke);
+  border-radius: 18px 14px 20px 15px;
+  box-shadow: 3px 3px 0 0 var(--doodle-paper-shadow-1);
+}
+
+/* Reduce Motion overrides */
+html.reduce-motion[data-style="doodle"] .tab-transition-enter .editorial-rise,
+html.reduce-motion[data-style="doodle"] .doodle-eye-blink,
+html.reduce-motion[data-style="doodle"] .doodle-wobble,
+html.reduce-motion[data-style="doodle"] .doodle-wave-arm,
+html.reduce-motion[data-style="doodle"] .doodle-celebrate-jump,
+html.reduce-motion[data-style="doodle"] .doodle-sleep-breathe,
+html.reduce-motion[data-style="doodle"] .doodle-zzz-1,
+html.reduce-motion[data-style="doodle"] .doodle-zzz-2,
+html.reduce-motion[data-style="doodle"] .doodle-focus-bob,
+html.reduce-motion[data-style="doodle"] .doodle-sparkle-twinkle {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-style="doodle"] .tab-transition-enter .editorial-rise,
+  html[data-style="doodle"] .doodle-eye-blink,
+  html[data-style="doodle"] .doodle-wobble,
+  html[data-style="doodle"] .doodle-wave-arm,
+  html[data-style="doodle"] .doodle-celebrate-jump,
+  html[data-style="doodle"] .doodle-sleep-breathe,
+  html[data-style="doodle"] .doodle-zzz-1,
+  html[data-style="doodle"] .doodle-zzz-2,
+  html[data-style="doodle"] .doodle-focus-bob,
+  html[data-style="doodle"] .doodle-sparkle-twinkle {
+    animation: none !important;
+  }
+}
+
+/* High Contrast compatibility */
+html.high-contrast[data-style="doodle"] .cadence-card {
+  box-shadow: none;
+  border-radius: 14px;
+}
+
+html.high-contrast[data-style="doodle"] .doodle-scene-frame {
+  box-shadow: none;
+}

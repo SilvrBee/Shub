@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
+import { useCadenceStyle } from '../hooks/useCadenceStyle';
+import { DoodleConfettiBurst } from './DoodleKit';
 
 interface TaskCheckButtonProps {
   checked: boolean;
@@ -10,11 +12,15 @@ interface TaskCheckButtonProps {
 export function TaskCheckButton({ checked, label, onToggle }: TaskCheckButtonProps) {
   const [animating, setAnimating] = useState(false);
   const prevCheckedRef = useRef(checked);
+  const activeStyle = useCadenceStyle();
 
   useEffect(() => {
     if (!prevCheckedRef.current && checked) {
       setAnimating(true);
-      const t = window.setTimeout(() => setAnimating(false), 480);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('cadence:doodle-celebrate', { detail: { source: 'task' } }));
+      }
+      const t = window.setTimeout(() => setAnimating(false), 680);
       prevCheckedRef.current = checked;
       return () => window.clearTimeout(t);
     }
@@ -38,6 +44,7 @@ export function TaskCheckButton({ checked, label, onToggle }: TaskCheckButtonPro
           className="absolute inset-0 rounded-md border-2 border-blue-500 dark:border-blue-400 pointer-events-none task-check-ripple"
         />
       )}
+      {animating && activeStyle === 'doodle' && <DoodleConfettiBurst />}
       {checked && (
         <Check
           className={`w-3.5 h-3.5 ${animating ? 'task-check-draw' : ''}`}

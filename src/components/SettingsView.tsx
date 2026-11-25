@@ -28,6 +28,7 @@ import {
   TaskPriority,
 } from '../types/dashboard';
 import { GoogleSignInButton } from './GoogleSignInButton';
+import { DoodleHeaderScene } from './DoodleKit';
 
 interface SettingsViewProps {
   settings: AppSettings;
@@ -165,12 +166,15 @@ export function SettingsView({
           </p>
         </div>
 
-        {statusNotice && (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 self-start sm:self-auto">
-            <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            <span>{statusNotice}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-3 self-start sm:self-auto">
+          {settings.style === 'doodle' && <DoodleHeaderScene tab={DashboardView.Settings} />}
+          {statusNotice && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200">
+              <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span>{statusNotice}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Section 1: Appearance & Themes */}
@@ -272,6 +276,8 @@ export function SettingsView({
                   backdropBg = `radial-gradient(1.5px 1.5px at 22% 24%, rgba(255,255,255,0.65), transparent), radial-gradient(1px 1px at 78% 20%, rgba(255,255,255,0.5), transparent), radial-gradient(1.5px 1.5px at 66% 74%, ${activeTheme.accentHex}aa, transparent), radial-gradient(140px circle at 80% 12%, ${activeTheme.accentHex}2b, transparent 70%)`;
                 } else if (p.effect === 'editorial') {
                   backdropBg = `linear-gradient(180deg, ${activeTheme.accentHex}0d 0%, transparent 65%)`;
+                } else if (p.effect === 'doodle') {
+                  backdropBg = `radial-gradient(4px circle at 88% 22%, #fbbc04, transparent), radial-gradient(3px circle at 76% 78%, #fb7185, transparent), linear-gradient(135deg, ${activeTheme.accentHex}14 0%, transparent 70%)`;
                 }
 
                 return (
@@ -298,6 +304,11 @@ export function SettingsView({
                         backgroundImage: backdropBg,
                         borderColor,
                         borderRadius: p.radius,
+                        borderWidth: p.effect === 'doodle' ? '2px' : '1px',
+                        boxShadow:
+                          p.effect === 'doodle'
+                            ? `3px 3px 0 0 ${activeTheme.accentHex}55`
+                            : undefined,
                       }}
                     >
                       {/* Mini sidebar */}

@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Plus, Search, Trash2 } from 'lucide-react';
-import { NoteItem } from '../types/dashboard';
+import { DashboardView, NoteItem } from '../types/dashboard';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
+import { useCadenceStyle } from '../hooks/useCadenceStyle';
+import { DoodleHeaderScene } from './DoodleKit';
 
 interface NotesViewProps {
   notes: NoteItem[];
@@ -16,6 +18,7 @@ export function NotesView({
   onUpdateNote,
   onDeleteNote,
 }: NotesViewProps) {
+  const activeStyle = useCadenceStyle();
   const [selectedId, setSelectedId] = useState<string>(notes[0]?.id ?? '');
   const [search, setSearch] = useState('');
 
@@ -81,14 +84,17 @@ export function NotesView({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleCreate}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors whitespace-nowrap shrink-0 self-start sm:self-auto"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>New Note</span>
-        </button>
+        <div className="flex items-center gap-3 self-start sm:self-auto">
+          {activeStyle === 'doodle' && <DoodleHeaderScene tab={DashboardView.Notes} />}
+          <button
+            type="button"
+            onClick={handleCreate}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors whitespace-nowrap shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New Note</span>
+          </button>
+        </div>
       </div>
 
       <div className="editorial-rise editorial-rise-2 editorial-split-pane editorial-preserve-pad cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[540px]">

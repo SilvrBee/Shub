@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Pause, Play, RotateCcw } from 'lucide-react';
 import { AppStyleId } from '../types/dashboard';
+import { DoodleMascot } from './DoodleKit';
 
 interface FocusTimerCardProps {
   onCompleteSession: (minutes: number, label: string) => void;
@@ -65,6 +66,9 @@ export function FocusTimerCard({
             completedRef.current = true;
             onCompleteSession(selectedMinutes, sessionLabel.trim() || 'Focus session');
             setJustFinished(true);
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('cadence:doodle-celebrate', { detail: { source: 'focus' } }));
+            }
           }
           return 0;
         }
@@ -272,17 +276,27 @@ export function FocusTimerCard({
           })()
         ) : (
           <>
-            <div className="flex items-baseline justify-between gap-4 mb-3">
-              <div
-                className={`editorial-timer-display font-mono tabular-nums font-semibold tracking-tight text-slate-900 dark:text-slate-100 ${
-                  compact ? 'text-4xl' : 'text-5xl'
-                }`}
-              >
-                {mins}:{secs}
+            <div className="flex items-center justify-between gap-4 mb-3">
+              <div>
+                <div
+                  className={`editorial-timer-display font-mono tabular-nums font-semibold tracking-tight text-slate-900 dark:text-slate-100 ${
+                    compact ? 'text-4xl' : 'text-5xl'
+                  }`}
+                >
+                  {mins}:{secs}
+                </div>
+                <span className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                  {Math.round(progress * 100)}% elapsed
+                </span>
               </div>
-              <span className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
-                {Math.round(progress * 100)}% elapsed
-              </span>
+              {style === 'doodle' && (
+                <div className="shrink-0">
+                  <DoodleMascot
+                    state={isRunning ? 'focused' : justFinished ? 'celebrating' : 'idle'}
+                    size={compact ? 58 : 70}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-4">

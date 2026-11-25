@@ -1,4 +1,6 @@
 import { ReactNode } from 'react';
+import { useCadenceStyle } from '../hooks/useCadenceStyle';
+import { DoodleEmptyScene } from './DoodleKit';
 
 export type EmptyIllustrationKind =
   | 'tasks'
@@ -301,6 +303,8 @@ export function EmptyStateIllustration({
   action,
   compact = false,
 }: EmptyStateIllustrationProps) {
+  const activeStyle = useCadenceStyle();
+
   return (
     <div
       className={`text-center flex flex-col items-center justify-center ${
@@ -308,7 +312,11 @@ export function EmptyStateIllustration({
       }`}
     >
       <div className={`${title || description || action ? (compact ? 'mb-3 scale-90' : 'mb-4') : ''}`}>
-        <IllustrationSvg kind={kind} />
+        {activeStyle === 'doodle' ? (
+          <DoodleEmptyScene kind={kind} />
+        ) : (
+          <IllustrationSvg kind={kind} />
+        )}
       </div>
       {title && (
         <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 text-balance">

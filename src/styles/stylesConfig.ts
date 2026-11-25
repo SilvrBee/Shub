@@ -18,7 +18,7 @@ export interface StyleDefinition {
     borderDark: string;
     radius: string;
     displayFont: string;
-    effect: 'crisp' | 'editorial' | 'glass' | 'celestial';
+    effect: 'crisp' | 'editorial' | 'glass' | 'celestial' | 'doodle';
   };
 }
 
@@ -97,6 +97,25 @@ export const STYLE_DEFINITIONS: readonly StyleDefinition[] = [
       radius: '12px',
       displayFont: '"Cormorant Garamond", Georgia, serif',
       effect: 'celestial',
+    },
+  },
+  {
+    id: 'doodle',
+    name: 'Doodle',
+    description: 'Playful paper-cut cards, chunky ink outlines, Fredoka type, and animated vector illustrations',
+    supportedModes: ['light', 'dark'],
+    preview: {
+      canvasLight: '#fffbf0',
+      canvasDark: '#161925',
+      sidebarLight: '#fffdf7',
+      sidebarDark: '#1c2030',
+      cardLight: '#ffffff',
+      cardDark: '#23283b',
+      borderLight: '#1e2433',
+      borderDark: '#dbe4f5',
+      radius: '14px',
+      displayFont: '"Fredoka", sans-serif',
+      effect: 'doodle',
     },
   },
 ];

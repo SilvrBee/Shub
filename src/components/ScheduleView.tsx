@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { ScheduleBlock, TaskCategory } from '../types/dashboard';
+import { DashboardView, ScheduleBlock, TaskCategory } from '../types/dashboard';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
+import { useCadenceStyle } from '../hooks/useCadenceStyle';
+import { DoodleHeaderScene } from './DoodleKit';
 
 interface ScheduleViewProps {
   schedule: ScheduleBlock[];
@@ -16,6 +18,7 @@ function calcDurationMinutes(start: string, end: string): number {
 }
 
 export function ScheduleView({ schedule, onAddBlock, onDeleteBlock }: ScheduleViewProps) {
+  const activeStyle = useCadenceStyle();
   const [title, setTitle] = useState('');
   const [startTime, setStartTime] = useState('16:00');
   const [endTime, setEndTime] = useState('17:00');
@@ -75,6 +78,8 @@ export function ScheduleView({ schedule, onAddBlock, onDeleteBlock }: ScheduleVi
             {sortedBlocks.length} blocks · {(totalPlannedMinutes / 60).toFixed(1)} hours allocated
           </p>
         </div>
+
+        {activeStyle === 'doodle' && <DoodleHeaderScene tab={DashboardView.Schedule} />}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

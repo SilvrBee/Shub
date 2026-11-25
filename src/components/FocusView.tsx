@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
-import { AppStyleId, FocusSession } from '../types/dashboard';
+import { AppStyleId, DashboardView, FocusSession } from '../types/dashboard';
 import { formatDateKey, getTodayKey } from '../data/initialData';
 import { FocusTimerCard } from './FocusTimerCard';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
+import { useDoodleCelebratePulse } from '../hooks/useCadenceStyle';
+import { DoodleHeaderScene } from './DoodleKit';
 
 interface FocusViewProps {
   focusSessions: FocusSession[];
@@ -22,6 +24,7 @@ export function FocusView({
   onCompleteFocusSession,
 }: FocusViewProps) {
   const todayKey = getTodayKey();
+  const isDoodleCelebrating = useDoodleCelebratePulse(1800);
 
   const todayMinutes = useMemo(
     () =>
@@ -63,17 +66,26 @@ export function FocusView({
 
   return (
     <div className="space-y-6">
-      <div className="editorial-rise editorial-rise-1">
-        <span className="editorial-kicker">
-          <span className="editorial-marker" aria-hidden="true">EDITION</span>
-          <span className="editorial-kicker-text">Deep Work</span>
-        </span>
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-          Focus
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Run uninterrupted work blocks and track daily deep-work output
-        </p>
+      <div className="editorial-rise editorial-rise-1 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <span className="editorial-kicker">
+            <span className="editorial-marker" aria-hidden="true">EDITION</span>
+            <span className="editorial-kicker-text">Deep Work</span>
+          </span>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+            Focus
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Run uninterrupted work blocks and track daily deep-work output
+          </p>
+        </div>
+
+        {style === 'doodle' && (
+          <DoodleHeaderScene
+            tab={DashboardView.Focus}
+            mascotOverride={isDoodleCelebrating ? 'celebrating' : 'focused'}
+          />
+        )}
       </div>
 
       {/* Summary KPI Strip */}

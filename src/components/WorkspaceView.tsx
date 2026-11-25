@@ -19,9 +19,11 @@ import {
   GoogleGmailMessage,
   WorkspaceAuthError,
 } from '../services/googleWorkspace';
-import { ScheduleBlock, TaskCategory } from '../types/dashboard';
+import { DashboardView, ScheduleBlock, TaskCategory } from '../types/dashboard';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { EmptyStateIllustration, IllustrationSvg } from './EmptyStateIllustration';
+import { useCadenceStyle } from '../hooks/useCadenceStyle';
+import { DoodleEmptyScene, DoodleHeaderScene } from './DoodleKit';
 
 interface WorkspaceViewProps {
   user: User | null;
@@ -92,6 +94,7 @@ export function WorkspaceView({
   onTokenExpired,
   onImportCalendarEvent,
 }: WorkspaceViewProps) {
+  const activeStyle = useCadenceStyle();
   const [events, setEvents] = useState<GoogleCalendarEvent[]>([]);
   const [files, setFiles] = useState<GoogleDriveFile[]>([]);
   const [messages, setMessages] = useState<GoogleGmailMessage[]>([]);
@@ -181,29 +184,32 @@ export function WorkspaceView({
           </p>
         </div>
 
-        {user && (
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            {accessToken && (
+        <div className="flex items-center gap-3 self-start sm:self-auto">
+          {activeStyle === 'doodle' && <DoodleHeaderScene tab={DashboardView.GoogleWorkspace} />}
+          {user && (
+            <div className="flex items-center gap-2">
+              {accessToken && (
+                <button
+                  type="button"
+                  onClick={() => void loadWorkspaceData()}
+                  disabled={loading}
+                  className="editorial-subtle-box inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                  <span>Refresh</span>
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => void loadWorkspaceData()}
-                disabled={loading}
+                onClick={() => void onSignOut()}
                 className="editorial-subtle-box inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                <span>Refresh</span>
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign out</span>
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => void onSignOut()}
-              className="editorial-subtle-box inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Sign out</span>
-            </button>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Authentication / Token Refresh Banner (only when signed out or hourly token expired) */}
@@ -211,7 +217,11 @@ export function WorkspaceView({
         <section className="editorial-rise editorial-rise-2 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-5 max-w-2xl">
             <div className="shrink-0">
-              <IllustrationSvg kind="workspace" />
+              {activeStyle === 'doodle' ? (
+                <DoodleEmptyScene kind="workspace" />
+              ) : (
+                <IllustrationSvg kind="workspace" />
+              )}
             </div>
             <div className="space-y-2">
               <span className="editorial-kicker">

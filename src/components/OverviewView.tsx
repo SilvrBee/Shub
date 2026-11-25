@@ -16,6 +16,8 @@ import { GoogleSignInButton } from './GoogleSignInButton';
 import { TaskCheckButton } from './TaskCheckButton';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
 import { AnimatedMetricValue, AuroraProgressRing } from './AuroraMetrics';
+import { useDoodleCelebratePulse } from '../hooks/useCadenceStyle';
+import { DoodleHeaderScene, DoodleSquiggle } from './DoodleKit';
 
 interface OverviewViewProps {
   tasks: TaskItem[];
@@ -177,6 +179,8 @@ export function OverviewView({
   };
 
   const isAurora = settings.style === 'aurora';
+  const isDoodle = settings.style === 'doodle';
+  const isDoodleCelebrating = useDoodleCelebratePulse(1900);
   const prefersReducedMotion =
     typeof window !== 'undefined' &&
     window.matchMedia &&
@@ -207,13 +211,28 @@ export function OverviewView({
         </div>
 
         <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-          <span className="font-mono tabular-nums text-sm font-medium text-slate-700 dark:text-slate-300">
-            {formattedTime} Local
-          </span>
-          <span aria-hidden="true">·</span>
-          <span className="tabular-nums">
-            {remainingTodayCount} {remainingTodayCount === 1 ? 'priority' : 'priorities'} due today
-          </span>
+          <div>
+            <div className="flex items-center gap-3 justify-end">
+              <span className="font-mono tabular-nums text-sm font-medium text-slate-700 dark:text-slate-300">
+                {formattedTime} Local
+              </span>
+              <span aria-hidden="true">·</span>
+              <span className="tabular-nums">
+                {remainingTodayCount} {remainingTodayCount === 1 ? 'priority' : 'priorities'} due today
+              </span>
+            </div>
+            {isDoodle && (
+              <div className="hidden sm:flex justify-end mt-1">
+                <DoodleSquiggle width={52} />
+              </div>
+            )}
+          </div>
+          {isDoodle && (
+            <DoodleHeaderScene
+              tab={DashboardView.Overview}
+              mascotOverride={isDoodleCelebrating ? 'celebrating' : 'waving'}
+            />
+          )}
         </div>
       </div>
 
