@@ -147,7 +147,7 @@ export function JournalView({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          {hasWorkspaceToken && journalConfig.journalDocId && (
+          {isSignedIn && journalConfig.journalDocId && (
             <>
               <button
                 type="button"
@@ -254,17 +254,11 @@ export function JournalView({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            {!isSignedIn || !hasWorkspaceToken ? (
+            {!isSignedIn ? (
               <GoogleSignInButton
                 onClick={onSignIn}
                 disabled={isSigningIn}
-                label={
-                  isSigningIn
-                    ? 'Connecting...'
-                    : isSignedIn
-                      ? 'Reconnect Google Docs'
-                      : 'Sign in with Google'
-                }
+                label={isSigningIn ? 'Connecting...' : 'Sign in with Google'}
               />
             ) : (
               <button

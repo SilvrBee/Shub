@@ -15,7 +15,7 @@ import {
   INITIAL_TASKS,
 } from './data/initialData';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import { googleSignIn, initAuth, logout } from './services/googleAuth';
+import { clearAccessToken, googleSignIn, initAuth, logout } from './services/googleAuth';
 import {
   deleteAllJournalIntelligenceData,
   ensureUserRootProfile,
@@ -477,15 +477,40 @@ export default function App() {
     }
   };
 
+  const ensureGoogleAccessToken = async (): Promise<string | null> => {
+    if (accessToken) return accessToken;
+    try {
+      const result = await googleSignIn(user?.email);
+      setUser(result.user);
+      setAccessToken(result.accessToken);
+      return result.accessToken;
+    } catch (err) {
+      setSyncError(
+        err instanceof Error ? err.message : 'Unable to refresh Google access.'
+      );
+      return null;
+    }
+  };
+
+  const handleAuthErrorReset = (err: unknown) => {
+    const msg = err instanceof Error ? err.message : '';
+    if (msg.toLowerCase().includes('session expired')) {
+      clearAccessToken();
+      setAccessToken(null);
+    }
+  };
+
   // Journal Integration Handlers
   const handleSelectJournalDoc = async () => {
-    if (!uid || !accessToken) {
-      setSyncError('Sign in and connect Google access before choosing your journal doc.');
+    if (!uid) {
+      setSyncError('Sign in with Google before choosing your journal doc.');
       return;
     }
     setSyncError(null);
+    const token = await ensureGoogleAccessToken();
+    if (!token) return;
     try {
-      const picked = await pickJournalGoogleDoc(accessToken);
+      const picked = await pickJournalGoogleDoc(token);
       if (!picked) return;
       await updateUserJournalConfig(uid, {
         journalDocId: picked.id,
@@ -495,17 +520,21 @@ export default function App() {
       });
       setSyncStatusMessage(`Connected "${picked.name}". Click Sync Journal to process the latest entry.`);
     } catch (err) {
+      handleAuthErrorReset(err);
       setSyncError(err instanceof Error ? err.message : 'Unable to open Google Docs Picker.');
     }
   };
 
   const handleLoadRawDocEntries = async () => {
-    if (!accessToken || !journalConfig.journalDocId) return;
+    if (!journalConfig.journalDocId) return;
+    const token = await ensureGoogleAccessToken();
+    if (!token) return;
     setIsLoadingRawDoc(true);
     try {
-      const { entries } = await fetchGoogleDocEntries(journalConfig.journalDocId, accessToken);
+      const { entries } = await fetchGoogleDocEntries(journalConfig.journalDocId, token);
       setRawDocEntries(entries);
     } catch (err) {
+      handleAuthErrorReset(err);
       setSyncError(
         err instanceof Error ? err.message : 'Unable to read the selected Google Doc.'
       );
@@ -514,15 +543,18 @@ export default function App() {
     }
   };
 
-  const handleSyncJournal = async (forceReprocess = false) => {
-    if (!uid || !accessToken) {
-      setSyncError('Reconnect your Google account to sync your journal.');
+  const handleSyncJournal = async (forceReprocess = false, isAutoTrigger = false) => {
+    if (!uid) {
+      setSyncError('Sign in with Google to sync your journal.');
       return;
     }
     if (!journalConfig.aiPrivacyAcknowledged) {
       setSyncError('Please review and acknowledge the Gemini free-tier privacy notice first.');
       return;
     }
+    const token = isAutoTrigger ? accessToken : await ensureGoogleAccessToken();
+    if (!token) return;
+
     setIsSyncingJournal(true);
     setSyncError(null);
     setSyncStatusMessage(null);
@@ -533,7 +565,7 @@ export default function App() {
     try {
       const result = await syncLatestJournalEntry({
         uid,
-        accessToken,
+        accessToken: token,
         journalConfig,
         existingEntries: journalEntries,
         existingSuggestions: reviewSuggestions,
@@ -566,13 +598,14 @@ export default function App() {
         );
       }
     } catch (err) {
+      handleAuthErrorReset(err);
       setSyncError(err instanceof Error ? err.message : 'Journal synchronization failed.');
     } finally {
       setIsSyncingJournal(false);
     }
   };
 
-  syncLatestFnRef.current = handleSyncJournal;
+  syncLatestFnRef.current = (forceReprocess?: boolean) => handleSyncJournal(forceReprocess, true);
 
   // Optional automatic sync of ONLY the single latest entry on website open
   useEffect(() => {
@@ -598,21 +631,24 @@ export default function App() {
   ]);
 
   const handleRunHistoricalBatch = async () => {
-    if (!uid || !accessToken) {
-      setSyncError('Reconnect your Google account to analyze older entries.');
+    if (!uid) {
+      setSyncError('Sign in with Google to analyze older entries.');
       return;
     }
     if (!journalConfig.aiPrivacyAcknowledged) {
       setSyncError('Please review and acknowledge the Gemini free-tier privacy notice first.');
       return;
     }
+    const token = await ensureGoogleAccessToken();
+    if (!token) return;
+
     setIsRunningHistorical(true);
     setSyncError(null);
     setHistoricalProgress('Scanning document for unprocessed entries...');
     try {
       const res = await runHistoricalJournalBatch({
         uid,
-        accessToken,
+        accessToken: token,
         journalConfig,
         existingEntries: journalEntries,
         existingSuggestions: reviewSuggestions,
@@ -634,6 +670,7 @@ export default function App() {
           : 'All entries in this document are already processed.'
       );
     } catch (err) {
+      handleAuthErrorReset(err);
       setHistoricalProgress(null);
       setSyncError(err instanceof Error ? err.message : 'Historical analysis failed.');
     } finally {
@@ -1092,7 +1129,10 @@ export default function App() {
               authError={authError}
               onSignIn={handleGoogleSignIn}
               onSignOut={handleGoogleSignOut}
-              onTokenExpired={() => setAccessToken(null)}
+              onTokenExpired={() => {
+                clearAccessToken();
+                setAccessToken(null);
+              }}
               onImportCalendarEvent={handleAddScheduleBlock}
             />
           )}

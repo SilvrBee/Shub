@@ -201,18 +201,18 @@ export function WorkspaceView({
         )}
       </div>
 
-      {/* Authentication / Session Refresh Banner */}
+      {/* Authentication / Token Refresh Banner (only when signed out or hourly token expired) */}
       {(!user || !accessToken) && (
         <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
               {user
-                ? 'Reconnect to load live Google Workspace data'
+                ? 'Refresh Google Apps session'
                 : 'Sign in with your Google Account'}
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               {user
-                ? `Welcome back, ${user.displayName || user.email}. For your security, live access to Google Calendar, Drive, Docs, and Gmail is held in memory only and resets on page reload.`
+                ? `Signed in as ${user.displayName || user.email}. Your hourly Google Workspace token has expired—refresh once to load live Calendar, Drive, Docs, and Gmail data.`
                 : 'Connecting your Google account personalizes your dashboard with your name and profile photo while granting read-only access to Google Calendar, Drive, Docs, and Gmail.'}
             </p>
             <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 pt-1">
@@ -237,7 +237,7 @@ export function WorkspaceView({
                 isSigningIn
                   ? 'Connecting...'
                   : user
-                    ? 'Reconnect Google Apps'
+                    ? 'Refresh Google Apps'
                     : 'Sign in with Google'
               }
             />

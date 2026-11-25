@@ -161,7 +161,7 @@ export function AskMyLifeView({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          {hasWorkspaceToken && journalConfig.journalDocId && (
+          {isSignedIn && journalConfig.journalDocId && (
             <button
               type="button"
               onClick={() => void onLoadRawDocEntries()}

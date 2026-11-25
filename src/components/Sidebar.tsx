@@ -189,15 +189,6 @@ export function Sidebar({
 
         {user ? (
           <div className="space-y-2.5 pt-1">
-            {!hasWorkspaceToken && (
-              <GoogleSignInButton
-                fullWidth
-                disabled={isSigningIn}
-                onClick={onSignIn}
-                label={isSigningIn ? 'Connecting...' : 'Reconnect Google'}
-              />
-            )}
-
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-3 min-w-0">
                 {user.photoURL && !avatarFailed ? (

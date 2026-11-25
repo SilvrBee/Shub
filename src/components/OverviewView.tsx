@@ -555,15 +555,13 @@ export function OverviewView({
                   Google Workspace
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {hasWorkspaceToken
-                    ? 'Drive, Calendar, Docs & Gmail connected'
-                    : isSignedIn
-                      ? 'Reconnect to refresh live Google Apps access'
-                      : 'Sign in to personalize your name & access Google Apps'}
+                  {hasWorkspaceToken || isSignedIn
+                    ? 'Drive, Calendar, Docs & Gmail linked'
+                    : 'Sign in to personalize your name & access Google Apps'}
                 </p>
               </div>
 
-              {hasWorkspaceToken ? (
+              {hasWorkspaceToken || isSignedIn ? (
                 <button
                   type="button"
                   onClick={() => onNavigate(DashboardView.GoogleWorkspace)}
@@ -576,7 +574,7 @@ export function OverviewView({
                 <GoogleSignInButton
                   onClick={onSignIn}
                   disabled={isSigningIn}
-                  label={isSigningIn ? 'Connecting...' : isSignedIn ? 'Reconnect' : 'Sign in with Google'}
+                  label={isSigningIn ? 'Connecting...' : 'Sign in with Google'}
                 />
               )}
             </div>
