@@ -1,16 +1,11 @@
 export enum DashboardView {
   Overview = 'overview',
-  Journal = 'journal',
-  AskMyLife = 'ask',
-  People = 'people',
-  Commitments = 'commitments',
-  Timeline = 'timeline',
-  Vault = 'vault',
   Tasks = 'tasks',
   Schedule = 'schedule',
   FocusHabits = 'focus',
   Notes = 'notes',
   GoogleWorkspace = 'workspace',
+  Settings = 'settings',
 }
 
 export enum TaskPriority {
@@ -78,6 +73,45 @@ export interface DaySummary {
   tasksCompleted: number;
 }
 
+export type AppThemeId = 'cobalt' | 'emerald' | 'indigo' | 'amber' | 'rose' | 'nord';
+export type ColorMode = 'light' | 'dark' | 'system';
+export type LayoutDensity = 'comfortable' | 'compact';
+
+export interface AppSettings {
+  colorMode: ColorMode;
+  theme: AppThemeId;
+  density: LayoutDensity;
+  reducedMotion: boolean;
+  defaultView: DashboardView;
+  timeFormat: '24h' | '12h';
+  defaultFocusMinutes: 15 | 25 | 50;
+  defaultFocusLabel: string;
+  defaultTaskCategory: TaskCategory;
+  defaultTaskPriority: TaskPriority;
+  showFocusChart: boolean;
+  showFocusTimer: boolean;
+  showScratchpad: boolean;
+  showGoogleCard: boolean;
+}
+
+export const DEFAULT_APP_SETTINGS: AppSettings = {
+  colorMode: 'light',
+  theme: 'cobalt',
+  density: 'comfortable',
+  reducedMotion: false,
+  defaultView: DashboardView.Overview,
+  timeFormat: '24h',
+  defaultFocusMinutes: 25,
+  defaultFocusLabel: 'Deep work sprint',
+  defaultTaskCategory: TaskCategory.Work,
+  defaultTaskPriority: TaskPriority.Medium,
+  showFocusChart: true,
+  showFocusTimer: true,
+  showScratchpad: true,
+  showGoogleCard: true,
+};
+
+// Retained for backwards-compatible Firestore profile typing
 export interface JournalConfig {
   journalDocId?: string;
   journalDocName?: string;
@@ -85,8 +119,8 @@ export interface JournalConfig {
   autoSyncEnabled?: boolean;
   autoSyncOnOpen?: boolean;
   aiPrivacyAcknowledged?: boolean;
-  syncTime?: string;     // HH:MM
-  syncTimezone?: string; // IANA timezone
+  syncTime?: string;
+  syncTimezone?: string;
   lastSyncedAt?: string;
   lastProcessedEntryDate?: string;
   lastProcessedEntryHash?: string;
@@ -211,72 +245,4 @@ export interface VaultItem {
   timelineEventId?: string;
   timelineEventTitle?: string;
   sourceEntryId?: string;
-}
-
-export interface GeminiJournalAnalysis {
-  summary: string;
-  themes: string[];
-  sleepFindings: Array<{
-    title: string;
-    proposedValue: string;
-    excerpt: string;
-  }>;
-  spendingFindings: Array<{
-    title: string;
-    proposedValue: string;
-    amount?: number;
-    currency?: string;
-    category?: string;
-    excerpt: string;
-  }>;
-  peopleMentions: Array<{
-    name: string;
-    relationship?: string;
-    birthday?: string;
-    memory?: string;
-    excerpt: string;
-  }>;
-  commitments: Array<{
-    title: string;
-    originalStatement: string;
-    context?: string;
-    dueDate?: string;
-  }>;
-  timelineCandidates: Array<{
-    title: string;
-    description: string;
-    category?: string;
-    excerpt: string;
-  }>;
-  vaultSuggestions: Array<{
-    kind: 'link' | 'song' | 'note';
-    title: string;
-    description: string;
-    url?: string;
-    artist?: string;
-    excerpt: string;
-    tags?: string[];
-  }>;
-}
-
-export interface AskLifeReference {
-  entryDate: string;
-  heading: string;
-  kind: 'journal' | 'people' | 'timeline' | 'commitment' | 'vault' | 'log';
-  excerpt?: string;
-}
-
-export interface AskLifeAnswer {
-  answer: string;
-  facts: string[];
-  interpretations: string[];
-  references: AskLifeReference[];
-}
-
-export interface AskLifeChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  text: string;
-  structured?: AskLifeAnswer;
-  timestamp: string;
 }

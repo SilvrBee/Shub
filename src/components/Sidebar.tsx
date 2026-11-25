@@ -1,22 +1,16 @@
 import { useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
 import {
-  Archive,
-  BookOpen,
   CalendarClock,
   CheckSquare,
   FileText,
-  History,
   Layers,
   LayoutDashboard,
-  ListChecks,
   LogOut,
-  MessageSquareText,
   Moon,
-  RotateCcw,
+  Settings,
   Sun,
   Timer,
-  Users,
   X,
 } from 'lucide-react';
 import { DashboardView } from '../types/dashboard';
@@ -27,16 +21,10 @@ interface SidebarProps {
   onSelectView: (view: DashboardView) => void;
   isDark: boolean;
   onToggleTheme: () => void;
-  onResetWorkspace: () => void;
   pendingCount: number;
-  journalPendingCount?: number;
-  peoplePendingCount?: number;
-  commitmentsPendingCount?: number;
-  timelinePendingCount?: number;
   mobileOpen: boolean;
   onCloseMobile: () => void;
   user: User | null;
-  hasWorkspaceToken: boolean;
   isSigningIn: boolean;
   onSignIn: () => void;
   onSignOut: () => void;
@@ -44,12 +32,6 @@ interface SidebarProps {
 
 const NAV_ITEMS: { id: DashboardView; label: string; icon: typeof LayoutDashboard }[] = [
   { id: DashboardView.Overview, label: 'Overview', icon: LayoutDashboard },
-  { id: DashboardView.Journal, label: 'Journal', icon: BookOpen },
-  { id: DashboardView.AskMyLife, label: 'Ask My Life', icon: MessageSquareText },
-  { id: DashboardView.People, label: 'People', icon: Users },
-  { id: DashboardView.Commitments, label: "Things I Said I'd Do", icon: ListChecks },
-  { id: DashboardView.Timeline, label: 'Timeline', icon: History },
-  { id: DashboardView.Vault, label: 'Vault', icon: Archive },
   { id: DashboardView.Tasks, label: 'Tasks', icon: CheckSquare },
   { id: DashboardView.Schedule, label: 'Schedule', icon: CalendarClock },
   { id: DashboardView.FocusHabits, label: 'Focus & Habits', icon: Timer },
@@ -72,16 +54,10 @@ export function Sidebar({
   onSelectView,
   isDark,
   onToggleTheme,
-  onResetWorkspace,
   pendingCount,
-  journalPendingCount = 0,
-  peoplePendingCount = 0,
-  commitmentsPendingCount = 0,
-  timelinePendingCount = 0,
   mobileOpen,
   onCloseMobile,
   user,
-  hasWorkspaceToken,
   isSigningIn,
   onSignIn,
   onSignOut,
@@ -94,15 +70,6 @@ export function Sidebar({
 
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Guest Workspace';
   const displaySubtext = user?.email || 'Local profile';
-
-  const getBadgeCount = (id: DashboardView): number => {
-    if (id === DashboardView.Tasks) return pendingCount;
-    if (id === DashboardView.Journal) return journalPendingCount;
-    if (id === DashboardView.People) return peoplePendingCount;
-    if (id === DashboardView.Commitments) return commitmentsPendingCount;
-    if (id === DashboardView.Timeline) return timelinePendingCount;
-    return 0;
-  };
 
   const sidebarContent = (
     <div className="flex h-full flex-col justify-between bg-white dark:bg-[#0F1521] border-r border-slate-200 dark:border-slate-800 w-[248px] select-none">
@@ -132,7 +99,7 @@ export function Sidebar({
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = activeView === item.id;
-            const count = getBadgeCount(item.id);
+            const count = item.id === DashboardView.Tasks ? pendingCount : 0;
             return (
               <button
                 key={item.id}
@@ -167,23 +134,31 @@ export function Sidebar({
       </div>
 
       <div className="border-t border-slate-200 dark:border-slate-800 p-4 space-y-3">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onToggleTheme}
-            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/70 hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="flex-1 flex items-center justify-center p-2 rounded-lg text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/70 hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
           >
-            {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
           <button
             type="button"
-            onClick={onResetWorkspace}
-            title="Reset workspace data to defaults"
-            aria-label="Reset workspace data"
-            className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+            onClick={() => {
+              onSelectView(DashboardView.Settings);
+              onCloseMobile();
+            }}
+            title="Settings"
+            aria-label="Open settings"
+            className={`flex-1 flex items-center justify-center p-2 rounded-lg transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
+              activeView === DashboardView.Settings
+                ? 'bg-blue-600 text-white dark:bg-blue-500'
+                : 'text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/70 hover:bg-slate-200/70 dark:hover:bg-slate-800'
+            }`}
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <Settings className="w-4 h-4" />
           </button>
         </div>
 

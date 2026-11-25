@@ -23,6 +23,96 @@
   }
 }
 
+/* Website Themes — override primary accent & subtle surface variables */
+html[data-theme="emerald"] {
+  --color-blue-50: #ecfdf5;
+  --color-blue-200: #a7f3d0;
+  --color-blue-300: #6ee7b7;
+  --color-blue-400: #34d399;
+  --color-blue-500: #10b981;
+  --color-blue-600: #059669;
+  --color-blue-700: #047857;
+  --color-blue-900: #064e3b;
+  --color-blue-950: #022c22;
+}
+
+html[data-theme="indigo"] {
+  --color-blue-50: #eef2ff;
+  --color-blue-200: #c7d2fe;
+  --color-blue-300: #a5b4fc;
+  --color-blue-400: #818cf8;
+  --color-blue-500: #6366f1;
+  --color-blue-600: #4f46e5;
+  --color-blue-700: #4338ca;
+  --color-blue-900: #312e81;
+  --color-blue-950: #1e1b4b;
+}
+
+html[data-theme="amber"] {
+  --color-blue-50: #fffbeb;
+  --color-blue-200: #fde68a;
+  --color-blue-300: #fcd34d;
+  --color-blue-400: #fbbf24;
+  --color-blue-500: #f59e0b;
+  --color-blue-600: #d97706;
+  --color-blue-700: #b45309;
+  --color-blue-900: #78350f;
+  --color-blue-950: #451a03;
+  --color-slate-50: #faf8f5;
+  --color-slate-100: #f4f1ea;
+  --color-slate-200: #e7e2d8;
+}
+
+html.dark[data-theme="amber"] {
+  --color-slate-50: #faf8f5;
+  --color-slate-100: #f4f1ea;
+  --color-slate-200: #e7e2d8;
+}
+
+html[data-theme="rose"] {
+  --color-blue-50: #fff1f2;
+  --color-blue-200: #fecdd3;
+  --color-blue-300: #fda4af;
+  --color-blue-400: #fb7185;
+  --color-blue-500: #f43f5e;
+  --color-blue-600: #e11d48;
+  --color-blue-700: #be123c;
+  --color-blue-900: #881337;
+  --color-blue-950: #4c0519;
+}
+
+html[data-theme="nord"] {
+  --color-blue-50: #ecfeff;
+  --color-blue-200: #a5f3fc;
+  --color-blue-300: #67e8f9;
+  --color-blue-400: #38bdf8;
+  --color-blue-500: #0ea5e9;
+  --color-blue-600: #0284c7;
+  --color-blue-700: #0369a1;
+  --color-blue-900: #0c4a6e;
+  --color-blue-950: #082f49;
+  --color-slate-50: #f4f7fa;
+  --color-slate-100: #e9eff5;
+}
+
+html.dark[data-theme="nord"] {
+  --color-slate-50: #f4f7fa;
+  --color-slate-100: #e9eff5;
+}
+
+html[data-density="compact"] main {
+  padding-top: 1rem;
+  padding-bottom: 1.5rem;
+}
+
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Check, Plus } from 'lucide-react';
 import {
+  AppSettings,
   DashboardView,
   FocusSession,
   HabitItem,
-  JournalEntrySummary,
   ScheduleBlock,
   TaskCategory,
   TaskItem,
@@ -20,8 +20,7 @@ interface OverviewViewProps {
   habits: HabitItem[];
   focusSessions: FocusSession[];
   scratchpad: string;
-  latestJournalEntry?: JournalEntrySummary | null;
-  pendingLifeReviewCount?: number;
+  settings: AppSettings;
   userFirstName?: string | null;
   isSignedIn: boolean;
   hasWorkspaceToken: boolean;
@@ -41,8 +40,7 @@ export function OverviewView({
   habits,
   focusSessions,
   scratchpad,
-  latestJournalEntry,
-  pendingLifeReviewCount = 0,
+  settings,
   userFirstName,
   isSignedIn,
   hasWorkspaceToken,
@@ -87,9 +85,9 @@ export function OverviewView({
     return now.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false,
+      hour12: settings.timeFormat === '12h',
     });
-  }, [now]);
+  }, [now, settings.timeFormat]);
 
   // KPI metrics computed directly from live workspace state
   const todayTasks = useMemo(
@@ -165,7 +163,7 @@ export function OverviewView({
     e.preventDefault();
     const trimmed = quickTitle.trim();
     if (!trimmed) return;
-    onQuickAddTask(trimmed, TaskCategory.Work, TaskPriority.Medium);
+    onQuickAddTask(trimmed, settings.defaultTaskCategory, settings.defaultTaskPriority);
     setQuickTitle('');
   };
 
@@ -396,70 +394,72 @@ export function OverviewView({
           </section>
 
           {/* 7-Day Focus Output Chart */}
-          <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
-            <div className="flex items-start justify-between gap-4 mb-6">
-              <div>
-                <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-                  7-Day Focus Output
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Minutes of uninterrupted work logged per day
-                </p>
+          {settings.showFocusChart && (
+            <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                    7-Day Focus Output
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Minutes of uninterrupted work logged per day
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="font-mono tabular-nums text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    {weeklyFocusMinutes} min
+                  </span>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">7-day total</p>
+                </div>
               </div>
-              <div className="text-right">
-                <span className="font-mono tabular-nums text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  {weeklyFocusMinutes} min
-                </span>
-                <p className="text-xs text-slate-500 dark:text-slate-400">7-day total</p>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-7 gap-3 items-end h-44 pt-4">
-              {weeklyChartData.map((day, idx) => {
-                const heightPct = Math.max(6, Math.round((day.minutes / maxMinutes) * 100));
-                const isToday = day.dateKey === todayKey;
-                const isHovered = hoveredDayIndex === idx;
-                return (
-                  <div
-                    key={day.dateKey}
-                    onMouseEnter={() => setHoveredDayIndex(idx)}
-                    onMouseLeave={() => setHoveredDayIndex(null)}
-                    className="flex flex-col items-center h-full justify-end gap-2 group"
-                  >
-                    <span
-                      className={`font-mono tabular-nums text-[11px] transition-opacity ${
-                        isHovered || isToday
-                          ? 'opacity-100 text-slate-900 dark:text-slate-100 font-medium'
-                          : 'opacity-70 text-slate-500 dark:text-slate-400'
-                      }`}
+              <div className="grid grid-cols-7 gap-3 items-end h-44 pt-4">
+                {weeklyChartData.map((day, idx) => {
+                  const heightPct = Math.max(6, Math.round((day.minutes / maxMinutes) * 100));
+                  const isToday = day.dateKey === todayKey;
+                  const isHovered = hoveredDayIndex === idx;
+                  return (
+                    <div
+                      key={day.dateKey}
+                      onMouseEnter={() => setHoveredDayIndex(idx)}
+                      onMouseLeave={() => setHoveredDayIndex(null)}
+                      className="flex flex-col items-center h-full justify-end gap-2 group"
                     >
-                      {day.minutes}m
-                    </span>
-                    <div className="w-full max-w-[36px] flex-1 flex items-end">
-                      <div
-                        className={`w-full rounded-t-md transition-colors ${
-                          isToday
-                            ? 'bg-blue-600 dark:bg-blue-500'
-                            : 'bg-slate-200 dark:bg-slate-700 group-hover:bg-slate-300 dark:group-hover:bg-slate-600'
+                      <span
+                        className={`font-mono tabular-nums text-[11px] transition-opacity ${
+                          isHovered || isToday
+                            ? 'opacity-100 text-slate-900 dark:text-slate-100 font-medium'
+                            : 'opacity-70 text-slate-500 dark:text-slate-400'
                         }`}
-                        style={{ height: `${heightPct}%` }}
-                        title={`${day.label}: ${day.minutes} min`}
-                      />
+                      >
+                        {day.minutes}m
+                      </span>
+                      <div className="w-full max-w-[36px] flex-1 flex items-end">
+                        <div
+                          className={`w-full rounded-t-md transition-colors ${
+                            isToday
+                              ? 'bg-blue-600 dark:bg-blue-500'
+                              : 'bg-slate-200 dark:bg-slate-700 group-hover:bg-slate-300 dark:group-hover:bg-slate-600'
+                          }`}
+                          style={{ height: `${heightPct}%` }}
+                          title={`${day.label}: ${day.minutes} min`}
+                        />
+                      </div>
+                      <span
+                        className={`text-xs ${
+                          isToday
+                            ? 'font-semibold text-blue-600 dark:text-blue-400'
+                            : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
+                        {day.label}
+                      </span>
                     </div>
-                    <span
-                      className={`text-xs ${
-                        isToday
-                          ? 'font-semibold text-blue-600 dark:text-blue-400'
-                          : 'text-slate-500 dark:text-slate-400'
-                      }`}
-                    >
-                      {day.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
 
         {/* Right Column: Schedule + Focus Timer + Quick Scratchpad */}
@@ -513,112 +513,83 @@ export function OverviewView({
           </section>
 
           {/* Compact Focus Timer */}
-          <FocusTimerCard compact onCompleteSession={onCompleteFocusSession} />
+          {settings.showFocusTimer && (
+            <FocusTimerCard
+              compact
+              onCompleteSession={onCompleteFocusSession}
+              defaultMinutes={settings.defaultFocusMinutes}
+              defaultLabel={settings.defaultFocusLabel}
+            />
+          )}
 
           {/* Quick Scratchpad */}
-          <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
-            <div className="flex items-center justify-between gap-4 mb-3">
-              <div>
-                <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-                  Scratchpad
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Auto-saved locally as you type
-                </p>
+          {settings.showScratchpad && (
+            <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+              <div className="flex items-center justify-between gap-4 mb-3">
+                <div>
+                  <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                    Scratchpad
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Auto-saved locally as you type
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onNavigate(DashboardView.Notes)}
+                  className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
+                >
+                  Open Notes
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => onNavigate(DashboardView.Notes)}
-                className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
-              >
-                Open Notes
-              </button>
-            </div>
-            <label htmlFor="overview-scratchpad" className="sr-only">
-              Quick scratchpad notes
-            </label>
-            <textarea
-              id="overview-scratchpad"
-              rows={4}
-              value={scratchpad}
-              onChange={(e) => onUpdateScratchpad(e.target.value)}
-              placeholder="Capture fleeting thoughts, reminders, or meeting notes..."
-              className="w-full px-3.5 py-2.5 rounded-lg text-sm bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 dark:focus:border-blue-400 resize-y leading-relaxed"
-            />
-          </section>
+              <label htmlFor="overview-scratchpad" className="sr-only">
+                Quick scratchpad notes
+              </label>
+              <textarea
+                id="overview-scratchpad"
+                rows={4}
+                value={scratchpad}
+                onChange={(e) => onUpdateScratchpad(e.target.value)}
+                placeholder="Capture fleeting thoughts, reminders, or meeting notes..."
+                className="w-full px-3.5 py-2.5 rounded-lg text-sm bg-slate-50 dark:bg-[#0B0F17] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 dark:focus:border-blue-400 resize-y leading-relaxed"
+              />
+            </section>
+          )}
 
           {/* Google Account & Workspace Access */}
-          <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-                  Google Workspace
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {hasWorkspaceToken || isSignedIn
-                    ? 'Drive, Calendar, Docs & Gmail linked'
-                    : 'Sign in to personalize your name & access Google Apps'}
-                </p>
-              </div>
+          {settings.showGoogleCard && (
+            <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                    Google Workspace
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {hasWorkspaceToken || isSignedIn
+                      ? 'Drive, Calendar, Docs & Gmail linked'
+                      : 'Sign in to personalize your name & access Google Apps'}
+                  </p>
+                </div>
 
-              {hasWorkspaceToken || isSignedIn ? (
-                <button
-                  type="button"
-                  onClick={() => onNavigate(DashboardView.GoogleWorkspace)}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
-                >
-                  <span>Open Apps</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              ) : (
-                <GoogleSignInButton
-                  onClick={onSignIn}
-                  disabled={isSigningIn}
-                  label={isSigningIn ? 'Connecting...' : 'Sign in with Google'}
-                />
-              )}
-            </div>
-          </section>
-
-          {/* Journal & Life Snapshot */}
-          <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-3">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-                  Journal &amp; Memory
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">
-                  {pendingLifeReviewCount > 0
-                    ? `${pendingLifeReviewCount} items awaiting confirmation`
-                    : latestJournalEntry
-                      ? `Last entry ${latestJournalEntry.entryDate}`
-                      : 'Connect your Google Docs journal'}
-                </p>
+                {hasWorkspaceToken || isSignedIn ? (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate(DashboardView.GoogleWorkspace)}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
+                  >
+                    <span>Open Apps</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <GoogleSignInButton
+                    onClick={onSignIn}
+                    disabled={isSigningIn}
+                    label={isSigningIn ? 'Connecting...' : 'Sign in with Google'}
+                  />
+                )}
               </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => onNavigate(DashboardView.AskMyLife)}
-                  className="text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline whitespace-nowrap"
-                >
-                  Ask My Life
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onNavigate(DashboardView.Journal)}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
-                >
-                  <span>Open Journal</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-            {latestJournalEntry && (
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3">
-                {latestJournalEntry.summary}
-              </p>
-            )}
-          </section>
+            </section>
+          )}
         </div>
       </div>
     </div>

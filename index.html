@@ -24,13 +24,24 @@
     <script>
       (function () {
         try {
-          var saved = localStorage.getItem('cadence_theme');
-          if (saved === 'dark') {
+          var settingsRaw = localStorage.getItem('cadence_settings');
+          var settings = settingsRaw ? JSON.parse(settingsRaw) : null;
+          var colorMode = (settings && settings.colorMode) || localStorage.getItem('cadence_theme');
+          if (colorMode === 'dark') {
             document.documentElement.classList.add('dark');
-          } else if (saved === 'light') {
+          } else if (colorMode === 'light') {
             document.documentElement.classList.remove('dark');
           } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             document.documentElement.classList.add('dark');
+          }
+          if (settings && settings.theme) {
+            document.documentElement.setAttribute('data-theme', settings.theme);
+          }
+          if (settings && settings.density) {
+            document.documentElement.setAttribute('data-density', settings.density);
+          }
+          if (settings && settings.reducedMotion) {
+            document.documentElement.classList.add('reduce-motion');
           }
         } catch (e) {}
       })();

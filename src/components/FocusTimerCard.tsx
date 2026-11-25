@@ -4,6 +4,8 @@ import { Check, Pause, Play, RotateCcw } from 'lucide-react';
 interface FocusTimerCardProps {
   onCompleteSession: (minutes: number, label: string) => void;
   compact?: boolean;
+  defaultMinutes?: 15 | 25 | 50;
+  defaultLabel?: string;
 }
 
 const PRESETS = [
@@ -12,13 +14,39 @@ const PRESETS = [
   { label: '15m', minutes: 15 },
 ];
 
-export function FocusTimerCard({ onCompleteSession, compact = false }: FocusTimerCardProps) {
-  const [selectedMinutes, setSelectedMinutes] = useState(25);
-  const [secondsLeft, setSecondsLeft] = useState(25 * 60);
+export function FocusTimerCard({
+  onCompleteSession,
+  compact = false,
+  defaultMinutes = 25,
+  defaultLabel = 'Deep work sprint',
+}: FocusTimerCardProps) {
+  const [selectedMinutes, setSelectedMinutes] = useState<number>(defaultMinutes);
+  const [secondsLeft, setSecondsLeft] = useState<number>(defaultMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
-  const [sessionLabel, setSessionLabel] = useState('Deep work sprint');
+  const [sessionLabel, setSessionLabel] = useState(defaultLabel);
   const [justFinished, setJustFinished] = useState(false);
   const completedRef = useRef(false);
+  const prevDefaultMinutesRef = useRef(defaultMinutes);
+  const prevDefaultLabelRef = useRef(defaultLabel);
+
+  useEffect(() => {
+    if (prevDefaultMinutesRef.current !== defaultMinutes) {
+      if (!isRunning && secondsLeft === prevDefaultMinutesRef.current * 60) {
+        setSelectedMinutes(defaultMinutes);
+        setSecondsLeft(defaultMinutes * 60);
+      }
+      prevDefaultMinutesRef.current = defaultMinutes;
+    }
+  }, [defaultMinutes, isRunning, secondsLeft]);
+
+  useEffect(() => {
+    if (prevDefaultLabelRef.current !== defaultLabel) {
+      if (!isRunning && sessionLabel === prevDefaultLabelRef.current) {
+        setSessionLabel(defaultLabel);
+      }
+      prevDefaultLabelRef.current = defaultLabel;
+    }
+  }, [defaultLabel, isRunning, sessionLabel]);
 
   useEffect(() => {
     if (!isRunning) return;

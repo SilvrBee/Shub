@@ -6,6 +6,8 @@ import { FocusTimerCard } from './FocusTimerCard';
 interface FocusHabitsViewProps {
   habits: HabitItem[];
   focusSessions: FocusSession[];
+  defaultFocusMinutes?: 15 | 25 | 50;
+  defaultFocusLabel?: string;
   onToggleHabitDay: (habitId: string, dayIndex: number) => void;
   onAddHabit: (name: string, category: string, targetDaysPerWeek: number) => void;
   onDeleteHabit: (habitId: string) => void;
@@ -17,6 +19,8 @@ const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export function FocusHabitsView({
   habits,
   focusSessions,
+  defaultFocusMinutes = 25,
+  defaultFocusLabel = 'Deep work sprint',
   onToggleHabitDay,
   onAddHabit,
   onDeleteHabit,
@@ -51,7 +55,11 @@ export function FocusHabitsView({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div className="lg:col-span-5 space-y-6">
-          <FocusTimerCard onCompleteSession={onCompleteFocusSession} />
+          <FocusTimerCard
+            onCompleteSession={onCompleteFocusSession}
+            defaultMinutes={defaultFocusMinutes}
+            defaultLabel={defaultFocusLabel}
+          />
 
           <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">

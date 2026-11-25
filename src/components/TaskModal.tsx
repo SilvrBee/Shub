@@ -6,14 +6,23 @@ import { getTodayKey } from '../data/initialData';
 interface TaskModalProps {
   isOpen: boolean;
   initialTask?: TaskItem | null;
+  defaultCategory?: TaskCategory;
+  defaultPriority?: TaskPriority;
   onClose: () => void;
   onSave: (taskData: Omit<TaskItem, 'id' | 'createdAt' | 'completed'>, existingId?: string) => void;
 }
 
-export function TaskModal({ isOpen, initialTask, onClose, onSave }: TaskModalProps) {
+export function TaskModal({
+  isOpen,
+  initialTask,
+  defaultCategory = TaskCategory.Work,
+  defaultPriority = TaskPriority.Medium,
+  onClose,
+  onSave,
+}: TaskModalProps) {
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<TaskCategory>(TaskCategory.Work);
-  const [priority, setPriority] = useState<TaskPriority>(TaskPriority.Medium);
+  const [category, setCategory] = useState<TaskCategory>(defaultCategory);
+  const [priority, setPriority] = useState<TaskPriority>(defaultPriority);
   const [dueDate, setDueDate] = useState(getTodayKey());
   const [notes, setNotes] = useState('');
 
@@ -27,13 +36,13 @@ export function TaskModal({ isOpen, initialTask, onClose, onSave }: TaskModalPro
         setNotes(initialTask.notes ?? '');
       } else {
         setTitle('');
-        setCategory(TaskCategory.Work);
-        setPriority(TaskPriority.Medium);
+        setCategory(defaultCategory);
+        setPriority(defaultPriority);
         setDueDate(getTodayKey());
         setNotes('');
       }
     }
-  }, [isOpen, initialTask]);
+  }, [isOpen, initialTask, defaultCategory, defaultPriority]);
 
   useEffect(() => {
     if (!isOpen) return;
