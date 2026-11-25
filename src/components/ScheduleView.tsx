@@ -62,8 +62,12 @@ export function ScheduleView({ schedule, onAddBlock, onDeleteBlock }: ScheduleVi
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="editorial-rise editorial-rise-1 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
+          <span className="editorial-kicker">
+            <span className="editorial-marker" aria-hidden="true">EDITION</span>
+            <span className="editorial-kicker-text">Chronology</span>
+          </span>
           <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
             Daily Schedule
           </h1>
@@ -75,8 +79,12 @@ export function ScheduleView({ schedule, onAddBlock, onDeleteBlock }: ScheduleVi
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Chronological Timeline */}
-        <section className="lg:col-span-8 bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+        <section className="editorial-rise editorial-rise-2 lg:col-span-8 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+            <span className="editorial-kicker">
+              <span className="editorial-marker" aria-hidden="true">01</span>
+              <span className="editorial-kicker-text">Agenda Ledger</span>
+            </span>
             <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
               Time Blocks
             </h2>
@@ -134,7 +142,11 @@ export function ScheduleView({ schedule, onAddBlock, onDeleteBlock }: ScheduleVi
         </section>
 
         {/* Add Time Block Form */}
-        <section className="lg:col-span-4 bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+        <section className="editorial-rise editorial-rise-3 lg:col-span-4 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+          <span className="editorial-kicker">
+            <span className="editorial-marker" aria-hidden="true">02</span>
+            <span className="editorial-kicker-text">Allocation</span>
+          </span>
           <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100 mb-1">
             Add Time Block
           </h2>

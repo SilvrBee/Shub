@@ -21,6 +21,7 @@ interface SidebarProps {
   activeView: DashboardView;
   onSelectView: (view: DashboardView) => void;
   isDark: boolean;
+  supportedModes?: readonly ('light' | 'dark')[];
   onToggleTheme: () => void;
   pendingCount: number;
   mobileOpen: boolean;
@@ -55,6 +56,7 @@ export function Sidebar({
   activeView,
   onSelectView,
   isDark,
+  supportedModes = ['light', 'dark'],
   onToggleTheme,
   pendingCount,
   mobileOpen,
@@ -70,11 +72,12 @@ export function Sidebar({
     setAvatarFailed(false);
   }, [user?.photoURL]);
 
+  const isModeLocked = !(supportedModes.includes('light') && supportedModes.includes('dark'));
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Guest Workspace';
   const displaySubtext = user?.email || 'Local profile';
 
   const sidebarContent = (
-    <div className="flex h-full flex-col justify-between bg-white dark:bg-[#0F1521] border-r border-slate-200 dark:border-slate-800 w-[248px] select-none">
+    <div className="cadence-sidebar flex h-full flex-col justify-between bg-white dark:bg-[#0F1521] border-r border-slate-200 dark:border-slate-800 w-[248px] select-none">
       <div className="flex-1 min-h-0 flex flex-col">
         <div className="flex h-16 items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800 shrink-0">
           <button
@@ -122,7 +125,7 @@ export function Sidebar({
                       isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'
                     }`}
                   />
-                  <span className="truncate">{item.label}</span>
+                  <span className="editorial-link truncate">{item.label}</span>
                 </span>
                 {count > 0 && (
                   <span className="font-mono text-xs tabular-nums text-slate-500 dark:text-slate-400 ml-2">
@@ -140,9 +143,28 @@ export function Sidebar({
           <button
             type="button"
             onClick={onToggleTheme}
-            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="flex-1 flex items-center justify-center p-2 rounded-lg text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/70 hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+            disabled={isModeLocked}
+            title={
+              isModeLocked
+                ? isDark
+                  ? 'Dark mode is required by the active style'
+                  : 'Light mode is required by the active style'
+                : isDark
+                  ? 'Switch to light mode'
+                  : 'Switch to dark mode'
+            }
+            aria-label={
+              isModeLocked
+                ? 'Color mode locked by current style'
+                : isDark
+                  ? 'Switch to light mode'
+                  : 'Switch to dark mode'
+            }
+            className={`flex-1 flex items-center justify-center p-2 rounded-lg transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
+              isModeLocked
+                ? 'text-slate-400 dark:text-slate-500 bg-slate-100/60 dark:bg-slate-800/40 cursor-not-allowed opacity-70'
+                : 'text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/70 hover:bg-slate-200/70 dark:hover:bg-slate-800'
+            }`}
           >
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>

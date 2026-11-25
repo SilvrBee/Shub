@@ -8,7 +8,13 @@ import {
   signOut,
   User,
 } from 'firebase/auth';
-import { doc, Firestore, getDocFromServer, getFirestore } from 'firebase/firestore';
+import {
+  doc,
+  Firestore,
+  getDocFromServer,
+  getFirestore,
+  initializeFirestore,
+} from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 export const SCOPES = [
@@ -33,10 +39,19 @@ try {
   const configWithDb = firebaseConfig as typeof firebaseConfig & {
     firestoreDatabaseId?: string;
   };
+  const databaseId = configWithDb.firestoreDatabaseId || undefined;
 
-  db = configWithDb.firestoreDatabaseId
-    ? getFirestore(app, configWithDb.firestoreDatabaseId)
-    : getFirestore(app);
+  try {
+    db = initializeFirestore(
+      app,
+      {
+        experimentalForceLongPolling: true,
+      },
+      databaseId
+    );
+  } catch {
+    db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
+  }
 } catch (err) {
   authInitError =
     err instanceof Error ? err.message : 'Firebase services could not initialize.';
@@ -46,6 +61,7 @@ export { auth, db };
 
 async function testConnection() {
   if (!db) return;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {

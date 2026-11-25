@@ -77,11 +77,13 @@ export interface DaySummary {
 }
 
 export type AppThemeId = 'cobalt' | 'emerald' | 'indigo' | 'amber' | 'rose' | 'nord';
+export type AppStyleId = 'classic' | 'editorial' | 'aurora-glass' | 'celestial';
 export type ColorMode = 'light' | 'dark' | 'system';
 export type LayoutDensity = 'comfortable' | 'compact';
 
 export interface AppSettings {
   colorMode: ColorMode;
+  style: AppStyleId;
   theme: AppThemeId;
   highContrast: boolean;
   density: LayoutDensity;
@@ -100,6 +102,7 @@ export interface AppSettings {
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   colorMode: 'light',
+  style: 'classic',
   theme: 'cobalt',
   highContrast: false,
   density: 'comfortable',

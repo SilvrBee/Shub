@@ -56,8 +56,12 @@ export function TasksView({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="editorial-rise editorial-rise-1 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
+          <span className="editorial-kicker">
+            <span className="editorial-marker" aria-hidden="true">01</span>
+            <span className="editorial-kicker-text">Action Directory</span>
+          </span>
           <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
             Tasks
           </h1>
@@ -77,7 +81,7 @@ export function TasksView({
       </div>
 
       {/* Filter & Search Toolbar */}
-      <div className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="editorial-rise editorial-rise-2 editorial-toolbar cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
@@ -135,7 +139,7 @@ export function TasksView({
       </div>
 
       {/* High-Density Clean Task Table */}
-      <div className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+      <div className="editorial-rise editorial-rise-3 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         {filteredTasks.length === 0 ? (
           <EmptyStateIllustration
             kind="tasks"

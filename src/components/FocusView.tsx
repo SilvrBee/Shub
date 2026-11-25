@@ -59,7 +59,11 @@ export function FocusView({
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="editorial-rise editorial-rise-1">
+        <span className="editorial-kicker">
+          <span className="editorial-marker" aria-hidden="true">EDITION</span>
+          <span className="editorial-kicker-text">Deep Work</span>
+        </span>
         <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
           Focus
         </h1>
@@ -71,23 +75,23 @@ export function FocusView({
       {/* Summary KPI Strip */}
       <section
         aria-label="Focus Metrics Summary"
-        className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-800"
+        className="editorial-rise editorial-rise-2 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-800"
       >
         <div className="p-5">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Logged Today</p>
-          <p className="mt-2 font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
+          <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">Logged Today</p>
+          <p className="editorial-kpi-value mt-2 font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
             {todayMinutes} min
           </p>
         </div>
         <div className="p-5">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Past 7 Days</p>
-          <p className="mt-2 font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
+          <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">Past 7 Days</p>
+          <p className="editorial-kpi-value mt-2 font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
             {(weeklyMinutes / 60).toFixed(1)}h
           </p>
         </div>
         <div className="p-5">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Completed Blocks</p>
-          <p className="mt-2 font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
+          <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">Completed Blocks</p>
+          <p className="editorial-kpi-value mt-2 font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
             {focusSessions.length}
           </p>
         </div>
@@ -101,9 +105,13 @@ export function FocusView({
             defaultLabel={defaultFocusLabel}
           />
 
-          <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+          <section className="editorial-rise editorial-rise-4 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
             <div className="flex items-start justify-between gap-4 mb-5">
               <div>
+                <span className="editorial-kicker">
+                  <span className="editorial-marker" aria-hidden="true">02</span>
+                  <span className="editorial-kicker-text">Cadence Log</span>
+                </span>
                 <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
                   7-Day Focus Output
                 </h2>
@@ -155,9 +163,13 @@ export function FocusView({
           </section>
         </div>
 
-        <section className="lg:col-span-7 bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+        <section className="editorial-rise editorial-rise-3 lg:col-span-7 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
             <div>
+              <span className="editorial-kicker">
+                <span className="editorial-marker" aria-hidden="true">03</span>
+                <span className="editorial-kicker-text">Archive</span>
+              </span>
               <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
                 Focus Session Log
               </h2>

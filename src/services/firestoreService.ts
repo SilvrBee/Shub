@@ -126,7 +126,7 @@ export async function ensureUserRootProfile(user: User): Promise<void> {
           autoSyncOnOpen: false,
           aiPrivacyAcknowledged: false,
           syncTime: '21:00',
-          syncTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+          syncTimezone: (Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC').slice(0, 80),
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         })

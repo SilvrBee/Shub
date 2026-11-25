@@ -1,0 +1,73 @@
+/* High Contrast Mode — layers cleanly over any Style & Theme */
+html.high-contrast {
+  --color-slate-50: #ffffff;
+  --color-slate-100: #eef2f6;
+  --color-slate-200: #94a3b8;
+  --color-slate-300: #64748b;
+  --color-slate-400: #334155;
+  --color-slate-500: #1e293b;
+  --color-slate-600: #0f172a;
+  --color-slate-700: #090d16;
+  --color-slate-900: #020617;
+  --color-blue-600: #1d4ed8;
+  --color-blue-700: #1e40af;
+
+  --cadence-bg-canvas: #ffffff;
+  --cadence-bg-sidebar: #ffffff;
+  --cadence-bg-header: #ffffff;
+  --cadence-bg-card: #ffffff;
+  --cadence-bg-input: #ffffff;
+  --cadence-border-color: #475569;
+  --cadence-border-subtle: #94a3b8;
+  --cadence-blur-card: 0px;
+  --cadence-blur-header: 0px;
+  --cadence-bg-layer: none;
+}
+
+html.high-contrast.dark {
+  --color-slate-50: #ffffff;
+  --color-slate-100: #ffffff;
+  --color-slate-200: #f1f5f9;
+  --color-slate-300: #e2e8f0;
+  --color-slate-400: #cbd5e1;
+  --color-slate-500: #cbd5e1;
+  --color-slate-600: #94a3b8;
+  --color-slate-700: #94a3b8;
+  --color-slate-800: #64748b;
+  --color-slate-900: #020617;
+  --color-blue-400: #93c5fd;
+  --color-blue-500: #60a5fa;
+
+  --cadence-bg-canvas: #000000;
+  --cadence-bg-sidebar: #05070c;
+  --cadence-bg-header: #05070c;
+  --cadence-bg-card: #05070c;
+  --cadence-bg-input: #000000;
+  --cadence-border-color: #94a3b8;
+  --cadence-border-subtle: #64748b;
+  --cadence-blur-card: 0px;
+  --cadence-blur-header: 0px;
+  --cadence-bg-layer: none;
+}
+
+html.high-contrast body {
+  background-color: #ffffff;
+  color: #020617;
+}
+
+html.high-contrast.dark body {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+html.high-contrast.dark aside > div,
+html.high-contrast.dark header,
+html.high-contrast.dark section,
+html.high-contrast.dark [role="dialog"] > div {
+  background-color: #05070c;
+}
+
+html.high-contrast :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}

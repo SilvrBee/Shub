@@ -79,7 +79,7 @@ export function TaskModal({
       aria-modal="true"
       aria-labelledby="task-modal-title"
     >
-      <div className="w-full max-w-lg rounded-xl bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="cadence-card editorial-preserve-pad w-full max-w-lg rounded-xl bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
           <h2 id="task-modal-title" className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
             {initialTask ? 'Edit Task' : 'New Task'}

@@ -20,7 +20,7 @@ const VIEW_LABELS: Record<DashboardView, string> = {
 
 export function Header({ activeView, onOpenMobileNav, onNewTask }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-30 h-16 bg-white/95 dark:bg-[#0F1521]/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 flex items-center justify-between gap-8">
+    <header className="cadence-header sticky top-0 z-30 h-16 bg-white/95 dark:bg-[#0F1521]/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 flex items-center justify-between gap-8">
       <div className="flex items-center gap-3 min-w-0">
         <button
           type="button"

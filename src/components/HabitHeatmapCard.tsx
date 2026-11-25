@@ -157,9 +157,13 @@ export function HabitHeatmapCard({ habits, onToggleHabitDate }: HabitHeatmapCard
   const canClickCell = effectiveFilterId !== 'all' && Boolean(onToggleHabitDate);
 
   return (
-    <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+    <section className="editorial-rise editorial-rise-2 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
         <div>
+          <span className="editorial-kicker">
+            <span className="editorial-marker" aria-hidden="true">01</span>
+            <span className="editorial-kicker-text">Continuity Grid</span>
+          </span>
           <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
             12-Week Consistency Heatmap
           </h2>
@@ -250,7 +254,7 @@ export function HabitHeatmapCard({ habits, onToggleHabitDate }: HabitHeatmapCard
                           cell.isFuture
                         )} ${
                           isToday
-                            ? 'ring-1 ring-offset-1 ring-slate-900 dark:ring-slate-100 dark:ring-offset-[#121927]'
+                            ? 'editorial-ring-offset ring-1 ring-offset-1 ring-slate-900 dark:ring-slate-100 dark:ring-offset-[#121927]'
                             : ''
                         } ${
                           canClickCell && !cell.isFuture

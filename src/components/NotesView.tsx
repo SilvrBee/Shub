@@ -67,8 +67,12 @@ export function NotesView({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="editorial-rise editorial-rise-1 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
+          <span className="editorial-kicker">
+            <span className="editorial-marker" aria-hidden="true">01</span>
+            <span className="editorial-kicker-text">Manuscripts</span>
+          </span>
           <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
             Notes
           </h1>
@@ -87,7 +91,7 @@ export function NotesView({
         </button>
       </div>
 
-      <div className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[540px]">
+      <div className="editorial-rise editorial-rise-2 editorial-split-pane editorial-preserve-pad cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[540px]">
         {/* Left Note Index */}
         <div className="md:col-span-4 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 flex flex-col">
           <div className="p-4 border-b border-slate-200 dark:border-slate-800">

@@ -78,7 +78,11 @@ export function HabitsView({
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="editorial-rise editorial-rise-1">
+        <span className="editorial-kicker">
+          <span className="editorial-marker" aria-hidden="true">EDITION</span>
+          <span className="editorial-kicker-text">Rituals &amp; Pace</span>
+        </span>
         <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
           Habits
         </h1>
@@ -93,8 +97,12 @@ export function HabitsView({
       )}
 
       {/* Weekly Habit Tracker Matrix */}
-      <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+      <section className="editorial-rise editorial-rise-3 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+          <span className="editorial-kicker">
+            <span className="editorial-marker" aria-hidden="true">02</span>
+            <span className="editorial-kicker-text">Weekly Ledger</span>
+          </span>
           <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
             Weekly Habit Matrix
           </h2>
@@ -168,7 +176,7 @@ export function HabitsView({
                             className={`w-7 h-7 rounded-md border inline-flex items-center justify-center transition-all active:scale-95 ${
                               done
                                 ? 'bg-blue-600 border-blue-600 dark:bg-blue-500 dark:border-blue-500 text-white'
-                                : 'border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 bg-slate-50 dark:bg-[#0B0F17]'
+                                : 'editorial-subtle-box border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 bg-slate-50 dark:bg-[#0B0F17]'
                             }`}
                           >
                             {done && <Check className="w-3.5 h-3.5" strokeWidth={2.5} />}
@@ -232,7 +240,7 @@ export function HabitsView({
 
         <form
           onSubmit={handleAddHabit}
-          className="p-5 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-slate-50/50 dark:bg-[#0B0F17]/40"
+          className="editorial-transparent-band p-5 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-slate-50/50 dark:bg-[#0B0F17]/40"
         >
           <input
             ref={nameInputRef}

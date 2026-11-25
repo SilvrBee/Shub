@@ -1,0 +1,44 @@
+/* Style: Classic (default design preserved unchanged) */
+html[data-style="classic"] {
+  --cadence-font-display: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --cadence-font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --cadence-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --cadence-radius-card: 0.75rem;
+  --cadence-radius-control: 0.5rem;
+  --cadence-radius-sm: 0.375rem;
+
+  --cadence-border-width: 1px;
+  --cadence-border-color: var(--color-slate-200);
+  --cadence-border-subtle: var(--color-slate-100);
+
+  --cadence-bg-canvas: var(--color-slate-50);
+  --cadence-bg-sidebar: #ffffff;
+  --cadence-bg-header: rgba(255, 255, 255, 0.95);
+  --cadence-bg-card: #ffffff;
+  --cadence-bg-input: var(--color-slate-50);
+
+  --cadence-shadow-card: none;
+  --cadence-shadow-elevated: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+
+  --cadence-blur-card: 0px;
+  --cadence-blur-header: 4px;
+
+  --cadence-space-card: 1.5rem;
+  --cadence-space-section: 1.5rem;
+  --cadence-space-main-x: 2rem;
+  --cadence-space-main-y: 2rem;
+
+  --cadence-bg-layer: none;
+}
+
+html.dark[data-style="classic"] {
+  --cadence-border-color: var(--color-slate-800);
+  --cadence-border-subtle: rgba(30, 41, 59, 0.8);
+
+  --cadence-bg-canvas: #0b0f17;
+  --cadence-bg-sidebar: #0f1521;
+  --cadence-bg-header: rgba(15, 21, 33, 0.95);
+  --cadence-bg-card: #121927;
+  --cadence-bg-input: #0b0f17;
+}

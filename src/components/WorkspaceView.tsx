@@ -165,8 +165,12 @@ export function WorkspaceView({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="editorial-rise editorial-rise-1 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
+          <span className="editorial-kicker">
+            <span className="editorial-marker" aria-hidden="true">EDITION</span>
+            <span className="editorial-kicker-text">Connected Suite</span>
+          </span>
           <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
             Google Apps
           </h1>
@@ -184,7 +188,7 @@ export function WorkspaceView({
                 type="button"
                 onClick={() => void loadWorkspaceData()}
                 disabled={loading}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0"
+                className="editorial-subtle-box inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                 <span>Refresh</span>
@@ -193,7 +197,7 @@ export function WorkspaceView({
             <button
               type="button"
               onClick={() => void onSignOut()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0"
+              className="editorial-subtle-box inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Sign out</span>
@@ -204,12 +208,16 @@ export function WorkspaceView({
 
       {/* Authentication / Token Refresh Banner (only when signed out or hourly token expired) */}
       {(!user || !accessToken) && (
-        <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <section className="editorial-rise editorial-rise-2 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-5 max-w-2xl">
             <div className="shrink-0">
               <IllustrationSvg kind="workspace" />
             </div>
             <div className="space-y-2">
+              <span className="editorial-kicker">
+                <span className="editorial-marker" aria-hidden="true">01</span>
+                <span className="editorial-kicker-text">Authorization</span>
+              </span>
               <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-slate-100">
                 {user
                   ? 'Refresh Google Apps session'
@@ -261,13 +269,19 @@ export function WorkspaceView({
       {accessToken && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Google Calendar */}
-          <section className="lg:col-span-6 bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+          <section className="editorial-rise editorial-rise-2 lg:col-span-6 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2.5">
-                <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-                  Google Calendar
-                </h2>
+              <div>
+                <span className="editorial-kicker">
+                  <span className="editorial-marker" aria-hidden="true">01</span>
+                  <span className="editorial-kicker-text">Appointments</span>
+                </span>
+                <div className="flex items-center gap-2.5">
+                  <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                    Google Calendar
+                  </h2>
+                </div>
               </div>
               <span className="font-mono tabular-nums text-xs text-slate-500 dark:text-slate-400">
                 {events.length} upcoming
@@ -316,13 +330,19 @@ export function WorkspaceView({
           </section>
 
           {/* Google Drive & Docs */}
-          <section className="lg:col-span-6 bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+          <section className="editorial-rise editorial-rise-3 lg:col-span-6 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2.5">
-                <FolderOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-                  Drive &amp; Docs
-                </h2>
+              <div>
+                <span className="editorial-kicker">
+                  <span className="editorial-marker" aria-hidden="true">02</span>
+                  <span className="editorial-kicker-text">Documents</span>
+                </span>
+                <div className="flex items-center gap-2.5">
+                  <FolderOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                    Drive &amp; Docs
+                  </h2>
+                </div>
               </div>
 
               <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-lg">
@@ -400,13 +420,19 @@ export function WorkspaceView({
           </section>
 
           {/* Gmail Inbox Preview */}
-          <section className="lg:col-span-12 bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+          <section className="editorial-rise editorial-rise-4 lg:col-span-12 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2.5">
-                <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-                  Recent Gmail Messages
-                </h2>
+              <div>
+                <span className="editorial-kicker">
+                  <span className="editorial-marker" aria-hidden="true">03</span>
+                  <span className="editorial-kicker-text">Correspondence</span>
+                </span>
+                <div className="flex items-center gap-2.5">
+                  <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                    Recent Gmail Messages
+                  </h2>
+                </div>
               </div>
               <span className="font-mono tabular-nums text-xs text-slate-500 dark:text-slate-400">
                 Inbox preview

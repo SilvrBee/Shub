@@ -30,7 +30,13 @@ import {
   updateUserScratchpad,
 } from './services/firestoreService';
 import {
+  getStyleDefinition,
+  resolveEffectiveColorMode,
+  VALID_STYLES,
+} from './styles/stylesConfig';
+import {
   AppSettings,
+  AppStyleId,
   DashboardView,
   DEFAULT_APP_SETTINGS,
   FocusSession,
@@ -69,10 +75,15 @@ export default function App() {
     DEFAULT_APP_SETTINGS
   );
 
-  const appSettings = useMemo<AppSettings>(
-    () => ({ ...DEFAULT_APP_SETTINGS, ...storedSettings }),
-    [storedSettings]
-  );
+  const appSettings = useMemo<AppSettings>(() => {
+    const merged = { ...DEFAULT_APP_SETTINGS, ...storedSettings };
+    const normalizedStyle =
+      (merged.style as string) === 'editorial-atelier' ? 'editorial' : merged.style;
+    const safeStyle: AppStyleId = VALID_STYLES.has(normalizedStyle)
+      ? (normalizedStyle as AppStyleId)
+      : 'classic';
+    return { ...merged, style: safeStyle };
+  }, [storedSettings]);
 
   const [activeView, setActiveView] = useState<DashboardView>(() =>
     VALID_VIEWS.has(appSettings.defaultView) ? appSettings.defaultView : DashboardView.Overview
@@ -110,19 +121,64 @@ export default function App() {
     return () => mq.removeEventListener('change', handleChange);
   }, []);
 
+  const activeStyleDef = useMemo(
+    () => getStyleDefinition(appSettings.style),
+    [appSettings.style]
+  );
+
+  const effectiveColorMode = useMemo(
+    () => resolveEffectiveColorMode(appSettings.colorMode, activeStyleDef.supportedModes),
+    [appSettings.colorMode, activeStyleDef.supportedModes]
+  );
+
   const isDark =
-    appSettings.colorMode === 'dark' ||
-    (appSettings.colorMode === 'system' && systemPrefersDark);
+    effectiveColorMode === 'dark' ||
+    (effectiveColorMode === 'system' && systemPrefersDark);
+
+  const [styleCrossFading, setStyleCrossFading] = useState(false);
+  const prevStyleRef = useRef<AppStyleId>(appSettings.style);
+
+  useEffect(() => {
+    if (prevStyleRef.current === appSettings.style) return;
+    prevStyleRef.current = appSettings.style;
+
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (appSettings.reducedMotion || prefersReduced) {
+      return;
+    }
+
+    const root = document.documentElement;
+    root.classList.add('style-transitioning');
+    setStyleCrossFading(true);
+    const timer = window.setTimeout(() => {
+      root.classList.remove('style-transitioning');
+      setStyleCrossFading(false);
+    }, 240);
+
+    return () => {
+      window.clearTimeout(timer);
+      root.classList.remove('style-transitioning');
+    };
+  }, [appSettings.style, appSettings.reducedMotion]);
 
   useEffect(() => {
     const root = document.documentElement;
     if (isDark) {
       root.classList.add('dark');
-      localStorage.setItem('cadence_theme', 'dark');
     } else {
       root.classList.remove('dark');
-      localStorage.setItem('cadence_theme', 'light');
     }
+    if (
+      activeStyleDef.supportedModes.includes('light') &&
+      activeStyleDef.supportedModes.includes('dark')
+    ) {
+      localStorage.setItem('cadence_theme', isDark ? 'dark' : 'light');
+    }
+    root.setAttribute('data-style', activeStyleDef.id);
     root.setAttribute('data-theme', appSettings.theme);
     root.setAttribute('data-density', appSettings.density);
     if (appSettings.highContrast) {
@@ -137,6 +193,8 @@ export default function App() {
     }
   }, [
     isDark,
+    activeStyleDef.id,
+    activeStyleDef.supportedModes,
     appSettings.theme,
     appSettings.density,
     appSettings.highContrast,
@@ -560,11 +618,16 @@ export default function App() {
     null;
 
   return (
-    <div className="min-h-screen flex bg-slate-50 text-slate-900 dark:bg-[#0B0F17] dark:text-slate-100">
+    <div
+      className={`cadence-shell min-h-screen flex bg-slate-50 text-slate-900 dark:bg-[#0B0F17] dark:text-slate-100 ${
+        styleCrossFading ? 'style-crossfade' : ''
+      }`}
+    >
       <Sidebar
         activeView={activeView}
         onSelectView={setActiveView}
         isDark={isDark}
+        supportedModes={activeStyleDef.supportedModes}
         onToggleTheme={() => handleUpdateSettings({ colorMode: isDark ? 'light' : 'dark' })}
         pendingCount={pendingTaskCount}
         mobileOpen={mobileNavOpen}
@@ -582,8 +645,8 @@ export default function App() {
           onNewTask={openNewTaskModal}
         />
 
-        <main className="flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-8 py-6 sm:py-8">
-          <div key={activeView} className="tab-transition-enter space-y-6">
+        <main className="cadence-main flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-8 py-6 sm:py-8">
+          <div key={activeView} className="tab-transition-enter cadence-stack space-y-6">
             {activeView === DashboardView.Overview && (
               <OverviewView
                 tasks={tasks}
@@ -671,6 +734,7 @@ export default function App() {
             {activeView === DashboardView.Settings && (
               <SettingsView
                 settings={appSettings}
+                isDark={isDark}
                 onUpdateSettings={handleUpdateSettings}
                 onResetSettings={handleResetSettings}
                 onResetWorkspace={handleResetWorkspace}

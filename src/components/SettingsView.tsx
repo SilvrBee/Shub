@@ -13,6 +13,12 @@ import {
   Sun,
 } from 'lucide-react';
 import {
+  formatSupportedModesLabel,
+  getStyleDefinition,
+  resolveEffectiveColorMode,
+  STYLE_DEFINITIONS,
+} from '../styles/stylesConfig';
+import {
   AppSettings,
   AppThemeId,
   ColorMode,
@@ -25,6 +31,7 @@ import { GoogleSignInButton } from './GoogleSignInButton';
 
 interface SettingsViewProps {
   settings: AppSettings;
+  isDark?: boolean;
   onUpdateSettings: (patch: Partial<AppSettings>) => void;
   onResetSettings: () => void;
   onResetWorkspace: () => void;
@@ -112,6 +119,7 @@ const LANDING_VIEWS: Array<{ id: DashboardView; label: string }> = [
 
 export function SettingsView({
   settings,
+  isDark = false,
   onUpdateSettings,
   onResetSettings,
   onResetWorkspace,
@@ -125,6 +133,15 @@ export function SettingsView({
   const [confirmResetWorkspace, setConfirmResetWorkspace] = useState(false);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
 
+  const activeStyle = getStyleDefinition(settings.style);
+  const activeTheme = THEME_OPTIONS.find((t) => t.id === settings.theme) ?? THEME_OPTIONS[0];
+  const effectiveColorMode = resolveEffectiveColorMode(
+    settings.colorMode,
+    activeStyle.supportedModes
+  );
+  const modeLockedToDark =
+    activeStyle.supportedModes.includes('dark') && !activeStyle.supportedModes.includes('light');
+
   const showNotice = (msg: string) => {
     setStatusNotice(msg);
     window.setTimeout(() => {
@@ -134,13 +151,17 @@ export function SettingsView({
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="editorial-rise editorial-rise-1 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
+          <span className="editorial-kicker">
+            <span className="editorial-marker" aria-hidden="true">EDITION</span>
+            <span className="editorial-kicker-text">Preferences</span>
+          </span>
           <h1 className="font-display text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
             Settings
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Customize appearance, themes, overview layout, productivity defaults, and workspace data
+            Customize appearance, styles, themes, overview layout, productivity defaults, and workspace data
           </p>
         </div>
 
@@ -153,15 +174,19 @@ export function SettingsView({
       </div>
 
       {/* Section 1: Appearance & Themes */}
-      <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+      <section className="editorial-rise editorial-rise-2 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
-          <Palette className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <Palette className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
           <div>
+            <span className="editorial-kicker">
+              <span className="editorial-marker" aria-hidden="true">01</span>
+              <span className="editorial-kicker-text">Visual System</span>
+            </span>
             <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
               Appearance
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Color mode, website themes, spacing density, and motion preferences
+              Color mode, visual style, website themes, spacing density, and motion preferences
             </p>
           </div>
         </div>
@@ -172,26 +197,198 @@ export function SettingsView({
             <div>
               <p className="text-sm font-medium text-slate-900 dark:text-slate-100">Color Mode</p>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Choose Light, Dark, or automatically match your operating system
+                {modeLockedToDark
+                  ? `${activeStyle.name} supports Dark mode only`
+                  : 'Choose Light, Dark, or automatically match your operating system'}
               </p>
             </div>
             <div className="inline-flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-lg self-start sm:self-auto">
               {COLOR_MODES.map((mode) => {
                 const Icon = mode.icon;
-                const active = settings.colorMode === mode.id;
+                const active = effectiveColorMode === mode.id;
+                const unsupported =
+                  (mode.id === 'light' && !activeStyle.supportedModes.includes('light')) ||
+                  (mode.id === 'dark' && !activeStyle.supportedModes.includes('dark')) ||
+                  (mode.id === 'system' &&
+                    !(
+                      activeStyle.supportedModes.includes('light') &&
+                      activeStyle.supportedModes.includes('dark')
+                    ));
                 return (
                   <button
                     key={mode.id}
                     type="button"
+                    disabled={unsupported}
+                    title={
+                      unsupported
+                        ? `${mode.label} is unavailable for ${activeStyle.name}`
+                        : undefined
+                    }
                     onClick={() => onUpdateSettings({ colorMode: mode.id })}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
                       active
                         ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                        : unsupported
+                          ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-50'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
                     <span>{mode.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Style Selector */}
+          <div className="pt-5 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
+            <div>
+              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">Style</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Choose typography, geometry, surface depth, and backdrop character independently of color theme
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {STYLE_DEFINITIONS.map((styleDef) => {
+                const selected = settings.style === styleDef.id;
+                const previewDark =
+                  !styleDef.supportedModes.includes('light') ||
+                  (isDark && styleDef.supportedModes.includes('dark'));
+                const p = styleDef.preview;
+                const canvasBg = previewDark ? p.canvasDark : p.canvasLight;
+                const sidebarBg = previewDark ? p.sidebarDark : p.sidebarLight;
+                const cardBg = previewDark ? p.cardDark : p.cardLight;
+                const borderColor = previewDark ? p.borderDark : p.borderLight;
+                const textPrimary = previewDark ? '#f1f5f9' : '#0f172a';
+                const textMuted = previewDark ? 'rgba(148,163,184,0.45)' : 'rgba(100,116,139,0.45)';
+                const modeLabel = formatSupportedModesLabel(styleDef.supportedModes);
+
+                let backdropBg = 'none';
+                if (p.effect === 'glass') {
+                  backdropBg = `radial-gradient(120px circle at 20% 15%, ${activeTheme.accentHex}33, transparent 70%), radial-gradient(110px circle at 85% 85%, ${activeTheme.accentHex}26, transparent 70%)`;
+                } else if (p.effect === 'celestial') {
+                  backdropBg = `radial-gradient(1.5px 1.5px at 22% 24%, rgba(255,255,255,0.65), transparent), radial-gradient(1px 1px at 78% 20%, rgba(255,255,255,0.5), transparent), radial-gradient(1.5px 1.5px at 66% 74%, ${activeTheme.accentHex}aa, transparent), radial-gradient(140px circle at 80% 12%, ${activeTheme.accentHex}2b, transparent 70%)`;
+                } else if (p.effect === 'editorial') {
+                  backdropBg = `linear-gradient(180deg, ${activeTheme.accentHex}0d 0%, transparent 65%)`;
+                }
+
+                return (
+                  <button
+                    key={styleDef.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      onUpdateSettings({ style: styleDef.id });
+                      showNotice(`Style switched to ${styleDef.name}`);
+                    }}
+                    className={`text-left p-4 rounded-xl border transition-colors flex flex-col gap-3 ${
+                      selected
+                        ? 'border-blue-600 dark:border-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
+                        : 'editorial-subtle-box border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-[#0B0F17]/50'
+                    }`}
+                  >
+                    {/* Miniature UI Preview */}
+                    <div
+                      aria-hidden="true"
+                      className="w-full h-24 overflow-hidden flex border relative"
+                      style={{
+                        backgroundColor: canvasBg,
+                        backgroundImage: backdropBg,
+                        borderColor,
+                        borderRadius: p.radius,
+                      }}
+                    >
+                      {/* Mini sidebar */}
+                      <div
+                        className="w-12 h-full shrink-0 p-2 flex flex-col justify-between border-r"
+                        style={{
+                          backgroundColor: sidebarBg,
+                          borderColor,
+                        }}
+                      >
+                        <div className="space-y-1.5">
+                          <div
+                            className="h-1.5 w-6 rounded-xs"
+                            style={{ backgroundColor: activeTheme.accentHex }}
+                          />
+                          <div className="h-1 w-7 rounded-xs" style={{ backgroundColor: textMuted }} />
+                          <div className="h-1 w-5 rounded-xs" style={{ backgroundColor: textMuted }} />
+                        </div>
+                        <div
+                          className="h-2 w-7"
+                          style={{
+                            backgroundColor: activeTheme.accentHex,
+                            borderRadius: p.radius === '12px' ? '6px' : p.radius === '3px' ? '2px' : '4px',
+                          }}
+                        />
+                      </div>
+
+                      {/* Mini canvas + cards */}
+                      <div className="flex-1 p-2.5 flex flex-col gap-2 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span
+                            className="text-[11px] font-semibold leading-none"
+                            style={{ fontFamily: p.displayFont, color: textPrimary }}
+                          >
+                            Aa Cadence
+                          </span>
+                          <span
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: activeTheme.accentHex }}
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5 flex-1">
+                          <div
+                            className="border p-1.5 flex flex-col justify-between"
+                            style={{
+                              backgroundColor: cardBg,
+                              borderColor,
+                              borderRadius: p.radius === '12px' ? '8px' : p.radius,
+                            }}
+                          >
+                            <div className="h-1 w-8 rounded-xs" style={{ backgroundColor: textMuted }} />
+                            <div
+                              className="h-2 w-10 rounded-xs"
+                              style={{ backgroundColor: activeTheme.accentHex, opacity: 0.75 }}
+                            />
+                          </div>
+                          <div
+                            className="border p-1.5 flex flex-col justify-between"
+                            style={{
+                              backgroundColor: cardBg,
+                              borderColor,
+                              borderRadius: p.radius === '12px' ? '8px' : p.radius,
+                            }}
+                          >
+                            <div className="h-1 w-6 rounded-xs" style={{ backgroundColor: textMuted }} />
+                            <div className="h-1.5 w-9 rounded-xs" style={{ backgroundColor: textMuted }} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card Details */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          <span>{styleDef.name}</span>
+                          <span aria-hidden="true" className="text-slate-300 dark:text-slate-700 font-normal">
+                            ·
+                          </span>
+                          <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+                            {modeLabel}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                          {styleDef.description}
+                        </p>
+                      </div>
+                      {selected && (
+                        <Check className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                      )}
+                    </div>
                   </button>
                 );
               })}
@@ -221,7 +418,7 @@ export function SettingsView({
                     className={`text-left p-4 rounded-xl border transition-colors flex flex-col justify-between gap-3 ${
                       selected
                         ? 'border-blue-600 dark:border-blue-400 bg-blue-50/40 dark:bg-blue-950/20'
-                        : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-[#0B0F17]/50'
+                        : 'editorial-subtle-box border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-[#0B0F17]/50'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 w-full">
@@ -322,10 +519,14 @@ export function SettingsView({
       </section>
 
       {/* Section 2: General & Overview */}
-      <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+      <section className="editorial-rise editorial-rise-3 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
-          <Sliders className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <Sliders className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
           <div>
+            <span className="editorial-kicker">
+              <span className="editorial-marker" aria-hidden="true">02</span>
+              <span className="editorial-kicker-text">Overview Layout</span>
+            </span>
             <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
               General &amp; Overview
             </h2>
@@ -394,7 +595,7 @@ export function SettingsView({
               ].map((item) => (
                 <label
                   key={item.key}
-                  className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#0B0F17]/50 cursor-pointer"
+                  className="editorial-subtle-box flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#0B0F17]/50 cursor-pointer"
                 >
                   <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
                     {item.label}
@@ -413,8 +614,12 @@ export function SettingsView({
       </section>
 
       {/* Section 3: Tasks & Focus Timer Defaults */}
-      <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+      <section className="editorial-rise editorial-rise-4 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+          <span className="editorial-kicker">
+            <span className="editorial-marker" aria-hidden="true">03</span>
+            <span className="editorial-kicker-text">Workflow Defaults</span>
+          </span>
           <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
             Tasks &amp; Focus Defaults
           </h2>
@@ -513,10 +718,14 @@ export function SettingsView({
       </section>
 
       {/* Section 4: Google Account & Connected Apps */}
-      <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+      <section className="editorial-rise editorial-rise-5 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
-          <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
           <div>
+            <span className="editorial-kicker">
+              <span className="editorial-marker" aria-hidden="true">04</span>
+              <span className="editorial-kicker-text">Cloud Sync</span>
+            </span>
             <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
               Google Account &amp; Sync
             </h2>
@@ -582,10 +791,14 @@ export function SettingsView({
       </section>
 
       {/* Section 5: Data, Backup & Reset */}
-      <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+      <section className="editorial-rise editorial-rise-6 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
-          <Database className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <Database className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
           <div>
+            <span className="editorial-kicker">
+              <span className="editorial-marker" aria-hidden="true">05</span>
+              <span className="editorial-kicker-text">Archive &amp; Reset</span>
+            </span>
             <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
               Data &amp; Backup
             </h2>

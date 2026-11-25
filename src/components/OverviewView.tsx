@@ -178,8 +178,12 @@ export function OverviewView({
   return (
     <div className="space-y-6">
       {/* Editorial Daily Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="editorial-rise editorial-rise-1 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
+          <span className="editorial-kicker">
+            <span className="editorial-marker" aria-hidden="true">EDITION</span>
+            <span className="editorial-kicker-text">Daily Briefing</span>
+          </span>
           <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 text-balance">
             {userFirstName ? `${greeting}, ${userFirstName}` : greeting}
           </h1>
@@ -202,14 +206,14 @@ export function OverviewView({
       {/* 4-Column KPI Strip (single elevation, hairline dividers, zero nested cards) */}
       <section
         aria-label="Daily Metrics Summary"
-        className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-800"
+        className="editorial-rise editorial-rise-2 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-800"
       >
         <div className="p-5">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">
             Due Today
           </p>
           <div className="mt-2 flex items-baseline justify-between gap-2">
-            <span className="font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            <span className="editorial-kpi-value font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
               {remainingTodayCount}
             </span>
             <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
@@ -219,11 +223,11 @@ export function OverviewView({
         </div>
 
         <div className="p-5">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">
             Task Completion
           </p>
           <div className="mt-2 flex items-baseline justify-between gap-2">
-            <span className="font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            <span className="editorial-kpi-value font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
               {completionRate}%
             </span>
             <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
@@ -233,11 +237,11 @@ export function OverviewView({
         </div>
 
         <div className="p-5">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">
             Focus Logged Today
           </p>
           <div className="mt-2 flex items-baseline justify-between gap-2">
-            <span className="font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            <span className="editorial-kpi-value font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
               {(todayFocusMinutes / 60).toFixed(1)}h
             </span>
             <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
@@ -247,11 +251,11 @@ export function OverviewView({
         </div>
 
         <div className="p-5">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">
             Weekly Habit Pace
           </p>
           <div className="mt-2 flex items-baseline justify-between gap-2">
-            <span className="font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            <span className="editorial-kpi-value font-mono tabular-nums text-2xl font-semibold text-slate-900 dark:text-slate-100">
               {habitConsistency}%
             </span>
             <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
@@ -266,9 +270,13 @@ export function OverviewView({
         {/* Left Column: Priority Queue + Weekly Focus Chart */}
         <div className="lg:col-span-7 space-y-6">
           {/* Today's Priority Queue */}
-          <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl">
+          <section className="editorial-rise editorial-rise-3 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl">
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
               <div>
+                <span className="editorial-kicker">
+                  <span className="editorial-marker" aria-hidden="true">01</span>
+                  <span className="editorial-kicker-text">Action Index</span>
+                </span>
                 <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
                   Priority Queue
                 </h2>
@@ -393,7 +401,7 @@ export function OverviewView({
               <button
                 type="button"
                 onClick={() => onNavigate(DashboardView.Tasks)}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
+                className="editorial-link inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
               >
                 <span>View all tasks</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -403,9 +411,13 @@ export function OverviewView({
 
           {/* 7-Day Focus Output Chart */}
           {settings.showFocusChart && (
-            <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+            <section className="editorial-rise editorial-rise-4 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
               <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
+                  <span className="editorial-kicker">
+                    <span className="editorial-marker" aria-hidden="true">02</span>
+                    <span className="editorial-kicker-text">Output Ledger</span>
+                  </span>
                   <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
                     7-Day Focus Output
                   </h2>
@@ -473,9 +485,13 @@ export function OverviewView({
         {/* Right Column: Schedule + Focus Timer + Quick Scratchpad */}
         <div className="lg:col-span-5 space-y-6">
           {/* Today's Agenda */}
-          <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl">
+          <section className="editorial-rise editorial-rise-3 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl">
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
               <div>
+                <span className="editorial-kicker">
+                  <span className="editorial-marker" aria-hidden="true">03</span>
+                  <span className="editorial-kicker-text">Day Sheet</span>
+                </span>
                 <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
                   Today&apos;s Schedule
                 </h2>
@@ -486,7 +502,7 @@ export function OverviewView({
               <button
                 type="button"
                 onClick={() => onNavigate(DashboardView.Schedule)}
-                className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
+                className="editorial-link text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
               >
                 Manage
               </button>
@@ -502,7 +518,7 @@ export function OverviewView({
                   <button
                     type="button"
                     onClick={() => onNavigate(DashboardView.Schedule)}
-                    className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                    className="editorial-link text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     Plan Schedule
                   </button>
@@ -542,9 +558,13 @@ export function OverviewView({
 
           {/* Quick Scratchpad */}
           {settings.showScratchpad && (
-            <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+            <section className="editorial-rise editorial-rise-5 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
               <div className="flex items-center justify-between gap-4 mb-3">
                 <div>
+                  <span className="editorial-kicker">
+                    <span className="editorial-marker" aria-hidden="true">05</span>
+                    <span className="editorial-kicker-text">Margin Notes</span>
+                  </span>
                   <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
                     Scratchpad
                   </h2>
@@ -555,7 +575,7 @@ export function OverviewView({
                 <button
                   type="button"
                   onClick={() => onNavigate(DashboardView.Notes)}
-                  className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
+                  className="editorial-link text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
                 >
                   Open Notes
                 </button>
@@ -576,9 +596,13 @@ export function OverviewView({
 
           {/* Google Account & Workspace Access */}
           {settings.showGoogleCard && (
-            <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+            <section className="editorial-rise editorial-rise-6 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
+                  <span className="editorial-kicker">
+                    <span className="editorial-marker" aria-hidden="true">06</span>
+                    <span className="editorial-kicker-text">Connected Suite</span>
+                  </span>
                   <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
                     Google Workspace
                   </h2>
@@ -593,7 +617,7 @@ export function OverviewView({
                   <button
                     type="button"
                     onClick={() => onNavigate(DashboardView.GoogleWorkspace)}
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
+                    className="editorial-link inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap shrink-0"
                   >
                     <span>Open Apps</span>
                     <ArrowRight className="w-3.5 h-3.5" />

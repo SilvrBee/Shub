@@ -1,0 +1,149 @@
+/* Base design tokens (Classic defaults) and semantic surface bindings */
+:root {
+  --cadence-font-display: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --cadence-font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --cadence-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --cadence-radius-card: 0.75rem;
+  --cadence-radius-control: 0.5rem;
+  --cadence-radius-sm: 0.375rem;
+
+  --cadence-border-width: 1px;
+  --cadence-border-color: var(--color-slate-200);
+  --cadence-border-subtle: var(--color-slate-100);
+
+  --cadence-bg-canvas: var(--color-slate-50);
+  --cadence-bg-sidebar: #ffffff;
+  --cadence-bg-header: rgba(255, 255, 255, 0.95);
+  --cadence-bg-card: #ffffff;
+  --cadence-bg-input: var(--color-slate-50);
+
+  --cadence-shadow-card: none;
+  --cadence-shadow-elevated: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+
+  --cadence-blur-card: 0px;
+  --cadence-blur-header: 4px;
+
+  --cadence-space-card: 1.5rem;
+  --cadence-space-section: 1.5rem;
+  --cadence-space-main-x: 2rem;
+  --cadence-space-main-y: 2rem;
+
+  --cadence-bg-layer: none;
+}
+
+html.dark {
+  --cadence-border-color: var(--color-slate-800);
+  --cadence-border-subtle: rgba(30, 41, 59, 0.8);
+
+  --cadence-bg-canvas: #0b0f17;
+  --cadence-bg-sidebar: #0f1521;
+  --cadence-bg-header: rgba(15, 21, 33, 0.95);
+  --cadence-bg-card: #121927;
+  --cadence-bg-input: #0b0f17;
+}
+
+@layer base {
+  html {
+    font-family: var(--cadence-font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--cadence-font-display);
+  }
+
+  .font-mono {
+    font-family: var(--cadence-font-mono);
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+body {
+  background-color: var(--cadence-bg-canvas);
+  background-image: var(--cadence-bg-layer);
+  background-attachment: fixed;
+}
+
+/* Density adjustments */
+html[data-density="compact"] {
+  --cadence-space-main-y: 1rem;
+  --cadence-space-card: 1.25rem;
+  --cadence-space-section: 1.125rem;
+}
+
+html[data-density="compact"] main {
+  padding-top: 1rem;
+  padding-bottom: 1.5rem;
+}
+
+/* Editorial-only ornaments hidden for Classic, Aurora Glass, and Celestial */
+.editorial-kicker,
+.editorial-marker {
+  display: none;
+}
+
+/* Semantic surface bindings driven by style tokens */
+.cadence-shell {
+  background-color: var(--cadence-bg-canvas);
+  background-image: var(--cadence-bg-layer);
+  background-attachment: fixed;
+}
+
+.cadence-sidebar {
+  background-color: var(--cadence-bg-sidebar);
+  border-right-width: var(--cadence-border-width);
+  border-right-style: solid;
+  border-right-color: var(--cadence-border-color);
+  backdrop-filter: blur(var(--cadence-blur-card));
+  -webkit-backdrop-filter: blur(var(--cadence-blur-card));
+}
+
+.cadence-header {
+  background-color: var(--cadence-bg-header);
+  border-bottom-width: var(--cadence-border-width);
+  border-bottom-style: solid;
+  border-bottom-color: var(--cadence-border-color);
+  backdrop-filter: blur(var(--cadence-blur-header));
+  -webkit-backdrop-filter: blur(var(--cadence-blur-header));
+}
+
+.cadence-card {
+  background-color: var(--cadence-bg-card);
+  border-width: var(--cadence-border-width);
+  border-style: solid;
+  border-color: var(--cadence-border-color);
+  border-radius: var(--cadence-radius-card);
+  box-shadow: var(--cadence-shadow-card);
+  backdrop-filter: blur(var(--cadence-blur-card));
+  -webkit-backdrop-filter: blur(var(--cadence-blur-card));
+}
+
+.cadence-card-pad {
+  padding: var(--cadence-space-card);
+}
+
+.cadence-stack > * + * {
+  margin-top: var(--cadence-space-section);
+}
+
+@media (min-width: 640px) {
+  .cadence-main {
+    padding-left: var(--cadence-space-main-x);
+    padding-right: var(--cadence-space-main-x);
+    padding-top: var(--cadence-space-main-y);
+    padding-bottom: var(--cadence-space-main-y);
+  }
+}
+
+.cadence-input {
+  background-color: var(--cadence-bg-input);
+  border-width: var(--cadence-border-width);
+  border-style: solid;
+  border-color: var(--cadence-border-color);
+  border-radius: var(--cadence-radius-control);
+}

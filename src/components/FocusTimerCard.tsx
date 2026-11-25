@@ -109,9 +109,13 @@ export function FocusTimerCard({
   const progress = 1 - secondsLeft / (selectedMinutes * 60);
 
   return (
-    <section className="bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+    <section className="editorial-rise editorial-rise-4 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6">
       <div className="flex items-center justify-between gap-4 mb-4">
         <div>
+          <span className="editorial-kicker">
+            <span className="editorial-marker" aria-hidden="true">{compact ? '04' : '01'}</span>
+            <span className="editorial-kicker-text">Chronometer</span>
+          </span>
           <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
             Focus Timer
           </h2>
@@ -141,7 +145,7 @@ export function FocusTimerCard({
       <div className={compact ? 'py-2' : 'py-5'}>
         <div className="flex items-baseline justify-between gap-4 mb-3">
           <div
-            className={`font-mono tabular-nums font-semibold tracking-tight text-slate-900 dark:text-slate-100 ${
+            className={`editorial-timer-display font-mono tabular-nums font-semibold tracking-tight text-slate-900 dark:text-slate-100 ${
               compact ? 'text-4xl' : 'text-5xl'
             }`}
           >

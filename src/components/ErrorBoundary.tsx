@@ -29,8 +29,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-900 dark:bg-[#0B0F17] dark:text-slate-100 p-6">
-          <div className="max-w-md w-full rounded-xl bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+        <div className="cadence-shell min-h-screen flex items-center justify-center bg-slate-50 text-slate-900 dark:bg-[#0B0F17] dark:text-slate-100 p-6">
+          <div className="cadence-card editorial-modal editorial-preserve-pad max-w-md w-full rounded-xl bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 p-6 space-y-4">
             <h1 className="font-display text-lg font-semibold">Unable to load dashboard</h1>
             <p className="text-sm text-slate-600 dark:text-slate-300">{this.state.message}</p>
             <button

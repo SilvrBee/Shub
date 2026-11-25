@@ -1,0 +1,374 @@
+/* Style: Editorial Atelier — strictly scoped under data-style="editorial" */
+
+html[data-style="editorial"] {
+  --cadence-font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --cadence-font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --cadence-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --cadence-radius-card: 0px;
+  --cadence-radius-control: 2px;
+  --cadence-radius-sm: 2px;
+
+  --cadence-border-width: 1px;
+  --cadence-border-color: #dcd5c9;
+  --cadence-border-subtle: #ebe5db;
+
+  --cadence-bg-canvas: #fbf9f5;
+  --cadence-bg-sidebar: #f5f1ea;
+  --cadence-bg-header: rgba(251, 249, 245, 0.94);
+  --cadence-bg-card: transparent;
+  --cadence-bg-input: #f3efe6;
+  --cadence-bg-modal: #fbf9f5;
+
+  --cadence-shadow-card: none;
+  --cadence-shadow-elevated: 0 12px 32px rgba(28, 25, 23, 0.1);
+
+  --cadence-blur-card: 0px;
+  --cadence-blur-header: 6px;
+
+  --cadence-space-card: 1.75rem;
+  --cadence-space-section: 2.25rem;
+  --cadence-space-main-x: 2.75rem;
+  --cadence-space-main-y: 2.5rem;
+
+  /* Subtle tactile paper-grain noise texture (SVG turbulence, zero external assets) */
+  --cadence-bg-layer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.16 0 0 0 0 0.14 0 0 0 0 0.11 0 0 0 0.042 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
+html[data-style="editorial"]:not(.high-contrast) {
+  /* Warm paper & charcoal ink neutral scale */
+  --color-slate-50: #f7f4ee;
+  --color-slate-100: #efeae1;
+  --color-slate-200: #dcd5c9;
+  --color-slate-300: #c7bfb2;
+  --color-slate-400: #78716c;
+  --color-slate-500: #66605a;
+  --color-slate-600: #57534e;
+  --color-slate-700: #44403c;
+  --color-slate-800: #292524;
+  --color-slate-900: #1c1917;
+  --color-slate-950: #141210;
+}
+
+html.dark[data-style="editorial"] {
+  --cadence-border-color: #302c27;
+  --cadence-border-subtle: #24211d;
+
+  --cadence-bg-canvas: #141210;
+  --cadence-bg-sidebar: #191714;
+  --cadence-bg-header: rgba(20, 18, 16, 0.94);
+  --cadence-bg-card: transparent;
+  --cadence-bg-input: #1e1b18;
+  --cadence-bg-modal: #1b1815;
+
+  --cadence-shadow-card: none;
+  --cadence-shadow-elevated: 0 16px 36px rgba(0, 0, 0, 0.55);
+
+  --cadence-bg-layer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.96 0 0 0 0 0.94 0 0 0 0 0.89 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
+html.dark[data-style="editorial"]:not(.high-contrast) {
+  --color-slate-50: #faf8f4;
+  --color-slate-100: #f3efe6;
+  --color-slate-200: #e5dfd3;
+  --color-slate-300: #d1c9bc;
+  --color-slate-400: #ada599;
+  --color-slate-500: #9d9589;
+  --color-slate-600: #7e776d;
+  --color-slate-700: #443f39;
+  --color-slate-800: #2e2a25;
+  --color-slate-900: #1e1b18;
+  --color-slate-950: #110f0d;
+}
+
+/* Tile the SVG grain cleanly without stretching */
+html[data-style="editorial"]:not(.high-contrast) body,
+html[data-style="editorial"]:not(.high-contrast) .cadence-shell {
+  background-repeat: repeat;
+  background-size: 180px 180px;
+}
+
+/* Editorial typography scale */
+html[data-style="editorial"] main h1 {
+  font-family: var(--cadence-font-display);
+  font-size: clamp(1.85rem, 2.6vw, 2.35rem);
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+  font-variation-settings: "opsz" 72, "SOFT" 45;
+}
+
+html[data-style="editorial"] .cadence-card h2 {
+  font-family: var(--cadence-font-display);
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  font-variation-settings: "opsz" 36, "SOFT" 35;
+}
+
+/* Large editorial KPI typographic statements */
+html[data-style="editorial"] .editorial-kpi-value {
+  font-family: var(--cadence-font-display);
+  font-size: clamp(2.25rem, 3.1vw, 2.85rem);
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  font-variation-settings: "opsz" 72, "SOFT" 35;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+html[data-style="editorial"] .editorial-timer-display {
+  font-family: var(--cadence-font-display);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  font-variation-settings: "opsz" 72, "SOFT" 30;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Small-caps section labels & numbered markers (01, 02, 03...) */
+html[data-style="editorial"] .editorial-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+html[data-style="editorial"] .editorial-marker {
+  display: inline-block;
+  font-family: var(--cadence-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-blue-600);
+}
+
+html.dark[data-style="editorial"] .editorial-marker {
+  color: var(--color-blue-400);
+}
+
+html[data-style="editorial"] .editorial-kicker-text {
+  font-family: var(--cadence-font-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-variant-caps: all-small-caps;
+  color: var(--color-slate-500);
+}
+
+html[data-style="editorial"] .editorial-kpi-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-variant-caps: all-small-caps;
+  color: var(--color-slate-500);
+}
+
+/* Unboxed layout: lose boxed cards, rely on crisp hairline rules and whitespace */
+html[data-style="editorial"] .cadence-card {
+  background-color: transparent;
+  border-width: 0;
+  border-top: 1px solid var(--cadence-border-color);
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Flush unboxed horizontal padding so rules and text align cleanly to the editorial grid */
+html[data-style="editorial"] .cadence-card:not(.editorial-preserve-pad) {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+html[data-style="editorial"] .cadence-card:not(.editorial-preserve-pad) > .px-6,
+html[data-style="editorial"] .cadence-card:not(.editorial-preserve-pad) > .p-6,
+html[data-style="editorial"] .cadence-card:not(.editorial-preserve-pad) > ul > li.px-6,
+html[data-style="editorial"] .cadence-card:not(.editorial-preserve-pad) > form.p-5 {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+html[data-style="editorial"] .cadence-card:not(.editorial-preserve-pad) table th:first-child,
+html[data-style="editorial"] .cadence-card:not(.editorial-preserve-pad) table td:first-child {
+  padding-left: 0;
+}
+
+html[data-style="editorial"] .cadence-card:not(.editorial-preserve-pad) table th:last-child,
+html[data-style="editorial"] .cadence-card:not(.editorial-preserve-pad) table td:last-child {
+  padding-right: 0;
+}
+
+/* Broadsheet KPI ledger strip: bounded top & bottom by hairline rules */
+html[data-style="editorial"] section[aria-label$="Metrics Summary"].cadence-card {
+  border-bottom: 1px solid var(--cadence-border-color);
+}
+
+html[data-style="editorial"] section[aria-label$="Metrics Summary"].cadence-card > div {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+@media (min-width: 640px) {
+  html[data-style="editorial"] section[aria-label$="Metrics Summary"].cadence-card > div {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  html[data-style="editorial"] section[aria-label$="Metrics Summary"].cadence-card > div:first-child {
+    padding-left: 0;
+  }
+
+  html[data-style="editorial"] section[aria-label$="Metrics Summary"].cadence-card > div:last-child {
+    padding-right: 0;
+  }
+}
+
+/* Toolbar & split-pane manuscript exceptions keep crisp hairline framing */
+html[data-style="editorial"] .cadence-card.editorial-toolbar {
+  border-bottom: 1px solid var(--cadence-border-color);
+  padding: 0.875rem 0;
+}
+
+html[data-style="editorial"] .cadence-card.editorial-split-pane {
+  border-bottom: 1px solid var(--cadence-border-color);
+}
+
+/* Modals and error cards stay solid/opaque above backdrop */
+html[data-style="editorial"] [role="dialog"] .cadence-card,
+html[data-style="editorial"] .cadence-card.editorial-modal {
+  background-color: var(--cadence-bg-modal);
+  border: 1px solid var(--cadence-border-color);
+  border-radius: 2px;
+  box-shadow: var(--cadence-shadow-elevated);
+}
+
+/* Warm charcoal / paper input & form control consistency (prevents cold slate hex leaks) */
+html[data-style="editorial"]:not(.high-contrast) main :is(input:not([type="checkbox"]), textarea, select) {
+  background-color: var(--cadence-bg-input);
+  border-color: var(--cadence-border-color);
+  border-radius: var(--cadence-radius-control);
+}
+
+html[data-style="editorial"]:not(.high-contrast) main input[type="text"].bg-transparent,
+html[data-style="editorial"]:not(.high-contrast) main textarea.bg-transparent {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+html[data-style="editorial"]:not(.high-contrast) .editorial-subtle-box {
+  background-color: var(--cadence-bg-input);
+  border-color: var(--cadence-border-color);
+  border-radius: var(--cadence-radius-control);
+}
+
+html[data-style="editorial"]:not(.high-contrast) .editorial-transparent-band {
+  background-color: transparent;
+}
+
+html[data-style="editorial"]:not(.high-contrast) .editorial-ring-offset {
+  --tw-ring-offset-color: var(--cadence-bg-canvas);
+}
+
+html[data-style="editorial"] aside .font-display {
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* Sidebar active nav gets subtle architectural indicator instead of heavy pill */
+html[data-style="editorial"] aside nav button {
+  border-radius: 2px;
+}
+
+html[data-style="editorial"] .cadence-input,
+html[data-style="editorial"] button.rounded-lg,
+html[data-style="editorial"] button.rounded-xl {
+  border-radius: var(--cadence-radius-control);
+}
+
+/* High Contrast compatibility safeguard */
+html.high-contrast[data-style="editorial"] .cadence-card {
+  border-top-width: 2px;
+}
+
+html.high-contrast[data-style="editorial"] section[aria-label$="Metrics Summary"].cadence-card,
+html.high-contrast[data-style="editorial"] .cadence-card.editorial-toolbar,
+html.high-contrast[data-style="editorial"] .cadence-card.editorial-split-pane {
+  border-bottom-width: 2px;
+}
+
+/* Elegant animated hairline underline on hover for links and inline action buttons */
+html[data-style="editorial"] :is(a, .editorial-link) {
+  text-decoration: none !important;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  padding-bottom: 1px;
+  transition: background-size 220ms cubic-bezier(0.22, 1, 0.36, 1), color 180ms ease;
+}
+
+html[data-style="editorial"] :is(a, .editorial-link):hover,
+html[data-style="editorial"] :is(a, .editorial-link):focus-visible {
+  background-size: 100% 1px;
+}
+
+/* Staggered fade-and-rise entrances */
+@keyframes editorialFadeRise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+html[data-style="editorial"]:not(.reduce-motion) .tab-transition-enter .editorial-rise {
+  animation: editorialFadeRise 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html[data-style="editorial"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-1 {
+  animation-delay: 0ms;
+}
+
+html[data-style="editorial"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-2 {
+  animation-delay: 60ms;
+}
+
+html[data-style="editorial"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-3 {
+  animation-delay: 120ms;
+}
+
+html[data-style="editorial"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-4 {
+  animation-delay: 180ms;
+}
+
+html[data-style="editorial"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-5 {
+  animation-delay: 240ms;
+}
+
+html[data-style="editorial"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-6 {
+  animation-delay: 300ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-style="editorial"] .tab-transition-enter .editorial-rise {
+    animation: none !important;
+  }
+
+  html[data-style="editorial"] :is(a, .editorial-link) {
+    transition: none !important;
+  }
+}
+
+/* Compact density harmonizes with editorial generous spacing */
+html[data-style="editorial"][data-density="compact"] {
+  --cadence-space-card: 1.35rem;
+  --cadence-space-section: 1.5rem;
+  --cadence-space-main-y: 1.5rem;
+}
