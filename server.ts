@@ -24,6 +24,19 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.resolve(__dirname, 'dist');
+    app.use((req, res, next) => {
+      if (req.path === '/sw.js' || req.path === '/Shub/sw.js') {
+        res.setHeader('Service-Worker-Allowed', '/');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      } else if (
+        req.path === '/manifest.webmanifest' ||
+        req.path === '/Shub/manifest.webmanifest'
+      ) {
+        res.setHeader('Content-Type', 'application/manifest+json');
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+      next();
+    });
     app.use('/Shub', express.static(distPath));
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {

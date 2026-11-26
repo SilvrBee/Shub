@@ -13,8 +13,10 @@ import {
   Palette,
   RotateCcw,
   Sliders,
+  Smartphone,
   Sun,
 } from 'lucide-react';
+import { PWAInstallButton } from './PWAInstallButton';
 import {
   formatSupportedModesLabel,
   getStyleDefinition,
@@ -1346,6 +1348,39 @@ export function SettingsView({
               </button>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Section 7: Install & Offline App */}
+      <section className="editorial-rise editorial-rise-6 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
+          <Smartphone className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+          <div>
+            <span className="editorial-kicker">
+              <span className="editorial-marker" aria-hidden="true">07</span>
+              <span className="editorial-kicker-text">Progressive Web App</span>
+            </span>
+            <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+              Install &amp; Offline Support
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Install Cadence as a standalone app and work seamlessly without an internet connection
+            </p>
+          </div>
+        </div>
+
+        <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+              Offline App Shell &amp; Local Persistence
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Assets are cached via Service Worker and workspace changes save locally or queue in Firestore IndexedDB while offline.
+            </p>
+          </div>
+          <div className="shrink-0">
+            <PWAInstallButton variant="settings" />
+          </div>
         </div>
       </section>
     </div>

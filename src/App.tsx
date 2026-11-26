@@ -85,6 +85,7 @@ import { BrowserNotificationStatus, SettingsView } from './components/SettingsVi
 import { TaskModal } from './components/TaskModal';
 import { QuickMultiAddModal } from './components/QuickMultiAddModal';
 import { ReminderOverlay } from './components/ReminderOverlay';
+import { OfflineBanner } from './components/OfflineBanner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CategoryManagerModal } from './components/ui/CategoryManagerModal';
 import { AuroraBackdrop } from './components/AuroraBackdrop';
@@ -254,6 +255,10 @@ export default function App() {
     } else {
       root.classList.remove('reduce-motion');
     }
+    const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeColorMeta) {
+      themeColorMeta.setAttribute('content', isDark ? '#0B0F17' : '#2563eb');
+    }
   }, [
     isDark,
     activeStyleDef.id,
@@ -408,29 +413,24 @@ export default function App() {
       return;
     }
 
-    let cancelled = false;
-    const unsubs: Array<() => void> = [];
+    const unsubs: Array<() => void> = [
+      subscribeUserProfile(uid, ({ scratchpad }) => {
+        setCloudScratchpad(scratchpad);
+      }),
+      subscribeUserCollection<TaskItem>(uid, 'tasks', setCloudTasks),
+      subscribeUserCollection<ScheduleBlock>(uid, 'schedule', setCloudSchedule),
+      subscribeUserCollection<HabitItem>(uid, 'habits', setCloudHabits),
+      subscribeUserCollection<FocusSession>(uid, 'focusSessions', setCloudFocusSessions),
+      subscribeUserCollection<NoteItem>(uid, 'notes', setCloudNotes),
+    ];
 
-    void ensureUserRootProfile(user)
-      .then(() => {
-        if (cancelled) return;
-        unsubs.push(
-          subscribeUserProfile(uid, ({ scratchpad }) => {
-            setCloudScratchpad(scratchpad);
-          }),
-          subscribeUserCollection<TaskItem>(uid, 'tasks', setCloudTasks),
-          subscribeUserCollection<ScheduleBlock>(uid, 'schedule', setCloudSchedule),
-          subscribeUserCollection<HabitItem>(uid, 'habits', setCloudHabits),
-          subscribeUserCollection<FocusSession>(uid, 'focusSessions', setCloudFocusSessions),
-          subscribeUserCollection<NoteItem>(uid, 'notes', setCloudNotes)
-        );
-      })
-      .catch((err) => {
+    void ensureUserRootProfile(user).catch((err) => {
+      if (typeof navigator === 'undefined' || navigator.onLine !== false) {
         setAuthError(err instanceof Error ? err.message : 'Unable to connect to Firestore.');
-      });
+      }
+    });
 
     return () => {
-      cancelled = true;
       for (const unsub of unsubs) {
         unsub();
       }
@@ -1460,6 +1460,8 @@ export default function App() {
           </ErrorBoundary>
         </main>
       </div>
+
+      <OfflineBanner isCloudSignedIn={isCloudSignedIn} />
 
       <ReminderOverlay
         toasts={toastQueue}

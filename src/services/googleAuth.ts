@@ -14,6 +14,8 @@ import {
   getDocFromServer,
   getFirestore,
   initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -46,11 +48,24 @@ try {
       app,
       {
         experimentalForceLongPolling: true,
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
       },
       databaseId
     );
   } catch {
-    db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
+    try {
+      db = initializeFirestore(
+        app,
+        {
+          experimentalForceLongPolling: true,
+        },
+        databaseId
+      );
+    } catch {
+      db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
+    }
   }
 } catch (err) {
   authInitError =

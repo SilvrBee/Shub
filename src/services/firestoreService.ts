@@ -109,6 +109,9 @@ function getDb() {
 }
 
 export async function ensureUserRootProfile(user: User): Promise<void> {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return;
+  }
   const firestore = getDb();
   const path = `users/${user.uid}`;
   try {

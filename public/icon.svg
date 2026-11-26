@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="cadence-bg" x1="48" y1="32" x2="464" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1D4ED8" />
+      <stop offset="55%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#4338CA" />
+    </linearGradient>
+    <linearGradient id="cadence-ring" x1="120" y1="120" x2="392" y2="392" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#DBEAFE" stop-opacity="0.85" />
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#cadence-bg)" />
+  <rect x="24.5" y="24.5" width="463" height="463" rx="111.5" stroke="#FFFFFF" stroke-opacity="0.16" />
+  <circle cx="256" cy="256" r="142" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="20" />
+  <path
+    d="M 142 268 L 194 268 L 226 178 L 266 334 L 302 222 L 330 268 L 370 268"
+    stroke="url(#cadence-ring)"
+    stroke-width="28"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="372" cy="148" r="18" fill="#93C5FD" />
+</svg>

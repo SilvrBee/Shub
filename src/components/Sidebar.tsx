@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { DashboardView } from '../types/dashboard';
 import { GoogleSignInButton } from './GoogleSignInButton';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface SidebarProps {
   activeView: DashboardView;
@@ -139,6 +140,8 @@ export function Sidebar({
       </div>
 
       <div className="border-t border-slate-200 dark:border-slate-800 p-4 space-y-3">
+        <PWAInstallButton variant="sidebar" />
+
         <div className="flex items-center gap-2">
           <button
             type="button"
