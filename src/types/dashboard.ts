@@ -46,7 +46,9 @@ export interface SubtaskItem {
 }
 
 export type TaskRepeatFrequency = 'none' | 'daily' | 'weekly' | 'monthly' | 'custom';
-export type FieldSource = 'user';
+export type FieldSource = 'user' | 'auto';
+export type DefaultReminderOffset = '0' | '10' | '30' | '60' | '1440';
+export type TaskReminderOverride = 'default' | 'none' | DefaultReminderOffset;
 
 export interface TaskItem {
   id: string;
@@ -54,6 +56,9 @@ export interface TaskItem {
   category?: string;
   priority: TaskPriority;
   prioritySource?: FieldSource;
+  priorityAutoPrev?: TaskPriority;
+  priorityAutoReason?: string;
+  priorityAutoLocked?: boolean;
   dueDate?: string; // YYYY-MM-DD
   dueTime?: string; // HH:MM
   deadlineDate?: string; // YYYY-MM-DD
@@ -64,9 +69,33 @@ export interface TaskItem {
   subtasks?: SubtaskItem[];
   repeat?: TaskRepeatFrequency;
   repeatWeekdays?: number[]; // 0 (Sun) .. 6 (Sat)
+  recurrenceChildId?: string;
   durationMinutes?: number;
+  reminderOffset?: TaskReminderOverride;
   pinned?: boolean;
   createdAt: string;
+}
+
+export type ReminderKind = 'due' | 'deadline-heads-up';
+
+export interface ReminderTrigger {
+  triggerKey: string;
+  taskId: string;
+  taskTitle: string;
+  kind: ReminderKind;
+  triggerAtMs: number;
+  targetAtMs?: number;
+  targetDate: string;
+  targetTime?: string;
+  category?: string;
+  priority: TaskPriority;
+  subtitle: string;
+}
+
+export interface ReminderRecord extends ReminderTrigger {
+  firedAtMs: number;
+  status: 'live' | 'missed';
+  read: boolean;
 }
 
 export type SmartSortMode = 'balanced' | 'priority' | 'deadline' | 'quick-wins';
@@ -142,6 +171,17 @@ export interface AppSettings {
   showFocusTimer: boolean;
   showScratchpad: boolean;
   showGoogleCard: boolean;
+  // Task Reminders & Notifications
+  notificationsEnabled: boolean;
+  defaultReminderOffset: DefaultReminderOffset;
+  morningReminderTime: string; // HH:MM
+  deadlineHeadsUpEnabled: boolean;
+  notificationSoundEnabled: boolean;
+  // Rule-based helpers
+  autoRaisePriorityEnabled: boolean;
+  autoRaiseHighDays: number;
+  autoRaiseMediumDays: number;
+  defaultDurationEstimateMinutes: number;
 }
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -166,6 +206,15 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   showFocusTimer: true,
   showScratchpad: true,
   showGoogleCard: true,
+  notificationsEnabled: true,
+  defaultReminderOffset: '30',
+  morningReminderTime: '09:00',
+  deadlineHeadsUpEnabled: true,
+  notificationSoundEnabled: true,
+  autoRaisePriorityEnabled: false,
+  autoRaiseHighDays: 1,
+  autoRaiseMediumDays: 3,
+  defaultDurationEstimateMinutes: 15,
 };
 
 // Retained for backwards-compatible Firestore profile typing

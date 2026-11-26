@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { User } from 'firebase/auth';
 import {
+  AlertCircle,
+  Bell,
+  BellOff,
   Check,
   Database,
   Download,
@@ -24,6 +27,7 @@ import {
   CategoryItem,
   ColorMode,
   DashboardView,
+  DefaultReminderOffset,
   LayoutDensity,
   MatrixImportantRule,
   ScheduleBlock,
@@ -35,15 +39,20 @@ import { GoogleSignInButton } from './GoogleSignInButton';
 import { DoodleHeaderScene } from './DoodleKit';
 import { CustomCheckbox } from './ui/CustomCheckbox';
 import { CustomSelect } from './ui/CustomSelect';
+import { TimePickerField } from './ui/CustomDateTimePicker';
 import { CategoryIcon } from './ui/CategoryBadge';
 import { CategoryManager } from './ui/CategoryManager';
 import { FLAG_META, PRIORITY_ORDER, PriorityFlagGlyph } from './PriorityFlag';
+
+export type BrowserNotificationStatus = NotificationPermission | 'unsupported';
 
 interface SettingsViewProps {
   settings: AppSettings;
   tasks: TaskItem[];
   schedule: ScheduleBlock[];
   isDark?: boolean;
+  notificationPermission: BrowserNotificationStatus;
+  onRequestNotificationPermission: () => void;
   onUpdateSettings: (patch: Partial<AppSettings>) => void;
   onAddCategory: (category: CategoryItem) => void;
   onUpdateCategory: (id: string, patch: Partial<CategoryItem>) => void;
@@ -138,6 +147,8 @@ export function SettingsView({
   tasks,
   schedule,
   isDark = false,
+  notificationPermission,
+  onRequestNotificationPermission,
   onUpdateSettings,
   onAddCategory,
   onUpdateCategory,
@@ -850,6 +861,109 @@ export function SettingsView({
                 className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums text-slate-900 dark:text-slate-100"
               />
             </div>
+
+            <div>
+              <label
+                htmlFor="settings-default-duration-est"
+                className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+              >
+                Fallback Duration Estimate (minutes)
+              </label>
+              <input
+                id="settings-default-duration-est"
+                type="number"
+                min={1}
+                max={240}
+                value={settings.defaultDurationEstimateMinutes}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isFinite(parsed) && parsed >= 1) {
+                    onUpdateSettings({
+                      defaultDurationEstimateMinutes: Math.min(240, Math.round(parsed)),
+                    });
+                  }
+                }}
+                className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums text-slate-900 dark:text-slate-100"
+              />
+            </div>
+          </div>
+
+          {/* Rule-Based Priority Escalation */}
+          <div className="pt-5 border-t border-slate-100 dark:border-slate-800/80 space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <label htmlFor="settings-auto-raise-priority" className="cursor-pointer">
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                  Raise priority as deadline approaches
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Rule-based escalation before due or deadline dates (only raises, skips pinned tasks, includes Undo)
+                </p>
+              </label>
+              <CustomCheckbox
+                id="settings-auto-raise-priority"
+                checked={settings.autoRaisePriorityEnabled}
+                onChange={(checked) =>
+                  onUpdateSettings({ autoRaisePriorityEnabled: checked })
+                }
+                ariaLabel="Toggle Raise priority as deadline approaches"
+              />
+            </div>
+
+            {settings.autoRaisePriorityEnabled && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-0 sm:pl-4">
+                <div>
+                  <label
+                    htmlFor="settings-auto-raise-high"
+                    className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1"
+                  >
+                    Raise to High when within (days)
+                  </label>
+                  <input
+                    id="settings-auto-raise-high"
+                    type="number"
+                    min={0}
+                    max={30}
+                    value={settings.autoRaiseHighDays}
+                    onChange={(e) => {
+                      const parsed = Number(e.target.value);
+                      if (Number.isFinite(parsed) && parsed >= 0) {
+                        const clamped = Math.min(30, Math.round(parsed));
+                        onUpdateSettings({
+                          autoRaiseHighDays: clamped,
+                          autoRaiseMediumDays: Math.max(clamped, settings.autoRaiseMediumDays),
+                        });
+                      }
+                    }}
+                    className="cadence-input w-full px-3 py-1.5 rounded-lg text-sm font-mono tabular-nums text-slate-900 dark:text-slate-100"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="settings-auto-raise-med"
+                    className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1"
+                  >
+                    Raise to Medium when within (days)
+                  </label>
+                  <input
+                    id="settings-auto-raise-med"
+                    type="number"
+                    min={0}
+                    max={30}
+                    value={settings.autoRaiseMediumDays}
+                    onChange={(e) => {
+                      const parsed = Number(e.target.value);
+                      if (Number.isFinite(parsed) && parsed >= 0) {
+                        const clamped = Math.min(30, Math.round(parsed));
+                        onUpdateSettings({
+                          autoRaiseMediumDays: Math.max(settings.autoRaiseHighDays, clamped),
+                        });
+                      }
+                    }}
+                    className="cadence-input w-full px-3 py-1.5 rounded-lg text-sm font-mono tabular-nums text-slate-900 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Editable Categories */}
@@ -887,13 +1001,212 @@ export function SettingsView({
         </div>
       </section>
 
+      {/* Section: Notifications & Task Reminders */}
+      <section className="editorial-rise editorial-rise-4 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
+          <Bell className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+          <div>
+            <span className="editorial-kicker">
+              <span className="editorial-marker" aria-hidden="true">04</span>
+              <span className="editorial-kicker-text">Alerts &amp; Timing</span>
+            </span>
+            <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+              Notifications
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Task reminder lead times, browser notification permission, morning schedule, and sound
+            </p>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-5">
+          {/* Master Toggle */}
+          <div className="flex items-center justify-between gap-4">
+            <label htmlFor="settings-notifications-master" className="cursor-pointer">
+              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                Enable Task Reminders
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Show in-app reminder toasts, missed-reminder alerts, and browser notifications
+              </p>
+            </label>
+            <CustomCheckbox
+              id="settings-notifications-master"
+              checked={settings.notificationsEnabled}
+              onChange={(checked) => onUpdateSettings({ notificationsEnabled: checked })}
+              ariaLabel="Toggle Task Reminders"
+            />
+          </div>
+
+          {/* Browser Notification Permission */}
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                  Browser Notifications
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {notificationPermission === 'granted' &&
+                    'Allowed — alerts also appear as native desktop/browser notifications.'}
+                  {notificationPermission === 'denied' &&
+                    'Blocked by browser — in-app toasts will still work.'}
+                  {notificationPermission === 'default' &&
+                    'Not enabled yet — click the button to request browser permission.'}
+                  {notificationPermission === 'unsupported' &&
+                    'Browser Notification API is unavailable in this environment — in-app toasts are active.'}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2.5 shrink-0">
+                <span
+                  className={`inline-flex items-center gap-1.5 text-xs font-medium ${
+                    notificationPermission === 'granted'
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : notificationPermission === 'denied'
+                        ? 'text-rose-600 dark:text-rose-400'
+                        : 'text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  {notificationPermission === 'granted' ? (
+                    <Check className="w-3.5 h-3.5" aria-hidden="true" />
+                  ) : notificationPermission === 'denied' ? (
+                    <BellOff className="w-3.5 h-3.5" aria-hidden="true" />
+                  ) : (
+                    <Bell className="w-3.5 h-3.5" aria-hidden="true" />
+                  )}
+                  <span>
+                    {notificationPermission === 'granted'
+                      ? 'Granted'
+                      : notificationPermission === 'denied'
+                        ? 'Denied'
+                        : notificationPermission === 'unsupported'
+                          ? 'Unsupported'
+                          : 'Not Set'}
+                  </span>
+                </span>
+
+                {notificationPermission !== 'granted' &&
+                  notificationPermission !== 'unsupported' && (
+                    <button
+                      type="button"
+                      onClick={onRequestNotificationPermission}
+                      className="px-3.5 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors whitespace-nowrap"
+                    >
+                      Enable Browser Notifications
+                    </button>
+                  )}
+              </div>
+            </div>
+
+            {notificationPermission === 'denied' && (
+              <div
+                role="note"
+                className="p-3.5 rounded-lg border border-amber-300/70 dark:border-amber-800/70 bg-amber-50/70 dark:bg-amber-950/25 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200"
+              >
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                <div className="space-y-1">
+                  <p className="font-medium">How to re-enable browser notifications:</p>
+                  <p className="opacity-90 leading-relaxed">
+                    Click the tune/lock icon in your browser&apos;s address bar, open Site
+                    Settings (or Permissions), change <strong>Notifications</strong> from Block to{' '}
+                    <strong>Allow</strong>, and reload Cadence.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Timing & Sound Options */}
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label
+                htmlFor="settings-default-reminder-offset"
+                className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+              >
+                Default Reminder Before Due Time
+              </label>
+              <CustomSelect
+                id="settings-default-reminder-offset"
+                ariaLabel="Default reminder time before due time"
+                value={settings.defaultReminderOffset}
+                onChange={(val) =>
+                  onUpdateSettings({ defaultReminderOffset: val as DefaultReminderOffset })
+                }
+                size="md"
+                className="w-full"
+                options={[
+                  { value: '0', label: 'At due time' },
+                  { value: '10', label: '10 minutes before' },
+                  { value: '30', label: '30 minutes before (default)' },
+                  { value: '60', label: '1 hour before' },
+                  { value: '1440', label: '1 day before' },
+                ]}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="settings-morning-reminder-time"
+                className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+              >
+                Morning Reminder for Date-Only Tasks
+              </label>
+              <TimePickerField
+                id="settings-morning-reminder-time"
+                ariaLabel="Morning reminder time for date-only tasks"
+                value={settings.morningReminderTime}
+                allowClear={false}
+                onChange={(val) => {
+                  if (val) onUpdateSettings({ morningReminderTime: val });
+                }}
+                timeFormat={settings.timeFormat}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div className="editorial-subtle-box flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#0B0F17]/50">
+              <label
+                htmlFor="settings-deadline-headsup"
+                className="text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer flex-1"
+              >
+                1-day heads-up before hard deadlines
+              </label>
+              <CustomCheckbox
+                id="settings-deadline-headsup"
+                size="sm"
+                checked={settings.deadlineHeadsUpEnabled}
+                onChange={(checked) => onUpdateSettings({ deadlineHeadsUpEnabled: checked })}
+                ariaLabel="Toggle 1-day deadline heads-up"
+              />
+            </div>
+
+            <div className="editorial-subtle-box flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#0B0F17]/50">
+              <label
+                htmlFor="settings-notification-sound"
+                className="text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer flex-1"
+              >
+                Play soft chime with reminders
+              </label>
+              <CustomCheckbox
+                id="settings-notification-sound"
+                size="sm"
+                checked={settings.notificationSoundEnabled}
+                onChange={(checked) => onUpdateSettings({ notificationSoundEnabled: checked })}
+                ariaLabel="Toggle reminder sound"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Section 4: Google Account & Connected Apps */}
       <section className="editorial-rise editorial-rise-5 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
           <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
           <div>
             <span className="editorial-kicker">
-              <span className="editorial-marker" aria-hidden="true">04</span>
+              <span className="editorial-marker" aria-hidden="true">05</span>
               <span className="editorial-kicker-text">Cloud Sync</span>
             </span>
             <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
@@ -966,7 +1279,7 @@ export function SettingsView({
           <Database className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
           <div>
             <span className="editorial-kicker">
-              <span className="editorial-marker" aria-hidden="true">05</span>
+              <span className="editorial-marker" aria-hidden="true">06</span>
               <span className="editorial-kicker-text">Archive &amp; Reset</span>
             </span>
             <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">

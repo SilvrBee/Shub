@@ -325,8 +325,19 @@ function serializeTaskPatch(patch: Partial<TaskItem>): Record<string, unknown> {
   if (has('priority') && patch.priority !== undefined) {
     out.priority = patch.priority;
   }
-  if (has('prioritySource')) {
-    out.prioritySource = 'user';
+  if (has('prioritySource') && patch.prioritySource !== undefined) {
+    out.prioritySource = patch.prioritySource === 'auto' ? 'auto' : 'user';
+  }
+  if (has('priorityAutoPrev')) {
+    out.priorityAutoPrev = patch.priorityAutoPrev ? patch.priorityAutoPrev : deleteField();
+  }
+  if (has('priorityAutoReason')) {
+    out.priorityAutoReason = patch.priorityAutoReason
+      ? patch.priorityAutoReason.slice(0, 160)
+      : deleteField();
+  }
+  if (has('priorityAutoLocked')) {
+    out.priorityAutoLocked = patch.priorityAutoLocked ? true : deleteField();
   }
   if (has('dueDate')) {
     out.dueDate = patch.dueDate ? patch.dueDate.slice(0, 20) : deleteField();
@@ -368,10 +379,21 @@ function serializeTaskPatch(patch: Partial<TaskItem>): Record<string, unknown> {
         ? patch.repeatWeekdays.slice(0, 7)
         : deleteField();
   }
+  if (has('recurrenceChildId')) {
+    out.recurrenceChildId = patch.recurrenceChildId
+      ? patch.recurrenceChildId.slice(0, 128)
+      : deleteField();
+  }
   if (has('durationMinutes')) {
     out.durationMinutes =
       typeof patch.durationMinutes === 'number' && Number.isFinite(patch.durationMinutes)
         ? Math.max(1, Math.min(1440, Math.round(patch.durationMinutes)))
+        : deleteField();
+  }
+  if (has('reminderOffset')) {
+    out.reminderOffset =
+      patch.reminderOffset && patch.reminderOffset !== 'default'
+        ? patch.reminderOffset
         : deleteField();
   }
   if (has('pinned')) {
@@ -393,7 +415,10 @@ export const fsTasks = {
       title: item.title.trim().slice(0, 300),
       category: item.category?.trim() ? item.category.trim().slice(0, 60) : undefined,
       priority: item.priority,
-      prioritySource: 'user',
+      prioritySource: item.prioritySource === 'auto' ? 'auto' : 'user',
+      priorityAutoPrev: item.priorityAutoPrev,
+      priorityAutoReason: item.priorityAutoReason ? item.priorityAutoReason.slice(0, 160) : undefined,
+      priorityAutoLocked: item.priorityAutoLocked ? true : undefined,
       dueDate: item.dueDate ? item.dueDate.slice(0, 20) : undefined,
       dueTime: item.dueTime ? item.dueTime.slice(0, 10) : undefined,
       deadlineDate: item.deadlineDate ? item.deadlineDate.slice(0, 20) : undefined,
@@ -413,10 +438,13 @@ export const fsTasks = {
         item.repeat === 'custom' && item.repeatWeekdays && item.repeatWeekdays.length > 0
           ? item.repeatWeekdays.slice(0, 7)
           : undefined,
+      recurrenceChildId: item.recurrenceChildId ? item.recurrenceChildId.slice(0, 128) : undefined,
       durationMinutes:
         typeof item.durationMinutes === 'number' && Number.isFinite(item.durationMinutes)
           ? Math.max(1, Math.min(1440, Math.round(item.durationMinutes)))
           : undefined,
+      reminderOffset:
+        item.reminderOffset && item.reminderOffset !== 'default' ? item.reminderOffset : undefined,
       pinned: item.pinned ? true : undefined,
     }),
   update: (uid: string, id: string, patch: Partial<TaskItem>) =>

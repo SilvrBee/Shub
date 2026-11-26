@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Clock, Pin, Plus } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Clock, Pin, Plus } from 'lucide-react';
 import {
   AppSettings,
   DashboardView,
@@ -14,12 +14,15 @@ import { FocusTimerCard } from './FocusTimerCard';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { TaskCheckButton } from './TaskCheckButton';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
+import { ErrorBoundary } from './ErrorBoundary';
 import { AnimatedMetricValue, AuroraProgressRing } from './AuroraMetrics';
 import { useDoodleCelebratePulse } from '../hooks/useCadenceStyle';
 import { DoodleHeaderScene, DoodleSquiggle } from './DoodleKit';
 import { PriorityFlagDisplay } from './PriorityFlag';
 import { CategoryBadge } from './ui/CategoryBadge';
 import {
+  estimateTaskDuration,
+  findSimilarOpenTasks,
   formatDurationLabel,
   formatShortDateLabel,
   sortTasksSmart,
@@ -40,6 +43,7 @@ interface OverviewViewProps {
   onUpdateScratchpad: (value: string) => void;
   onToggleTask: (id: string) => void;
   onQuickAddTask: (title: string, category: string, priority: TaskPriority) => void;
+  onOpenMultiAddWithText: (text: string) => void;
   onCompleteFocusSession: (minutes: number, label: string) => void;
   onNavigate: (view: DashboardView) => void;
   onOpenNewTaskModal: () => void;
@@ -60,6 +64,7 @@ export function OverviewView({
   onUpdateScratchpad,
   onToggleTask,
   onQuickAddTask,
+  onOpenMultiAddWithText,
   onCompleteFocusSession,
   onNavigate,
   onOpenNewTaskModal,
@@ -160,9 +165,21 @@ export function OverviewView({
         tasks.filter((t) => !t.completed),
         settings.smartSortMode,
         settings.quickWinMinutes,
-        todayKey
+        todayKey,
+        settings.defaultDurationEstimateMinutes
       ).slice(0, 3),
-    [tasks, settings.smartSortMode, settings.quickWinMinutes, todayKey]
+    [
+      tasks,
+      settings.smartSortMode,
+      settings.quickWinMinutes,
+      todayKey,
+      settings.defaultDurationEstimateMinutes,
+    ]
+  );
+
+  const quickSimilarTasks = useMemo(
+    () => findSimilarOpenTasks(quickTitle, tasks),
+    [quickTitle, tasks]
   );
 
   const visibleTasks = useMemo(() => {
@@ -403,24 +420,48 @@ export function OverviewView({
 
             <form
               onSubmit={handleQuickSubmit}
-              className="px-6 py-3 border-b border-slate-100 dark:border-slate-800/80 flex items-center gap-3"
+              className="px-6 py-3 border-b border-slate-100 dark:border-slate-800/80 space-y-1.5"
             >
-              <input
-                type="text"
-                value={quickTitle}
-                onChange={(e) => setQuickTitle(e.target.value)}
-                placeholder="Quick add a task for today..."
-                aria-label="Quick add task"
-                className="flex-1 bg-transparent text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={!quickTitle.trim()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 disabled:opacity-40 disabled:pointer-events-none transition-colors whitespace-nowrap shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={quickTitle}
+                  onChange={(e) => setQuickTitle(e.target.value)}
+                  onPaste={(e) => {
+                    const pasted = e.clipboardData?.getData('text') ?? '';
+                    const nonEmptyLines = pasted
+                      .split(/\r?\n/)
+                      .map((l) => l.trim())
+                      .filter(Boolean);
+                    if (nonEmptyLines.length >= 2) {
+                      e.preventDefault();
+                      onOpenMultiAddWithText(pasted);
+                    }
+                  }}
+                  placeholder="Quick add a task for today (or paste multiple lines)..."
+                  aria-label="Quick add task"
+                  className="flex-1 bg-transparent text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={!quickTitle.trim()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 disabled:opacity-40 disabled:pointer-events-none transition-colors whitespace-nowrap shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add</span>
+                </button>
+              </div>
+              {quickSimilarTasks.length > 0 && (
+                <p
+                  role="status"
+                  className="flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-300"
+                >
+                  <AlertTriangle className="w-3 h-3 shrink-0" aria-hidden="true" />
+                  <span>
+                    Similar open task: &ldquo;{quickSimilarTasks[0].title}&rdquo;
+                  </span>
+                </p>
+              )}
             </form>
 
             {visibleTasks.length === 0 ? (
@@ -455,9 +496,19 @@ export function OverviewView({
                   const doneSubs = subtasks.filter((s) => s.completed).length;
                   const isPartial =
                     !task.completed && doneSubs > 0 && doneSubs < subtasks.length;
+                  const durEst = estimateTaskDuration(
+                    task,
+                    tasks,
+                    settings.defaultDurationEstimateMinutes
+                  );
                   return (
-                    <li
+                    <ErrorBoundary
                       key={task.id}
+                      inline
+                      resetKey={`${task.id}-${task.title}`}
+                      fallbackTitle="Unable to display this task"
+                    >
+                    <li
                       className="px-6 py-3.5 flex items-start justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
                     >
                       <div className="flex items-start gap-3.5 min-w-0">
@@ -484,11 +535,21 @@ export function OverviewView({
                           </p>
                           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400 mt-1">
                             <PriorityFlagDisplay priority={task.priority} compact />
-                            {task.durationMinutes && (
+                            {task.durationMinutes ? (
                               <span className="inline-flex items-center gap-1 font-mono tabular-nums">
                                 <Clock className="w-3 h-3" aria-hidden="true" />
                                 {formatDurationLabel(task.durationMinutes)}
                               </span>
+                            ) : (
+                              durEst.source === 'category-median' && (
+                                <span
+                                  className="inline-flex items-center gap-1 font-mono tabular-nums italic"
+                                  title={`Estimated ~${durEst.minutes}m from ${durEst.sampleCount} completed ${task.category} tasks`}
+                                >
+                                  <Clock className="w-3 h-3" aria-hidden="true" />
+                                  ~{durEst.minutes}m
+                                </span>
+                              )
                             )}
                             {(task.deadlineDate || task.dueDate) && (
                               <span className="font-mono tabular-nums">
@@ -508,6 +569,7 @@ export function OverviewView({
                         </div>
                       </div>
                     </li>
+                    </ErrorBoundary>
                   );
                 })}
               </ul>
@@ -642,9 +704,19 @@ export function OverviewView({
                   const doneSubs = subtasks.filter((s) => s.completed).length;
                   const isPartial =
                     !task.completed && doneSubs > 0 && doneSubs < subtasks.length;
+                  const nextDurEst = estimateTaskDuration(
+                    task,
+                    tasks,
+                    settings.defaultDurationEstimateMinutes
+                  );
                   return (
-                    <li
+                    <ErrorBoundary
                       key={task.id}
+                      inline
+                      resetKey={`${task.id}-${task.title}`}
+                      fallbackTitle="Unable to display this task"
+                    >
+                    <li
                       className="px-6 py-3 flex items-start gap-3 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors"
                     >
                       <span className="font-mono tabular-nums text-[11px] font-semibold text-slate-400 dark:text-slate-500 pt-1 w-4 shrink-0">
@@ -667,11 +739,21 @@ export function OverviewView({
                         </div>
                         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400 mt-1">
                           <PriorityFlagDisplay priority={task.priority} compact />
-                          {task.durationMinutes && (
+                          {task.durationMinutes ? (
                             <span className="inline-flex items-center gap-1 font-mono tabular-nums">
                               <Clock className="w-3 h-3" aria-hidden="true" />
                               {formatDurationLabel(task.durationMinutes)}
                             </span>
+                          ) : (
+                            nextDurEst.source === 'category-median' && (
+                              <span
+                                className="inline-flex items-center gap-1 font-mono tabular-nums italic"
+                                title={`Estimated ~${nextDurEst.minutes}m from ${nextDurEst.sampleCount} completed ${task.category} tasks`}
+                              >
+                                <Clock className="w-3 h-3" aria-hidden="true" />
+                                ~{nextDurEst.minutes}m
+                              </span>
+                            )
                           )}
                           {(task.deadlineDate || task.dueDate) && (
                             <span className="font-mono tabular-nums">
@@ -690,6 +772,7 @@ export function OverviewView({
                         </div>
                       </div>
                     </li>
+                    </ErrorBoundary>
                   );
                 })}
               </ul>

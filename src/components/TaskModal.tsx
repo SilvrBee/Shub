@@ -1,14 +1,20 @@
-import { useEffect, useState } from 'react';
-import { Pin, Plus, Repeat, Settings2, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, Bell, Pin, Plus, Repeat, RotateCcw, Settings2, Trash2, X } from 'lucide-react';
 import {
   CategoryItem,
   SubtaskItem,
   TaskItem,
   TaskPriority,
+  TaskReminderOverride,
   TaskRepeatFrequency,
 } from '../types/dashboard';
 import { FLAG_META, PRIORITY_ORDER, PriorityFlagGlyph } from './PriorityFlag';
-import { DURATION_CHIPS, WEEKDAY_OPTIONS } from '../utils/taskUtils';
+import {
+  DURATION_CHIPS,
+  findSimilarOpenTasks,
+  undoAutoPriorityEscalation,
+  WEEKDAY_OPTIONS,
+} from '../utils/taskUtils';
 import { CustomSelect } from './ui/CustomSelect';
 import { CustomCheckbox } from './ui/CustomCheckbox';
 import { DatePickerField, TimePickerField } from './ui/CustomDateTimePicker';
@@ -17,6 +23,7 @@ import { CategoryIcon } from './ui/CategoryBadge';
 interface TaskModalProps {
   isOpen: boolean;
   initialTask?: TaskItem | null;
+  existingTasks?: TaskItem[];
   categories: CategoryItem[];
   defaultCategory?: string;
   defaultPriority?: TaskPriority;
@@ -38,9 +45,20 @@ const REPEAT_OPTIONS = [
   { value: 'custom', label: 'Custom weekdays' },
 ];
 
+const REMINDER_OVERRIDE_OPTIONS = [
+  { value: 'default', label: 'Use default setting' },
+  { value: '0', label: 'At due time' },
+  { value: '10', label: '10 minutes before' },
+  { value: '30', label: '30 minutes before' },
+  { value: '60', label: '1 hour before' },
+  { value: '1440', label: '1 day before' },
+  { value: 'none', label: 'No reminder' },
+];
+
 export function TaskModal({
   isOpen,
   initialTask,
+  existingTasks = [],
   categories,
   defaultPriority = TaskPriority.None,
   timeFormat = '24h',
@@ -52,11 +70,14 @@ export function TaskModal({
   const [details, setDetails] = useState('');
   const [category, setCategory] = useState<string>('');
   const [priority, setPriority] = useState<TaskPriority>(defaultPriority);
+  const [prioritySource, setPrioritySource] = useState<'user' | 'auto'>('user');
+  const [priorityAutoLocked, setPriorityAutoLocked] = useState(false);
   const [dueDate, setDueDate] = useState('');
   const [dueTime, setDueTime] = useState('');
   const [deadlineDate, setDeadlineDate] = useState('');
   const [deadlineTime, setDeadlineTime] = useState('');
   const [durationMinutes, setDurationMinutes] = useState<string>('');
+  const [reminderOffset, setReminderOffset] = useState<TaskReminderOverride>('default');
   const [repeat, setRepeat] = useState<TaskRepeatFrequency>('none');
   const [repeatWeekdays, setRepeatWeekdays] = useState<number[]>([]);
   const [pinned, setPinned] = useState(false);
@@ -70,6 +91,8 @@ export function TaskModal({
       setDetails(initialTask.details ?? initialTask.notes ?? '');
       setCategory(initialTask.category ?? '');
       setPriority(initialTask.priority ?? TaskPriority.None);
+      setPrioritySource(initialTask.prioritySource === 'auto' ? 'auto' : 'user');
+      setPriorityAutoLocked(Boolean(initialTask.priorityAutoLocked));
       setDueDate(initialTask.dueDate ?? '');
       setDueTime(initialTask.dueTime ?? '');
       setDeadlineDate(initialTask.deadlineDate ?? '');
@@ -79,6 +102,7 @@ export function TaskModal({
           ? String(initialTask.durationMinutes)
           : ''
       );
+      setReminderOffset(initialTask.reminderOffset ?? 'default');
       setRepeat(initialTask.repeat ?? 'none');
       setRepeatWeekdays(initialTask.repeatWeekdays ?? []);
       setPinned(Boolean(initialTask.pinned));
@@ -89,11 +113,14 @@ export function TaskModal({
       setDetails('');
       setCategory('');
       setPriority(defaultPriority ?? TaskPriority.None);
+      setPrioritySource('user');
+      setPriorityAutoLocked(false);
       setDueDate('');
       setDueTime('');
       setDeadlineDate('');
       setDeadlineTime('');
       setDurationMinutes('');
+      setReminderOffset('default');
       setRepeat('none');
       setRepeatWeekdays([]);
       setPinned(false);
@@ -125,6 +152,11 @@ export function TaskModal({
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [isOpen, onClose]);
+
+  const similarTasks = useMemo(
+    () => findSimilarOpenTasks(title, existingTasks, initialTask?.id),
+    [title, existingTasks, initialTask?.id]
+  );
 
   if (!isOpen) return null;
 
@@ -173,18 +205,27 @@ export function TaskModal({
         ? Math.min(1440, Math.round(parsedDur))
         : undefined;
 
+    const datesChanged =
+      initialTask &&
+      ((dueDate.trim() || undefined) !== initialTask.dueDate ||
+        (deadlineDate.trim() || undefined) !== initialTask.deadlineDate);
+
     onSave(
       {
         title: trimmed,
         details: details.trim() || undefined,
         category: category || undefined,
         priority,
-        prioritySource: 'user',
+        prioritySource,
+        priorityAutoPrev: prioritySource === 'auto' ? initialTask?.priorityAutoPrev : undefined,
+        priorityAutoReason: prioritySource === 'auto' ? initialTask?.priorityAutoReason : undefined,
+        priorityAutoLocked: datesChanged ? false : priorityAutoLocked || undefined,
         dueDate: dueDate.trim() || undefined,
         dueTime: dueTime.trim() || undefined,
         deadlineDate: deadlineDate.trim() || undefined,
         deadlineTime: deadlineTime.trim() || undefined,
         durationMinutes: validDuration,
+        reminderOffset: reminderOffset !== 'default' ? reminderOffset : undefined,
         repeat,
         repeatWeekdays: repeat === 'custom' ? repeatWeekdays : undefined,
         pinned,
@@ -266,6 +307,18 @@ export function TaskModal({
               placeholder="What needs to get done?"
               className="cadence-input w-full px-3.5 py-2.5 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 dark:focus:border-blue-400"
             />
+            {similarTasks.length > 0 && (
+              <div
+                role="status"
+                className="mt-2 flex items-start gap-2 px-3 py-2 rounded-lg border border-amber-300/70 dark:border-amber-700/60 bg-amber-50/70 dark:bg-amber-950/25 text-xs text-amber-800 dark:text-amber-200"
+              >
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden="true" />
+                <span>
+                  Similar open task already exists:{' '}
+                  <strong className="font-medium">&ldquo;{similarTasks[0].title}&rdquo;</strong>
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Details (optional) */}
@@ -289,9 +342,33 @@ export function TaskModal({
           {/* Priority Flag & Category */}
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start">
             <div className="sm:col-span-8">
-              <span className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                Priority Flag
-              </span>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                  Priority Flag
+                </span>
+                {prioritySource === 'auto' && (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-300">
+                    <span>
+                      Auto{initialTask?.priorityAutoReason ? ` · ${initialTask.priorityAutoReason}` : ''}
+                    </span>
+                    {initialTask && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const patch = undoAutoPriorityEscalation(initialTask);
+                          setPriority(patch.priority ?? TaskPriority.None);
+                          setPrioritySource('user');
+                          setPriorityAutoLocked(true);
+                        }}
+                        className="inline-flex items-center gap-0.5 font-medium underline hover:opacity-80"
+                      >
+                        <RotateCcw className="w-3 h-3" aria-hidden="true" />
+                        Undo
+                      </button>
+                    )}
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-label="Task priority flag">
                 {PRIORITY_ORDER.map((prio) => {
                   const meta = FLAG_META[prio];
@@ -303,7 +380,10 @@ export function TaskModal({
                       role="radio"
                       aria-checked={selected}
                       aria-label={meta.ariaLabel}
-                      onClick={() => setPriority(prio)}
+                      onClick={() => {
+                        setPriority(prio);
+                        setPrioritySource('user');
+                      }}
                       className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium border transition-colors ${
                         selected
                           ? 'border-blue-600 dark:border-blue-400 bg-blue-50/70 dark:bg-blue-950/40 text-slate-900 dark:text-slate-100'
@@ -466,8 +546,28 @@ export function TaskModal({
             </div>
           </div>
 
-          {/* Repeat Schedule */}
+          {/* Reminder Override & Repeat Schedule */}
           <div className="space-y-2.5">
+            <div className="flex items-center justify-between gap-4">
+              <label
+                htmlFor="task-reminder-override"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300"
+              >
+                <Bell className="w-3.5 h-3.5 text-slate-400" />
+                <span>Reminder</span>
+              </label>
+              <CustomSelect
+                id="task-reminder-override"
+                ariaLabel="Task reminder override"
+                value={reminderOffset}
+                onChange={(v) => setReminderOffset(v as TaskReminderOverride)}
+                options={REMINDER_OVERRIDE_OPTIONS}
+                matchTriggerWidth={false}
+                align="end"
+                className="min-w-[190px]"
+              />
+            </div>
+
             <div className="flex items-center justify-between gap-4">
               <label
                 htmlFor="task-repeat"
@@ -484,7 +584,7 @@ export function TaskModal({
                 options={REPEAT_OPTIONS}
                 matchTriggerWidth={false}
                 align="end"
-                className="min-w-[170px]"
+                className="min-w-[190px]"
               />
             </div>
 

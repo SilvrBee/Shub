@@ -117,16 +117,21 @@ service cloud.firestore {
       return data.keys().hasAll(['ownerId', 'title', 'priority', 'completed', 'createdAt', 'updatedAt'])
         && data.keys().hasOnly([
           'ownerId', 'title', 'category', 'priority', 'prioritySource',
+          'priorityAutoPrev', 'priorityAutoReason', 'priorityAutoLocked',
           'dueDate', 'dueTime', 'deadlineDate', 'deadlineTime',
           'completed', 'details', 'notes', 'subtasks',
-          'repeat', 'repeatWeekdays', 'durationMinutes',
+          'repeat', 'repeatWeekdays', 'recurrenceChildId',
+          'durationMinutes', 'reminderOffset',
           'pinned', 'createdAt', 'updatedAt'
         ])
         && data.ownerId is string && data.ownerId == request.auth.uid && data.ownerId.size() <= 128
         && data.title is string && data.title.size() >= 1 && data.title.size() <= 300
         && (!('category' in data) || (data.category is string && data.category.size() >= 1 && data.category.size() <= 60))
         && data.priority in ['High', 'Medium', 'Low', 'None']
-        && (!('prioritySource' in data) || data.prioritySource == 'user')
+        && (!('prioritySource' in data) || data.prioritySource in ['user', 'auto'])
+        && (!('priorityAutoPrev' in data) || data.priorityAutoPrev in ['High', 'Medium', 'Low', 'None'])
+        && optStr(data, 'priorityAutoReason', 160)
+        && optBool(data, 'priorityAutoLocked')
         && optStr(data, 'dueDate', 20)
         && optStr(data, 'dueTime', 10)
         && optStr(data, 'deadlineDate', 20)
@@ -137,7 +142,9 @@ service cloud.firestore {
         && (!('subtasks' in data) || isSubtaskList(data))
         && (!('repeat' in data) || data.repeat in ['none', 'daily', 'weekly', 'monthly', 'custom'])
         && (!('repeatWeekdays' in data) || isWeekdayList(data))
+        && optStr(data, 'recurrenceChildId', 128)
         && (!('durationMinutes' in data) || (data.durationMinutes is int && data.durationMinutes >= 1 && data.durationMinutes <= 1440))
+        && (!('reminderOffset' in data) || data.reminderOffset in ['default', 'none', '0', '10', '30', '60', '1440'])
         && optBool(data, 'pinned')
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
@@ -366,19 +373,20 @@ service cloud.firestore {
           && incoming().createdAt == existing().createdAt
           && incoming().updatedAt == request.time
           && (
-            incoming().diff(existing()).affectedKeys().hasOnly(['completed', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['completed', 'recurrenceChildId', 'updatedAt']) ||
             incoming().diff(existing()).affectedKeys().hasOnly(['category', 'updatedAt']) ||
-            incoming().diff(existing()).affectedKeys().hasOnly(['priority', 'prioritySource', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['priority', 'prioritySource', 'priorityAutoPrev', 'priorityAutoReason', 'priorityAutoLocked', 'updatedAt']) ||
             incoming().diff(existing()).affectedKeys().hasOnly(['pinned', 'updatedAt']) ||
             incoming().diff(existing()).affectedKeys().hasOnly(['subtasks', 'updatedAt']) ||
-            incoming().diff(existing()).affectedKeys().hasOnly(['priority', 'prioritySource', 'deadlineDate', 'deadlineTime', 'dueDate', 'dueTime', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['priority', 'prioritySource', 'priorityAutoPrev', 'priorityAutoReason', 'priorityAutoLocked', 'deadlineDate', 'deadlineTime', 'dueDate', 'dueTime', 'updatedAt']) ||
             incoming().diff(existing()).affectedKeys().hasOnly(['priority', 'prioritySource', 'durationMinutes', 'updatedAt']) ||
             incoming().diff(existing()).affectedKeys().hasOnly(['prioritySource', 'durationSource', 'updatedAt']) ||
             incoming().diff(existing()).affectedKeys().hasOnly([
               'title', 'category', 'priority', 'prioritySource',
+              'priorityAutoPrev', 'priorityAutoReason', 'priorityAutoLocked',
               'dueDate', 'dueTime', 'deadlineDate', 'deadlineTime',
-              'details', 'notes', 'subtasks', 'repeat', 'repeatWeekdays',
-              'durationMinutes', 'durationSource', 'pinned', 'completed', 'updatedAt'
+              'details', 'notes', 'subtasks', 'repeat', 'repeatWeekdays', 'recurrenceChildId',
+              'durationMinutes', 'reminderOffset', 'pinned', 'completed', 'updatedAt'
             ])
           );
         allow delete: if isValidId(uid) && isValidId(taskId) && isOwner(uid);

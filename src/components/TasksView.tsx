@@ -6,10 +6,12 @@ import {
   Clock,
   LayoutGrid,
   List,
+  ListPlus,
   Pencil,
   Pin,
   Plus,
   Repeat,
+  RotateCcw,
   Search,
   Settings2,
   Trash2,
@@ -24,6 +26,7 @@ import {
 import { getTodayKey } from '../data/initialData';
 import { TaskCheckButton } from './TaskCheckButton';
 import { EmptyStateIllustration } from './EmptyStateIllustration';
+import { ErrorBoundary } from './ErrorBoundary';
 import { useCadenceStyle, useDoodleCelebratePulse } from '../hooks/useCadenceStyle';
 import { DoodleHeaderScene } from './DoodleKit';
 import { PriorityFlagPicker } from './PriorityFlag';
@@ -36,12 +39,15 @@ import {
   computeQuadrantDropPatch,
   diffDaysFromToday,
   DURATION_CHIPS,
+  DurationEstimate,
+  estimateTaskDuration,
   formatDurationLabel,
   formatRepeatLabel,
   formatShortDateLabel,
   formatTimeShort,
   MatrixQuadrant,
   sortTasksSmart,
+  undoAutoPriorityEscalation,
 } from '../utils/taskUtils';
 
 interface TasksViewProps {
@@ -53,6 +59,7 @@ interface TasksViewProps {
   onEditTask: (task: TaskItem) => void;
   onDeleteTask: (id: string) => void;
   onOpenNewTask: () => void;
+  onOpenMultiAdd: () => void;
   onOpenCategoryManager: () => void;
 }
 
@@ -97,9 +104,11 @@ const SORT_MODE_LABELS: Record<SmartSortMode, string> = {
 
 function DurationQuickButton({
   task,
+  estimate,
   onSetDuration,
 }: {
   task: TaskItem;
+  estimate: DurationEstimate;
   onSetDuration: (minutes: number | undefined) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -114,7 +123,10 @@ function DurationQuickButton({
     }
   }, [open, task.durationMinutes]);
 
-  const label = formatDurationLabel(task.durationMinutes);
+  const explicitLabel = formatDurationLabel(task.durationMinutes);
+  const estimatedLabel =
+    !explicitLabel && estimate.source === 'category-median' ? `~${estimate.minutes}m` : '';
+  const displayLabel = explicitLabel || estimatedLabel;
 
   return (
     <>
@@ -127,16 +139,24 @@ function DurationQuickButton({
         }}
         aria-haspopup="dialog"
         aria-expanded={open}
-        title={label ? `Estimated duration: ${label} (click to edit)` : 'Set estimated duration'}
+        title={
+          explicitLabel
+            ? `Duration: ${explicitLabel} (click to edit)`
+            : estimatedLabel
+              ? `Estimated ${estimatedLabel} from ${estimate.sampleCount} completed ${task.category} tasks (click to set)`
+              : 'Set estimated duration'
+        }
         aria-label={`Set estimated duration for "${task.title}"`}
         className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-mono tabular-nums transition-colors ${
-          label
+          explicitLabel
             ? 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-            : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            : estimatedLabel
+              ? 'text-slate-500 dark:text-slate-400 italic hover:bg-slate-100 dark:hover:bg-slate-800'
+              : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
         }`}
       >
         <Clock className="w-3 h-3 shrink-0" aria-hidden="true" />
-        <span>{label || 'Est'}</span>
+        <span>{displayLabel || 'Est'}</span>
       </button>
 
       <PortalPopover
@@ -229,6 +249,7 @@ export function TasksView({
   onEditTask,
   onDeleteTask,
   onOpenNewTask,
+  onOpenMultiAdd,
   onOpenCategoryManager,
 }: TasksViewProps) {
   const activeStyle = useCadenceStyle();
@@ -253,8 +274,21 @@ export function TasksView({
   const openTasks = useMemo(() => tasks.filter((t) => !t.completed), [tasks]);
 
   const scoreSortedAll = useMemo(
-    () => sortTasksSmart(tasks, settings.smartSortMode, settings.quickWinMinutes, todayKey),
-    [tasks, settings.smartSortMode, settings.quickWinMinutes, todayKey]
+    () =>
+      sortTasksSmart(
+        tasks,
+        settings.smartSortMode,
+        settings.quickWinMinutes,
+        todayKey,
+        settings.defaultDurationEstimateMinutes
+      ),
+    [
+      tasks,
+      settings.smartSortMode,
+      settings.quickWinMinutes,
+      todayKey,
+      settings.defaultDurationEstimateMinutes,
+    ]
   );
 
   const scoreSortedOpen = useMemo(
@@ -309,7 +343,13 @@ export function TasksView({
   }, [filteredTasks, settings, todayKey]);
 
   const handleSetPriority = (task: TaskItem, nextPriority: TaskPriority) => {
-    onUpdateTask(task.id, { priority: nextPriority, prioritySource: 'user' });
+    onUpdateTask(task.id, {
+      priority: nextPriority,
+      prioritySource: 'user',
+      priorityAutoPrev: undefined,
+      priorityAutoReason: undefined,
+      priorityAutoLocked: false,
+    });
   };
 
   const handleSetDuration = (task: TaskItem, minutes: number | undefined) => {
@@ -470,6 +510,15 @@ export function TasksView({
 
           <button
             type="button"
+            onClick={onOpenMultiAdd}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0"
+          >
+            <ListPlus className="w-3.5 h-3.5" />
+            <span>Multi-Add</span>
+          </button>
+
+          <button
+            type="button"
             onClick={onOpenNewTask}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors whitespace-nowrap shrink-0"
           >
@@ -581,10 +630,20 @@ export function TasksView({
                 const isExpanded = Boolean(expandedSubtasks[task.id]);
                 const repeatLabel = formatRepeatLabel(task);
                 const taskDetails = task.details ?? task.notes;
+                const durationEst = estimateTaskDuration(
+                  task,
+                  tasks,
+                  settings.defaultDurationEstimateMinutes
+                );
 
                 return (
-                  <li
+                  <ErrorBoundary
                     key={task.id}
+                    inline
+                    resetKey={`${task.id}-${task.title}-${task.priority}`}
+                    fallbackTitle="Unable to display this task"
+                  >
+                  <li
                     className={`px-4 sm:px-6 py-3.5 transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/30 ${
                       task.pinned ? 'bg-blue-50/25 dark:bg-blue-950/15' : ''
                     }`}
@@ -667,15 +726,37 @@ export function TasksView({
 
                         {/* Compact metadata row: Flag, Duration, Deadline/Due, Subtasks, Repeat, Category */}
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                          <PriorityFlagPicker
-                            priority={task.priority}
-                            taskTitle={task.title}
-                            compact
-                            onChange={(nextPrio) => handleSetPriority(task, nextPrio)}
-                          />
+                          <div className="inline-flex items-center gap-1.5">
+                            <PriorityFlagPicker
+                              priority={task.priority}
+                              taskTitle={task.title}
+                              compact
+                              onChange={(nextPrio) => handleSetPriority(task, nextPrio)}
+                            />
+                            {task.prioritySource === 'auto' && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300"
+                                title={task.priorityAutoReason || 'Raised automatically as deadline approached'}
+                              >
+                                <span>Auto</span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    onUpdateTask(task.id, undoAutoPriorityEscalation(task))
+                                  }
+                                  aria-label={`Undo auto-raised priority for "${task.title}"`}
+                                  className="inline-flex items-center gap-0.5 underline hover:opacity-80"
+                                >
+                                  <RotateCcw className="w-2.5 h-2.5" aria-hidden="true" />
+                                  Undo
+                                </button>
+                              </span>
+                            )}
+                          </div>
 
                           <DurationQuickButton
                             task={task}
+                            estimate={durationEst}
                             onSetDuration={(mins) => handleSetDuration(task, mins)}
                           />
 
@@ -750,6 +831,7 @@ export function TasksView({
                       </div>
                     </div>
                   </li>
+                  </ErrorBoundary>
                 );
               })}
             </ul>
@@ -832,9 +914,19 @@ export function TasksView({
                         const doneSubCount = subtasks.filter((s) => s.completed).length;
                         const isPartial =
                           !task.completed && doneSubCount > 0 && doneSubCount < subtasks.length;
+                        const matrixEst = estimateTaskDuration(
+                          task,
+                          tasks,
+                          settings.defaultDurationEstimateMinutes
+                        );
                         return (
-                          <li
+                          <ErrorBoundary
                             key={task.id}
+                            inline
+                            resetKey={`${task.id}-${task.title}-${task.priority}`}
+                            fallbackTitle="Unable to display this card"
+                          >
+                          <li
                             draggable
                             onDragStart={(e) => {
                               setDraggedTaskId(task.id);
@@ -884,11 +976,33 @@ export function TasksView({
                                   compact
                                   onChange={(p) => handleSetPriority(task, p)}
                                 />
-                                {task.durationMinutes && (
+                                {task.prioritySource === 'auto' && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onUpdateTask(task.id, undoAutoPriorityEscalation(task))
+                                    }
+                                    title="Undo auto-raised priority"
+                                    className="text-[11px] text-amber-700 dark:text-amber-300 underline"
+                                  >
+                                    Auto · Undo
+                                  </button>
+                                )}
+                                {task.durationMinutes ? (
                                   <span className="inline-flex items-center gap-1 text-[11px] font-mono tabular-nums text-slate-600 dark:text-slate-300">
                                     <Clock className="w-3 h-3" aria-hidden="true" />
                                     {formatDurationLabel(task.durationMinutes)}
                                   </span>
+                                ) : (
+                                  matrixEst.source === 'category-median' && (
+                                    <span
+                                      className="inline-flex items-center gap-1 text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400 italic"
+                                      title={`Estimated ~${matrixEst.minutes}m from ${matrixEst.sampleCount} completed ${task.category} tasks`}
+                                    >
+                                      <Clock className="w-3 h-3" aria-hidden="true" />
+                                      ~{matrixEst.minutes}m
+                                    </span>
+                                  )
                                 )}
                                 {task.deadlineDate && (
                                   <span className="text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
@@ -918,6 +1032,7 @@ export function TasksView({
                               />
                             </div>
                           </li>
+                          </ErrorBoundary>
                         );
                       })}
                     </ul>
