@@ -251,7 +251,19 @@ export function validateAndMigrateSettings(raw: unknown): AppSettings {
   let styleRaw = typeof rec.style === 'string' ? rec.style : DEFAULT_APP_SETTINGS.style;
   if (styleRaw === 'editorial-atelier') styleRaw = 'editorial';
   if (styleRaw === 'aurora-glass') styleRaw = 'aurora';
-  const validStyles = new Set<string>(['classic', 'editorial', 'aurora', 'celestial', 'doodle']);
+  const validStyles = new Set<string>([
+    'classic',
+    'editorial',
+    'aurora',
+    'celestial',
+    'doodle',
+    'minimalism',
+    'bento',
+    'editorial-style',
+    'brutalism',
+    'swiss',
+    'motion-3d',
+  ]);
   const style: AppStyleId = validStyles.has(styleRaw) ? (styleRaw as AppStyleId) : 'classic';
 
   const validModes = new Set<string>(['light', 'dark', 'system']);

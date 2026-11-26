@@ -1,0 +1,359 @@
+/* Style: 3D & Interactive / Motion — strictly scoped under data-style="motion-3d" */
+
+html[data-style="motion-3d"] {
+  --cadence-font-display: "Outfit", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --cadence-font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --cadence-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --cadence-radius-card: 1.125rem;
+  --cadence-radius-control: 0.6875rem;
+  --cadence-radius-sm: 0.4rem;
+
+  --cadence-border-width: 1px;
+  --cadence-border-color: rgba(148, 163, 184, 0.34);
+  --cadence-border-subtle: rgba(148, 163, 184, 0.2);
+
+  --cadence-bg-canvas: #eef2f9;
+  --cadence-bg-sidebar: rgba(255, 255, 255, 0.86);
+  --cadence-bg-header: rgba(255, 255, 255, 0.82);
+  --cadence-bg-card: rgba(255, 255, 255, 0.92);
+  --cadence-bg-input: rgba(244, 247, 253, 0.94);
+  --cadence-bg-modal: rgba(255, 255, 255, 0.97);
+  --cadence-bg-popover: rgba(255, 255, 255, 0.96);
+  --cadence-bg-popover-hover: #eff4fd;
+  --cadence-popover-text: #0f172a;
+  --cadence-popover-muted: #526077;
+  --cadence-popover-shadow:
+    0 24px 48px -16px rgba(15, 23, 42, 0.22),
+    0 6px 16px -6px rgba(15, 23, 42, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --cadence-blur-popover: 12px;
+
+  --cadence-shadow-card:
+    0 16px 34px -18px rgba(15, 23, 42, 0.18),
+    0 4px 10px -4px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  --cadence-shadow-elevated:
+    0 26px 56px -18px rgba(15, 23, 42, 0.26),
+    0 8px 20px -6px rgba(15, 23, 42, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+
+  --cadence-blur-card: 10px;
+  --cadence-blur-header: 12px;
+
+  --cadence-space-card: 1.5rem;
+  --cadence-space-section: 1.25rem;
+  --cadence-space-main-x: 2rem;
+  --cadence-space-main-y: 1.75rem;
+
+  --cadence-bg-layer: none;
+}
+
+html[data-style="motion-3d"]:not(.high-contrast) {
+  --color-slate-50: #f4f7fc;
+  --color-slate-100: #e9eff8;
+  --color-slate-200: #d5dfee;
+  --color-slate-300: #bcc9de;
+  --color-slate-400: #66758f;
+  --color-slate-500: #4f5d75;
+  --color-slate-600: #394459;
+  --color-slate-700: #262f40;
+  --color-slate-800: #171e2b;
+  --color-slate-900: #0d131f;
+  --color-slate-950: #060910;
+}
+
+html.dark[data-style="motion-3d"] {
+  --cadence-border-color: rgba(148, 163, 184, 0.2);
+  --cadence-border-subtle: rgba(148, 163, 184, 0.12);
+
+  --cadence-bg-canvas: #070a12;
+  --cadence-bg-sidebar: rgba(11, 15, 27, 0.84);
+  --cadence-bg-header: rgba(11, 15, 27, 0.82);
+  --cadence-bg-card: rgba(16, 22, 38, 0.86);
+  --cadence-bg-input: rgba(10, 14, 24, 0.88);
+  --cadence-bg-modal: rgba(16, 22, 38, 0.95);
+  --cadence-bg-popover: rgba(17, 24, 42, 0.94);
+  --cadence-bg-popover-hover: rgba(37, 50, 82, 0.72);
+  --cadence-popover-text: #f1f5ff;
+  --cadence-popover-muted: #98a8c7;
+  --cadence-popover-shadow:
+    0 26px 56px -16px rgba(0, 0, 0, 0.78),
+    inset 0 1px 0 rgba(255, 255, 255, 0.11);
+
+  --cadence-shadow-card:
+    0 20px 44px -18px rgba(0, 0, 0, 0.68),
+    0 4px 12px -4px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --cadence-shadow-elevated:
+    0 30px 64px -18px rgba(0, 0, 0, 0.82),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+html.dark[data-style="motion-3d"]:not(.high-contrast) {
+  --color-slate-50: #f8faff;
+  --color-slate-100: #eef3ff;
+  --color-slate-200: #d8e1f5;
+  --color-slate-300: #b8c6e3;
+  --color-slate-400: #93a3c4;
+  --color-slate-500: #7c8cad;
+  --color-slate-600: #5d6c8d;
+  --color-slate-700: #2e3852;
+  --color-slate-800: #1f273b;
+  --color-slate-900: #131928;
+  --color-slate-950: #070a12;
+}
+
+/* Fixed 3D spatial canvas backdrop */
+.motion-3d-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background-color: var(--cadence-bg-canvas);
+}
+
+.motion-3d-ambient-glow {
+  position: absolute;
+  inset: -15%;
+  background:
+    radial-gradient(60% 48% at 84% 22%, color-mix(in srgb, var(--color-blue-500) 14%, transparent), transparent 72%),
+    radial-gradient(48% 42% at 18% 82%, color-mix(in srgb, var(--color-blue-400) 10%, transparent), transparent 74%);
+  pointer-events: none;
+}
+
+html.dark .motion-3d-ambient-glow {
+  background:
+    radial-gradient(60% 48% at 84% 22%, color-mix(in srgb, var(--color-blue-500) 20%, transparent), transparent 72%),
+    radial-gradient(48% 42% at 18% 82%, color-mix(in srgb, var(--color-blue-400) 14%, transparent), transparent 74%);
+}
+
+.motion-3d-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+html[data-style="motion-3d"] .cadence-shell {
+  background-color: transparent;
+}
+
+/* Geometric Outfit typography & tabular alignment */
+html[data-style="motion-3d"] main h1 {
+  font-family: var(--cadence-font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+html[data-style="motion-3d"] .cadence-card h2 {
+  font-family: var(--cadence-font-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+html[data-style="motion-3d"] aside .font-display {
+  font-family: var(--cadence-font-display);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+/* Layered 3D depth hero header */
+html[data-style="motion-3d"]:not(.high-contrast) .aurora-hero-header {
+  background: linear-gradient(
+    135deg,
+    var(--cadence-bg-card) 0%,
+    color-mix(in srgb, var(--color-blue-500) 6%, var(--cadence-bg-card)) 100%
+  );
+  border: 1px solid var(--cadence-border-color);
+  border-radius: var(--cadence-radius-card);
+  box-shadow: var(--cadence-shadow-card);
+  backdrop-filter: blur(var(--cadence-blur-card));
+  -webkit-backdrop-filter: blur(var(--cadence-blur-card));
+  padding: 1.25rem 1.5rem;
+}
+
+/* Dissolve Metrics Summary strip into floating interactive 3D tilt cards */
+html[data-style="motion-3d"] section[aria-label$="Metrics Summary"].cadence-card {
+  background-color: transparent;
+  border-width: 0;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  gap: 0.875rem;
+}
+
+html[data-style="motion-3d"] section[aria-label$="Metrics Summary"].cadence-card > div {
+  --m3d-rx: 0deg;
+  --m3d-ry: 0deg;
+  --m3d-sx: 50%;
+  --m3d-sy: 0%;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--cadence-bg-card);
+  border: 1px solid var(--cadence-border-color);
+  border-radius: var(--cadence-radius-card);
+  box-shadow: var(--cadence-shadow-card);
+  backdrop-filter: blur(var(--cadence-blur-card));
+  -webkit-backdrop-filter: blur(var(--cadence-blur-card));
+  padding: 1.25rem 1.375rem;
+  transform-style: preserve-3d;
+  will-change: transform;
+  transform: perspective(860px) rotateX(var(--m3d-rx)) rotateY(var(--m3d-ry));
+  transition:
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 200ms ease,
+    border-color 200ms ease;
+}
+
+html[data-style="motion-3d"]:not(.high-contrast) section[aria-label$="Metrics Summary"].cadence-card > div::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    180px circle at var(--m3d-sx) var(--m3d-sy),
+    color-mix(in srgb, var(--color-blue-400) 18%, transparent),
+    transparent 70%
+  );
+  transition: opacity 180ms ease;
+}
+
+html[data-style="motion-3d"]:not(.high-contrast):not(.reduce-motion)
+  section[aria-label$="Metrics Summary"].cadence-card > div:hover {
+  border-color: color-mix(in srgb, var(--color-blue-500) 42%, var(--cadence-border-color));
+  box-shadow: var(--cadence-shadow-elevated);
+}
+
+html[data-style="motion-3d"]:not(.high-contrast):not(.reduce-motion)
+  section[aria-label$="Metrics Summary"].cadence-card > div:hover::after {
+  opacity: 1;
+}
+
+/* Tactile 3D specular card depth */
+html[data-style="motion-3d"] .cadence-card {
+  background-color: var(--cadence-bg-card);
+  border-color: var(--cadence-border-color);
+  border-radius: var(--cadence-radius-card);
+  box-shadow: var(--cadence-shadow-card);
+  backdrop-filter: blur(var(--cadence-blur-card));
+  -webkit-backdrop-filter: blur(var(--cadence-blur-card));
+}
+
+html[data-style="motion-3d"] [role="dialog"] .cadence-card,
+html[data-style="motion-3d"] .cadence-card.editorial-modal {
+  background-color: var(--cadence-bg-modal);
+  border-color: var(--cadence-border-color);
+  border-radius: var(--cadence-radius-card);
+  box-shadow: var(--cadence-shadow-elevated);
+}
+
+/* Scroll-driven 3D depth reveal on supported browsers */
+@keyframes motion3dScrollEnter {
+  from {
+    opacity: 0.78;
+    transform: perspective(1100px) translate3d(0, 18px, -24px) rotateX(2.5deg) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(1100px) translate3d(0, 0, 0) rotateX(0deg) scale(1);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  html[data-style="motion-3d"]:not(.reduce-motion):not(.high-contrast) main section.cadence-card {
+    animation: motion3dScrollEnter linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 24%;
+  }
+}
+
+/* Interactive springy micro-interactions on buttons & nav items */
+html[data-style="motion-3d"]:not(.reduce-motion) aside nav button,
+html[data-style="motion-3d"]:not(.reduce-motion) main button {
+  transition:
+    transform 170ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 170ms ease,
+    color 150ms ease;
+}
+
+html[data-style="motion-3d"]:not(.reduce-motion) main button:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+html[data-style="motion-3d"]:not(.reduce-motion) main button:not(:disabled):active {
+  transform: translateY(1px) scale(0.985);
+}
+
+html[data-style="motion-3d"] .cadence-input,
+html[data-style="motion-3d"] .cadence-control,
+html[data-style="motion-3d"] button.rounded-lg,
+html[data-style="motion-3d"] button.rounded-xl {
+  border-radius: var(--cadence-radius-control);
+}
+
+html[data-style="motion-3d"] aside nav button {
+  border-radius: var(--cadence-radius-control);
+}
+
+html[data-style="motion-3d"]:not(.high-contrast) aside nav button.bg-slate-100,
+html.dark[data-style="motion-3d"]:not(.high-contrast) aside nav button.dark\:bg-slate-800\/80 {
+  box-shadow:
+    0 8px 18px -10px color-mix(in srgb, var(--color-blue-600) 42%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+html.dark[data-style="motion-3d"]:not(.high-contrast) aside nav button.dark\:bg-slate-800\/80 {
+  box-shadow:
+    0 10px 22px -10px color-mix(in srgb, var(--color-blue-500) 48%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+html[data-style="motion-3d"] .motion-3d-orb {
+  box-shadow: var(--cadence-shadow-card);
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 200ms ease;
+}
+
+html[data-style="motion-3d"]:not(.reduce-motion) .motion-3d-orb:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: var(--cadence-shadow-elevated);
+}
+
+/* Reduced motion & high-contrast safeguards */
+html.reduce-motion[data-style="motion-3d"] section[aria-label$="Metrics Summary"].cadence-card > div,
+html.reduce-motion[data-style="motion-3d"] main button:hover,
+html.reduce-motion[data-style="motion-3d"] main button:active {
+  transform: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-style="motion-3d"] section[aria-label$="Metrics Summary"].cadence-card > div,
+  html[data-style="motion-3d"] main section.cadence-card,
+  html[data-style="motion-3d"] main button:hover,
+  html[data-style="motion-3d"] main button:active {
+    transform: none !important;
+    animation: none !important;
+  }
+}
+
+html.high-contrast[data-style="motion-3d"] .cadence-card,
+html.high-contrast[data-style="motion-3d"] section[aria-label$="Metrics Summary"].cadence-card > div {
+  border-width: 2px;
+  border-color: var(--cadence-border-color);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-style="motion-3d"][data-density="compact"] {
+  --cadence-space-card: 1.125rem;
+  --cadence-space-section: 0.875rem;
+  --cadence-space-main-x: 1.5rem;
+  --cadence-space-main-y: 1.25rem;
+}

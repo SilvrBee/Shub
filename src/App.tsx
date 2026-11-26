@@ -90,6 +90,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { CategoryManagerModal } from './components/ui/CategoryManagerModal';
 import { AuroraBackdrop } from './components/AuroraBackdrop';
 import { CelestialBackdrop } from './components/CelestialBackdrop';
+import { Motion3DBackdrop } from './components/Motion3DBackdrop';
 
 const CADENCE_FIRED_REMINDERS_KEY = 'cadence_fired_reminders';
 const CADENCE_REMINDER_RECORDS_KEY = 'cadence_reminder_records';
@@ -1284,6 +1285,9 @@ export default function App() {
       )}
       {activeStyleDef.id === 'celestial' && (
         <CelestialBackdrop reducedMotion={appSettings.reducedMotion} />
+      )}
+      {activeStyleDef.id === 'motion-3d' && (
+        <Motion3DBackdrop reducedMotion={appSettings.reducedMotion} />
       )}
 
       <Sidebar

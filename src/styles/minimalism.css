@@ -1,0 +1,254 @@
+/* Style: Minimalism — strictly scoped under data-style="minimalism" */
+
+html[data-style="minimalism"] {
+  --cadence-font-display: "Manrope", -apple-system, BlinkMacSystemFont, sans-serif;
+  --cadence-font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --cadence-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --cadence-radius-card: 0.375rem;
+  --cadence-radius-control: 0.375rem;
+  --cadence-radius-sm: 0.25rem;
+
+  --cadence-border-width: 1px;
+  --cadence-border-color: #e6e6e9;
+  --cadence-border-subtle: #f1f1f4;
+
+  --cadence-bg-canvas: #ffffff;
+  --cadence-bg-sidebar: #ffffff;
+  --cadence-bg-header: rgba(255, 255, 255, 0.96);
+  --cadence-bg-card: #ffffff;
+  --cadence-bg-input: #fafafa;
+  --cadence-bg-popover: #ffffff;
+  --cadence-bg-popover-hover: #f4f4f5;
+  --cadence-popover-text: #111113;
+  --cadence-popover-muted: #52525b;
+  --cadence-popover-shadow:
+    0 12px 32px -12px rgba(0, 0, 0, 0.12),
+    0 2px 6px -2px rgba(0, 0, 0, 0.05);
+  --cadence-blur-popover: 0px;
+
+  --cadence-shadow-card: none;
+  --cadence-shadow-elevated: 0 18px 42px -16px rgba(0, 0, 0, 0.14);
+
+  --cadence-blur-card: 0px;
+  --cadence-blur-header: 0px;
+
+  /* Generous negative space tokens */
+  --cadence-space-card: 2rem;
+  --cadence-space-section: 2.375rem;
+  --cadence-space-main-x: 3.5rem;
+  --cadence-space-main-y: 3rem;
+
+  --cadence-bg-layer: none;
+}
+
+/* Pure monochrome neutral scale (zero blue/warm color cast) */
+html[data-style="minimalism"]:not(.high-contrast) {
+  --color-slate-50: #fafafa;
+  --color-slate-100: #f4f4f5;
+  --color-slate-200: #e4e4e7;
+  --color-slate-300: #d4d4d8;
+  --color-slate-400: #71717a;
+  --color-slate-500: #52525b;
+  --color-slate-600: #3f3f46;
+  --color-slate-700: #27272a;
+  --color-slate-800: #18181b;
+  --color-slate-900: #111113;
+  --color-slate-950: #09090b;
+}
+
+html.dark[data-style="minimalism"] {
+  --cadence-border-color: #232327;
+  --cadence-border-subtle: #1a1a1e;
+
+  --cadence-bg-canvas: #0b0b0c;
+  --cadence-bg-sidebar: #0b0b0c;
+  --cadence-bg-header: rgba(11, 11, 12, 0.96);
+  --cadence-bg-card: #101013;
+  --cadence-bg-input: #141418;
+  --cadence-bg-popover: #141418;
+  --cadence-bg-popover-hover: #1f1f24;
+  --cadence-popover-text: #f4f4f5;
+  --cadence-popover-muted: #a1a1aa;
+  --cadence-popover-shadow: 0 18px 42px -12px rgba(0, 0, 0, 0.72);
+  --cadence-shadow-elevated: 0 22px 48px -16px rgba(0, 0, 0, 0.78);
+}
+
+html.dark[data-style="minimalism"]:not(.high-contrast) {
+  --color-slate-50: #fafafa;
+  --color-slate-100: #f4f4f5;
+  --color-slate-200: #e4e4e7;
+  --color-slate-300: #d4d4d8;
+  --color-slate-400: #a1a1aa;
+  --color-slate-500: #8e8e98;
+  --color-slate-600: #71717a;
+  --color-slate-700: #323238;
+  --color-slate-800: #232327;
+  --color-slate-900: #16161a;
+  --color-slate-950: #0b0b0c;
+}
+
+/* Crisp focused measure & breathing room */
+html[data-style="minimalism"]:not([data-density="compact"]) .cadence-main {
+  max-width: 1120px;
+}
+
+html[data-style="minimalism"]:not([data-density="compact"]) .cadence-main > div > .space-y-6 {
+  display: flex;
+  flex-direction: column;
+  gap: 2.25rem;
+}
+
+html[data-style="minimalism"]:not([data-density="compact"]) .cadence-main > div > .space-y-6 > * {
+  margin-top: 0;
+}
+
+html[data-style="minimalism"]:not([data-density="compact"]) .cadence-main .grid.gap-6 {
+  gap: 2rem;
+}
+
+html[data-style="minimalism"]:not([data-density="compact"]) .cadence-main .space-y-6 {
+  --tw-space-y-reverse: 0;
+}
+
+html[data-style="minimalism"]:not([data-density="compact"]) .cadence-card.p-6 {
+  padding: 1.875rem;
+}
+
+html[data-style="minimalism"]:not([data-density="compact"])
+  section[aria-label$="Metrics Summary"].cadence-card
+  > div {
+  padding: 1.5rem 1.5rem;
+}
+
+/* Clean, restrained typography */
+html[data-style="minimalism"] main h1 {
+  font-family: var(--cadence-font-display);
+  font-size: clamp(1.75rem, 2.3vw, 2.25rem);
+  font-weight: 500;
+  line-height: 1.14;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+html[data-style="minimalism"] .cadence-card h2 {
+  font-family: var(--cadence-font-display);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+html[data-style="minimalism"] aside .font-display {
+  font-family: var(--cadence-font-display);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+html.dark[data-style="minimalism"] body {
+  letter-spacing: 0.005em;
+}
+
+html[data-style="minimalism"] .editorial-kpi-value {
+  font-family: var(--cadence-font-mono);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-style="minimalism"] .editorial-kpi-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* Flat architectural surfaces — single-level elevation, zero shadows */
+html[data-style="minimalism"] .cadence-card {
+  background-color: var(--cadence-bg-card);
+  border-color: var(--cadence-border-color);
+  border-radius: var(--cadence-radius-card);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-style="minimalism"] [role="dialog"] .cadence-card,
+html[data-style="minimalism"] .cadence-card.editorial-modal {
+  background-color: var(--cadence-bg-card);
+  border-color: var(--cadence-border-color);
+  box-shadow: var(--cadence-shadow-elevated);
+}
+
+/* Quiet sidebar & header chrome */
+html[data-style="minimalism"] .cadence-sidebar {
+  background-color: var(--cadence-bg-sidebar);
+  border-right-color: var(--cadence-border-color);
+}
+
+html[data-style="minimalism"] .cadence-header {
+  background-color: var(--cadence-bg-header);
+  border-bottom-color: var(--cadence-border-color);
+}
+
+html[data-style="minimalism"]:not(.high-contrast) aside nav {
+  padding-top: 1.25rem;
+  padding-bottom: 1.25rem;
+}
+
+html[data-style="minimalism"]:not(.high-contrast) aside nav button {
+  border-radius: var(--cadence-radius-control);
+  padding-top: 0.5625rem;
+  padding-bottom: 0.5625rem;
+}
+
+/* Restrained monochrome interactive focus & quiet surface contrast */
+html[data-style="minimalism"]:not(.high-contrast) main :is(input:not([type="checkbox"]), textarea, select) {
+  background-color: var(--cadence-bg-input);
+  border-color: var(--cadence-border-color);
+  border-radius: var(--cadence-radius-control);
+}
+
+html[data-style="minimalism"]:not(.high-contrast) main input[type="text"].bg-transparent,
+html[data-style="minimalism"]:not(.high-contrast) main textarea.bg-transparent {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+html[data-style="minimalism"] .cadence-input,
+html[data-style="minimalism"] .cadence-control,
+html[data-style="minimalism"] button.rounded-lg,
+html[data-style="minimalism"] button.rounded-xl {
+  border-radius: var(--cadence-radius-control);
+}
+
+/* Keep focus states crisp and accessible */
+html[data-style="minimalism"] :is(button, a, input, select, textarea, [role="checkbox"], [role="combobox"]):focus-visible {
+  outline: 2px solid var(--color-blue-600);
+  outline-offset: 2px;
+}
+
+html.dark[data-style="minimalism"] :is(button, a, input, select, textarea, [role="checkbox"], [role="combobox"]):focus-visible {
+  outline-color: var(--color-blue-400);
+}
+
+/* Compact density override keeps clean proportions while tightening space */
+html[data-style="minimalism"][data-density="compact"] {
+  --cadence-space-card: 1.25rem;
+  --cadence-space-section: 1.375rem;
+  --cadence-space-main-x: 2rem;
+  --cadence-space-main-y: 1.375rem;
+}
+
+/* Subtle fast micro-transitions (<=160ms, compositor-only) */
+html[data-style="minimalism"]:not(.reduce-motion) .cadence-card,
+html[data-style="minimalism"]:not(.reduce-motion) aside nav button,
+html[data-style="minimalism"]:not(.reduce-motion) main button {
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* High Contrast compatibility */
+html.high-contrast[data-style="minimalism"] .cadence-card,
+html.high-contrast[data-style="minimalism"] .cadence-sidebar,
+html.high-contrast[data-style="minimalism"] .cadence-header {
+  border-color: var(--cadence-border-color);
+}

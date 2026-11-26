@@ -18,6 +18,8 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { AnimatedMetricValue, AuroraProgressRing } from './AuroraMetrics';
 import { useDoodleCelebratePulse } from '../hooks/useCadenceStyle';
 import { DoodleHeaderScene, DoodleSquiggle } from './DoodleKit';
+import { EditorialPrintSpread } from './EditorialPrintSpread';
+import { Motion3DHeroOrb, getMotion3DTiltHandlers } from './Motion3DKit';
 import { PriorityFlagDisplay } from './PriorityFlag';
 import { CategoryBadge } from './ui/CategoryBadge';
 import {
@@ -213,12 +215,16 @@ export function OverviewView({
 
   const isAurora = settings.style === 'aurora';
   const isDoodle = settings.style === 'doodle';
+  const isEditorialStyle = settings.style === 'editorial-style';
+  const isMotion3D = settings.style === 'motion-3d';
   const isDoodleCelebrating = useDoodleCelebratePulse(1900);
   const prefersReducedMotion =
     typeof window !== 'undefined' &&
     window.matchMedia &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const animateAuroraMetrics = isAurora && !settings.reducedMotion && !prefersReducedMotion;
+  const reducedMotionActive = settings.reducedMotion || prefersReducedMotion;
+  const animateAuroraMetrics = (isAurora || isMotion3D) && !reducedMotionActive;
+  const kpiTiltHandlers = getMotion3DTiltHandlers(isMotion3D && !reducedMotionActive);
 
   const todayTaskProgress =
     todayTasks.length > 0
@@ -266,15 +272,27 @@ export function OverviewView({
               mascotOverride={isDoodleCelebrating ? 'celebrating' : 'waving'}
             />
           )}
+          {isMotion3D && <Motion3DHeroOrb reducedMotion={reducedMotionActive} />}
         </div>
       </div>
+
+      {isEditorialStyle && (
+        <EditorialPrintSpread
+          formattedDate={formattedDate}
+          remainingTodayCount={remainingTodayCount}
+          todayFocusMinutes={todayFocusMinutes}
+          habitConsistency={habitConsistency}
+          leadTask={nextUpTasks[0]}
+          onNavigate={onNavigate}
+        />
+      )}
 
       {/* 4-Column KPI Strip (single elevation, hairline dividers, zero nested cards) */}
       <section
         aria-label="Daily Metrics Summary"
         className="editorial-rise editorial-rise-2 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-800"
       >
-        <div className="aurora-kpi-card p-5 flex items-start justify-between gap-3">
+        <div className="aurora-kpi-card p-5 flex items-start justify-between gap-3" {...kpiTiltHandlers}>
           <div className="min-w-0 flex-1">
             <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">
               Due Today
@@ -297,7 +315,7 @@ export function OverviewView({
           )}
         </div>
 
-        <div className="aurora-kpi-card p-5 flex items-start justify-between gap-3">
+        <div className="aurora-kpi-card p-5 flex items-start justify-between gap-3" {...kpiTiltHandlers}>
           <div className="min-w-0 flex-1">
             <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">
               Task Completion
@@ -324,7 +342,7 @@ export function OverviewView({
           )}
         </div>
 
-        <div className="aurora-kpi-card p-5 flex items-start justify-between gap-3">
+        <div className="aurora-kpi-card p-5 flex items-start justify-between gap-3" {...kpiTiltHandlers}>
           <div className="min-w-0 flex-1">
             <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">
               Focus Logged Today
@@ -352,7 +370,7 @@ export function OverviewView({
           )}
         </div>
 
-        <div className="aurora-kpi-card p-5 flex items-start justify-between gap-3">
+        <div className="aurora-kpi-card p-5 flex items-start justify-between gap-3" {...kpiTiltHandlers}>
           <div className="min-w-0 flex-1">
             <p className="editorial-kpi-label text-xs font-medium text-slate-500 dark:text-slate-400">
               Weekly Habit Pace

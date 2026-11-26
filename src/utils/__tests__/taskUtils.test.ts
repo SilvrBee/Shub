@@ -318,6 +318,12 @@ describe('taskUtils — corrupted and legacy stored data recovery', () => {
     });
 
     expect(safeSettings.style).toBe('editorial');
+    expect(validateAndMigrateSettings({ style: 'minimalism' }).style).toBe('minimalism');
+    expect(validateAndMigrateSettings({ style: 'bento' }).style).toBe('bento');
+    expect(validateAndMigrateSettings({ style: 'editorial-style' }).style).toBe('editorial-style');
+    expect(validateAndMigrateSettings({ style: 'brutalism' }).style).toBe('brutalism');
+    expect(validateAndMigrateSettings({ style: 'swiss' }).style).toBe('swiss');
+    expect(validateAndMigrateSettings({ style: 'motion-3d' }).style).toBe('motion-3d');
     expect(safeSettings.colorMode).toBe(DEFAULT_APP_SETTINGS.colorMode);
     expect(safeSettings.defaultReminderOffset).toBe('30');
     expect(safeSettings.morningReminderTime).toBe('09:00');

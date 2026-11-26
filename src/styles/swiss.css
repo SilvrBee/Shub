@@ -1,0 +1,336 @@
+/* Style: Swiss Style (International Typographic Style) — strictly scoped under data-style="swiss" */
+
+html[data-style="swiss"] {
+  --cadence-font-display: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --cadence-font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --cadence-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Orthogonal zero-radius geometry */
+  --cadence-radius-card: 0px;
+  --cadence-radius-control: 0px;
+  --cadence-radius-sm: 0px;
+
+  --cadence-border-width: 1px;
+  --cadence-border-color: #d4d4cf;
+  --cadence-border-subtle: #e5e5e0;
+  --swiss-ink-rule: #111111;
+
+  --cadence-bg-canvas: #f6f6f4;
+  --cadence-bg-sidebar: #ffffff;
+  --cadence-bg-header: rgba(255, 255, 255, 0.98);
+  --cadence-bg-card: #ffffff;
+  --cadence-bg-input: #f9f9f7;
+  --cadence-bg-modal: #ffffff;
+  --cadence-bg-popover: #ffffff;
+  --cadence-bg-popover-hover: #efefeb;
+  --cadence-popover-text: #111111;
+  --cadence-popover-muted: #525252;
+  --cadence-popover-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.14);
+  --cadence-blur-popover: 0px;
+
+  --cadence-shadow-card: none;
+  --cadence-shadow-elevated: 0 18px 36px -14px rgba(0, 0, 0, 0.16);
+
+  --cadence-blur-card: 0px;
+  --cadence-blur-header: 0px;
+
+  --cadence-space-card: 1.5rem;
+  --cadence-space-section: 1rem;
+  --cadence-space-main-x: 2rem;
+  --cadence-space-main-y: 1.75rem;
+
+  /* Mathematical 48px modular hairline grid */
+  --cadence-bg-layer:
+    linear-gradient(to right, rgba(17, 17, 17, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(17, 17, 17, 0.045) 1px, transparent 1px);
+}
+
+html[data-style="swiss"]:not(.high-contrast) body,
+html[data-style="swiss"]:not(.high-contrast) .cadence-shell {
+  background-size: 48px 48px;
+}
+
+/* Pure monochrome Swiss ink & paper neutral scale */
+html[data-style="swiss"]:not(.high-contrast) {
+  --color-slate-50: #f6f6f4;
+  --color-slate-100: #ededeb;
+  --color-slate-200: #d4d4cf;
+  --color-slate-300: #b8b8b2;
+  --color-slate-400: #666662;
+  --color-slate-500: #52524e;
+  --color-slate-600: #3d3d3a;
+  --color-slate-700: #262624;
+  --color-slate-800: #181816;
+  --color-slate-900: #111111;
+  --color-slate-950: #080808;
+}
+
+html.dark[data-style="swiss"] {
+  --cadence-border-color: #2c2c30;
+  --cadence-border-subtle: #202024;
+  --swiss-ink-rule: #f0f0ec;
+
+  --cadence-bg-canvas: #0d0d0e;
+  --cadence-bg-sidebar: #111113;
+  --cadence-bg-header: rgba(17, 17, 19, 0.98);
+  --cadence-bg-card: #141416;
+  --cadence-bg-input: #101012;
+  --cadence-bg-modal: #141416;
+  --cadence-bg-popover: #161619;
+  --cadence-bg-popover-hover: #242429;
+  --cadence-popover-text: #f5f5f2;
+  --cadence-popover-muted: #a3a39e;
+  --cadence-popover-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.72);
+  --cadence-shadow-elevated: 0 22px 46px -14px rgba(0, 0, 0, 0.78);
+
+  --cadence-bg-layer:
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+}
+
+html.dark[data-style="swiss"]:not(.high-contrast) {
+  --color-slate-50: #fafaf8;
+  --color-slate-100: #f2f2ef;
+  --color-slate-200: #e0e0dc;
+  --color-slate-300: #c4c4bf;
+  --color-slate-400: #a1a19c;
+  --color-slate-500: #878782;
+  --color-slate-600: #696964;
+  --color-slate-700: #38383d;
+  --color-slate-800: #26262a;
+  --color-slate-900: #17171a;
+  --color-slate-950: #0a0a0b;
+}
+
+/* Uniform orthogonal grid spacing across views */
+html[data-style="swiss"]:not([data-density="compact"]) .cadence-main > div > .space-y-6 {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+html[data-style="swiss"]:not([data-density="compact"]) .cadence-main > div > .space-y-6 > * {
+  margin-top: 0;
+}
+
+html[data-style="swiss"]:not([data-density="compact"]) .cadence-main .grid.gap-6 {
+  gap: 1rem;
+}
+
+/* Clean objective sans-serif typographic hierarchy */
+html[data-style="swiss"] main h1 {
+  font-family: var(--cadence-font-display);
+  font-size: clamp(1.85rem, 2.8vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+html[data-style="swiss"] .cadence-card h2 {
+  font-family: var(--cadence-font-display);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+html[data-style="swiss"] aside .font-display {
+  font-family: var(--cadence-font-display);
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+html.dark[data-style="swiss"] body {
+  letter-spacing: 0.005em;
+}
+
+/* Numeric modular index markers aligned strictly flush-left */
+html[data-style="swiss"] .editorial-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+html[data-style="swiss"] .editorial-marker {
+  display: inline-block;
+  font-family: var(--cadence-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-blue-600);
+}
+
+html.dark[data-style="swiss"] .editorial-marker {
+  color: var(--color-blue-400);
+}
+
+html[data-style="swiss"] .editorial-kicker-text {
+  font-family: var(--cadence-font-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--color-slate-500);
+}
+
+html[data-style="swiss"] .editorial-kpi-value {
+  font-family: var(--cadence-font-display);
+  font-size: clamp(2rem, 2.75vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+html[data-style="swiss"] .editorial-kpi-label {
+  font-family: var(--cadence-font-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-slate-500);
+}
+
+/* Crisp asymmetrical Swiss hero header anchored by structural ink rules */
+html[data-style="swiss"]:not(.high-contrast) .aurora-hero-header {
+  background-color: var(--cadence-bg-card);
+  border: 1px solid var(--cadence-border-color);
+  border-top: 3px solid var(--swiss-ink-rule);
+  padding: 1.25rem 1.5rem;
+}
+
+/* Strict orthogonal Metrics Summary matrix bounded top & bottom by ink rules */
+html[data-style="swiss"] section[aria-label$="Metrics Summary"].cadence-card {
+  background-color: var(--cadence-bg-card);
+  border-top: 2px solid var(--swiss-ink-rule);
+  border-bottom: 2px solid var(--swiss-ink-rule);
+  border-left: 1px solid var(--cadence-border-color);
+  border-right: 1px solid var(--cadence-border-color);
+  border-radius: 0px;
+  box-shadow: none;
+}
+
+html[data-style="swiss"] section[aria-label$="Metrics Summary"].cadence-card > div {
+  padding: 1.25rem 1.375rem;
+  border-color: var(--cadence-border-color);
+}
+
+html[data-style="swiss"]:not(.high-contrast) section[aria-label$="Metrics Summary"].cadence-card > div:first-child {
+  box-shadow: inset 0 3px 0 0 var(--color-blue-600);
+}
+
+html.dark[data-style="swiss"]:not(.high-contrast) section[aria-label$="Metrics Summary"].cadence-card > div:first-child {
+  box-shadow: inset 0 3px 0 0 var(--color-blue-400);
+}
+
+/* Structural cards & chrome with crisp 0px edges and hairline ink rules */
+html[data-style="swiss"] .cadence-sidebar {
+  background-color: var(--cadence-bg-sidebar);
+  border-right: 1px solid var(--cadence-border-color);
+}
+
+html[data-style="swiss"] .cadence-header {
+  background-color: var(--cadence-bg-header);
+  border-bottom: 1px solid var(--cadence-border-color);
+}
+
+html[data-style="swiss"] .cadence-card {
+  background-color: var(--cadence-bg-card);
+  border-color: var(--cadence-border-color);
+  border-top-width: 2px;
+  border-top-color: var(--swiss-ink-rule);
+  border-radius: 0px;
+  box-shadow: none;
+}
+
+html[data-style="swiss"] [role="dialog"] .cadence-card,
+html[data-style="swiss"] .cadence-card.editorial-modal {
+  background-color: var(--cadence-bg-modal);
+  border: 1px solid var(--swiss-ink-rule);
+  border-top-width: 3px;
+  border-radius: 0px;
+  box-shadow: var(--cadence-shadow-elevated);
+}
+
+html[data-style="swiss"] .cadence-input,
+html[data-style="swiss"] .cadence-control,
+html[data-style="swiss"] .cadence-popover,
+html[data-style="swiss"] button.rounded-lg,
+html[data-style="swiss"] button.rounded-xl,
+html[data-style="swiss"] button.rounded-md {
+  border-radius: 0px;
+}
+
+html[data-style="swiss"]:not(.high-contrast) main :is(input:not([type="checkbox"]), textarea, select) {
+  background-color: var(--cadence-bg-input);
+  border-color: var(--cadence-border-color);
+  border-radius: 0px;
+}
+
+html[data-style="swiss"]:not(.high-contrast) main input[type="text"].bg-transparent,
+html[data-style="swiss"]:not(.high-contrast) main textarea.bg-transparent {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+/* Sharp objective sidebar navigation alignment */
+html[data-style="swiss"]:not(.high-contrast) aside nav button {
+  border-radius: 0px;
+  font-weight: 500;
+}
+
+html[data-style="swiss"]:not(.high-contrast) aside nav button.bg-slate-100 {
+  background-color: var(--swiss-ink-rule);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+html.dark[data-style="swiss"]:not(.high-contrast) aside nav button.dark\:bg-slate-800\/80 {
+  background-color: var(--swiss-ink-rule);
+  color: #111111;
+  font-weight: 600;
+}
+
+html[data-style="swiss"]:not(.high-contrast) aside nav button.bg-slate-100 svg {
+  color: var(--color-blue-400);
+}
+
+html.dark[data-style="swiss"]:not(.high-contrast) aside nav button.dark\:bg-slate-800\/80 svg {
+  color: var(--color-blue-600);
+}
+
+/* Sharp focus outline */
+html[data-style="swiss"] :is(button, a, input, select, textarea, [role="checkbox"], [role="combobox"]):focus-visible {
+  outline: 2px solid var(--color-blue-600);
+  outline-offset: 2px;
+}
+
+html.dark[data-style="swiss"] :is(button, a, input, select, textarea, [role="checkbox"], [role="combobox"]):focus-visible {
+  outline-color: var(--color-blue-400);
+}
+
+/* Compact density keeps modular rhythm tighter */
+html[data-style="swiss"][data-density="compact"] {
+  --cadence-space-card: 1.125rem;
+  --cadence-space-section: 0.75rem;
+  --cadence-space-main-x: 1.5rem;
+  --cadence-space-main-y: 1.25rem;
+}
+
+/* Fast crisp transitions */
+html[data-style="swiss"]:not(.reduce-motion) aside nav button,
+html[data-style="swiss"]:not(.reduce-motion) main button {
+  transition-duration: 120ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* High contrast safeguard */
+html.high-contrast[data-style="swiss"] .cadence-card,
+html.high-contrast[data-style="swiss"] .cadence-sidebar,
+html.high-contrast[data-style="swiss"] .cadence-header {
+  border-color: var(--cadence-border-color);
+  border-width: 2px;
+}

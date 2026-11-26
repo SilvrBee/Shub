@@ -1,0 +1,325 @@
+/* Style: Neobrutalism & Brutalism — strictly scoped under data-style="brutalism" */
+
+html[data-style="brutalism"] {
+  --cadence-font-display: "Archivo", "Plus Jakarta Sans", sans-serif;
+  --cadence-font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --cadence-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --cadence-radius-card: 0px;
+  --cadence-radius-control: 0px;
+  --cadence-radius-sm: 0px;
+
+  --cadence-border-width: 2.5px;
+  --cadence-border-color: #000000;
+  --cadence-border-subtle: #000000;
+
+  --cadence-bg-canvas: #f3efe0;
+  --cadence-bg-sidebar: #fffdf7;
+  --cadence-bg-header: #fffdf7;
+  --cadence-bg-card: #ffffff;
+  --cadence-bg-input: #ffffff;
+  --cadence-bg-modal: #ffffff;
+  --cadence-bg-popover: #ffffff;
+  --cadence-bg-popover-hover: #ffe600;
+  --cadence-popover-text: #000000;
+  --cadence-popover-muted: #27272a;
+  --cadence-popover-shadow: 5px 5px 0 0 #000000;
+  --cadence-blur-popover: 0px;
+
+  --cadence-shadow-card: 5px 5px 0 0 #000000;
+  --cadence-shadow-elevated: 7px 7px 0 0 #000000;
+
+  --cadence-blur-card: 0px;
+  --cadence-blur-header: 0px;
+
+  --cadence-space-card: 1.5rem;
+  --cadence-space-section: 1.5rem;
+  --cadence-space-main-x: 2rem;
+  --cadence-space-main-y: 1.75rem;
+
+  --brutal-yellow: #ffe600;
+  --brutal-mint: #5ef2a8;
+  --brutal-cyan: #5ce1e6;
+  --brutal-pink: #ff85b3;
+  --brutal-orange: #ff5d22;
+
+  /* Raw architectural blueprint grid background */
+  --cadence-bg-layer:
+    linear-gradient(to right, rgba(0, 0, 0, 0.065) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.065) 1px, transparent 1px);
+}
+
+html[data-style="brutalism"]:not(.high-contrast) body,
+html[data-style="brutalism"]:not(.high-contrast) .cadence-shell {
+  background-size: 28px 28px;
+}
+
+html[data-style="brutalism"]:not(.high-contrast) {
+  --color-slate-50: #faf8f0;
+  --color-slate-100: #f0ece0;
+  --color-slate-200: #000000;
+  --color-slate-300: #18181b;
+  --color-slate-400: #3f3f46;
+  --color-slate-500: #27272a;
+  --color-slate-600: #18181b;
+  --color-slate-700: #09090b;
+  --color-slate-800: #000000;
+  --color-slate-900: #000000;
+  --color-slate-950: #000000;
+}
+
+html.dark[data-style="brutalism"] {
+  --cadence-border-color: #f5f5f0;
+  --cadence-border-subtle: #52525b;
+
+  --cadence-bg-canvas: #0b0b0b;
+  --cadence-bg-sidebar: #121212;
+  --cadence-bg-header: #121212;
+  --cadence-bg-card: #161616;
+  --cadence-bg-input: #0e0e0e;
+  --cadence-bg-modal: #161616;
+  --cadence-bg-popover: #161616;
+  --cadence-bg-popover-hover: #27272a;
+  --cadence-popover-text: #fafafa;
+  --cadence-popover-muted: #d4d4d8;
+  --cadence-popover-shadow: 5px 5px 0 0 #ffe600;
+
+  --cadence-shadow-card: 5px 5px 0 0 #ffe600;
+  --cadence-shadow-elevated: 7px 7px 0 0 #5ce1e6;
+
+  --cadence-bg-layer:
+    linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+}
+
+html.dark[data-style="brutalism"]:not(.high-contrast) {
+  --color-slate-50: #ffffff;
+  --color-slate-100: #fafafa;
+  --color-slate-200: #f4f4f0;
+  --color-slate-300: #e4e4e7;
+  --color-slate-400: #d4d4d8;
+  --color-slate-500: #c4c4cc;
+  --color-slate-600: #a1a1aa;
+  --color-slate-700: #e4e4e7;
+  --color-slate-800: #f4f4f0;
+  --color-slate-900: #18181b;
+  --color-slate-950: #0a0a0a;
+}
+
+/* Oversized raw brutalist typography */
+html[data-style="brutalism"] main h1 {
+  font-family: var(--cadence-font-display);
+  font-size: clamp(2.25rem, 4vw, 3.25rem);
+  font-weight: 900;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+html[data-style="brutalism"] .cadence-card h2 {
+  font-family: var(--cadence-font-display);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  text-transform: uppercase;
+}
+
+html[data-style="brutalism"] aside .font-display {
+  font-family: var(--cadence-font-display);
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+html[data-style="brutalism"] .editorial-kpi-value {
+  font-family: var(--cadence-font-display);
+  font-size: clamp(2.35rem, 3.5vw, 3.1rem);
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-style="brutalism"] .editorial-kpi-label {
+  font-family: var(--cadence-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Bold raw hero banner */
+html[data-style="brutalism"]:not(.high-contrast) .aurora-hero-header {
+  background-color: var(--brutal-yellow);
+  color: #000000;
+  --color-slate-900: #000000;
+  --color-slate-700: #000000;
+  --color-slate-500: #18181b;
+  --color-slate-400: #18181b;
+  border: 2.5px solid #000000;
+  box-shadow: 6px 6px 0 0 #000000;
+  padding: 1.35rem 1.5rem;
+}
+
+html.dark[data-style="brutalism"]:not(.high-contrast) .aurora-hero-header {
+  --color-slate-100: #000000;
+  --color-slate-300: #000000;
+  --color-slate-400: #18181b;
+  box-shadow: 6px 6px 0 0 #5ce1e6;
+}
+
+/* Raw clashing Metrics Summary compartments */
+html[data-style="brutalism"] section[aria-label$="Metrics Summary"].cadence-card {
+  background-color: transparent;
+  border-width: 0;
+  box-shadow: none;
+  gap: 0.875rem;
+}
+
+html[data-style="brutalism"] section[aria-label$="Metrics Summary"].cadence-card > div {
+  border: 2.5px solid var(--cadence-border-color);
+  box-shadow: 5px 5px 0 0 var(--cadence-border-color);
+  border-radius: 0;
+  padding: 1.25rem 1.375rem;
+}
+
+html[data-style="brutalism"]:not(.high-contrast) section[aria-label$="Metrics Summary"].cadence-card > div {
+  color: #000000;
+  --color-slate-900: #000000;
+  --color-slate-100: #000000;
+  --color-slate-500: #18181b;
+  --color-slate-400: #18181b;
+}
+
+html[data-style="brutalism"]:not(.high-contrast) section[aria-label$="Metrics Summary"].cadence-card > div:nth-child(1) {
+  background-color: var(--brutal-mint);
+}
+html[data-style="brutalism"]:not(.high-contrast) section[aria-label$="Metrics Summary"].cadence-card > div:nth-child(2) {
+  background-color: var(--brutal-cyan);
+}
+html[data-style="brutalism"]:not(.high-contrast) section[aria-label$="Metrics Summary"].cadence-card > div:nth-child(3) {
+  background-color: var(--brutal-pink);
+}
+html[data-style="brutalism"]:not(.high-contrast) section[aria-label$="Metrics Summary"].cadence-card > div:nth-child(4) {
+  background-color: var(--brutal-yellow);
+}
+
+html.dark[data-style="brutalism"]:not(.high-contrast) section[aria-label$="Metrics Summary"].cadence-card > div {
+  border-color: #f5f5f0;
+  box-shadow: 5px 5px 0 0 #f5f5f0;
+}
+
+/* Thick outlines & zero radius everywhere */
+html[data-style="brutalism"] .cadence-sidebar {
+  background-color: var(--cadence-bg-sidebar);
+  border-right: 3px solid var(--cadence-border-color);
+}
+
+html[data-style="brutalism"] .cadence-header {
+  background-color: var(--cadence-bg-header);
+  border-bottom: 3px solid var(--cadence-border-color);
+}
+
+html[data-style="brutalism"] .cadence-card {
+  background-color: var(--cadence-bg-card);
+  border: 2.5px solid var(--cadence-border-color);
+  border-radius: 0px;
+  box-shadow: var(--cadence-shadow-card);
+}
+
+html[data-style="brutalism"] [role="dialog"] .cadence-card,
+html[data-style="brutalism"] .cadence-card.editorial-modal {
+  background-color: var(--cadence-bg-modal);
+  border: 3px solid var(--cadence-border-color);
+  border-radius: 0px;
+  box-shadow: var(--cadence-shadow-elevated);
+}
+
+html[data-style="brutalism"] .cadence-input,
+html[data-style="brutalism"] .cadence-control,
+html[data-style="brutalism"] .cadence-popover,
+html[data-style="brutalism"] button.rounded-lg,
+html[data-style="brutalism"] button.rounded-xl,
+html[data-style="brutalism"] button.rounded-md {
+  border-radius: 0px;
+}
+
+html[data-style="brutalism"] main :is(input:not([type="checkbox"]), textarea, select) {
+  background-color: var(--cadence-bg-input);
+  border-width: 2px;
+  border-color: var(--cadence-border-color);
+  border-radius: 0px;
+}
+
+html[data-style="brutalism"] main input[type="text"].bg-transparent,
+html[data-style="brutalism"] main textarea.bg-transparent {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+/* Punchy brutalist active sidebar navigation */
+html[data-style="brutalism"]:not(.high-contrast) aside nav button {
+  border: 2px solid transparent;
+  border-radius: 0px;
+  font-weight: 600;
+}
+
+html[data-style="brutalism"]:not(.high-contrast) aside nav button.bg-slate-100,
+html[data-style="brutalism"]:not(.high-contrast) aside nav button.dark\:bg-slate-800\/80 {
+  background-color: var(--brutal-yellow);
+  color: #000000;
+  border-color: #000000;
+  box-shadow: 3px 3px 0 0 #000000;
+  font-weight: 800;
+}
+
+html.dark[data-style="brutalism"]:not(.high-contrast) aside nav button.dark\:bg-slate-800\/80 {
+  background-color: var(--brutal-yellow);
+  color: #000000;
+  border-color: #ffffff;
+  box-shadow: 3px 3px 0 0 #5ce1e6;
+}
+
+html[data-style="brutalism"]:not(.high-contrast) aside nav button.bg-slate-100 svg,
+html.dark[data-style="brutalism"]:not(.high-contrast) aside nav button.dark\:bg-slate-800\/80 svg {
+  color: #000000;
+}
+
+/* Tactile hard-shadow press feedback on primary buttons */
+html[data-style="brutalism"]:not(.reduce-motion) main button.bg-blue-600 {
+  border: 2px solid var(--cadence-border-color);
+  box-shadow: 3px 3px 0 0 var(--cadence-border-color);
+  font-weight: 700;
+  transition: transform 110ms ease, box-shadow 110ms ease;
+}
+
+html[data-style="brutalism"]:not(.reduce-motion) main button.bg-blue-600:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 0 var(--cadence-border-color);
+}
+
+html[data-style="brutalism"]:not(.reduce-motion) main button.bg-blue-600:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 0 var(--cadence-border-color);
+}
+
+/* Subtle divider weight inside cards */
+html[data-style="brutalism"] .cadence-card > .border-b {
+  border-bottom-width: 2px;
+  border-bottom-color: var(--cadence-border-color);
+}
+
+/* High contrast safeguard */
+html.high-contrast[data-style="brutalism"] section[aria-label$="Metrics Summary"].cadence-card > div {
+  background-color: var(--cadence-bg-card);
+  border-width: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-style="brutalism"] main button.bg-blue-600:hover,
+  html[data-style="brutalism"] main button.bg-blue-600:active {
+    transform: none;
+  }
+}

@@ -18,7 +18,18 @@ export interface StyleDefinition {
     borderDark: string;
     radius: string;
     displayFont: string;
-    effect: 'crisp' | 'editorial' | 'glass' | 'celestial' | 'doodle';
+    effect:
+      | 'crisp'
+      | 'editorial'
+      | 'glass'
+      | 'celestial'
+      | 'doodle'
+      | 'minimal'
+      | 'bento'
+      | 'magazine'
+      | 'brutalism'
+      | 'swiss'
+      | 'motion-3d';
   };
 }
 
@@ -116,6 +127,120 @@ export const STYLE_DEFINITIONS: readonly StyleDefinition[] = [
       radius: '14px',
       displayFont: '"Fredoka", sans-serif',
       effect: 'doodle',
+    },
+  },
+  {
+    id: 'minimalism',
+    name: 'Minimalism',
+    description: 'Ample negative space, limited colors, and clean typography to keep focus on core content and usability',
+    supportedModes: ['light', 'dark'],
+    preview: {
+      canvasLight: '#ffffff',
+      canvasDark: '#0b0b0c',
+      sidebarLight: '#ffffff',
+      sidebarDark: '#0b0b0c',
+      cardLight: '#ffffff',
+      cardDark: '#101013',
+      borderLight: '#e4e4e7',
+      borderDark: '#232327',
+      radius: '4px',
+      displayFont: '"Manrope", sans-serif',
+      effect: 'minimal',
+    },
+  },
+  {
+    id: 'bento',
+    name: 'Bento Grid',
+    description: 'Modular rounded compartments on a soft tray, tight uniform gutters, and Outfit geometric type',
+    supportedModes: ['light', 'dark'],
+    preview: {
+      canvasLight: '#eff1f5',
+      canvasDark: '#090b10',
+      sidebarLight: '#f8f9fb',
+      sidebarDark: '#0d1017',
+      cardLight: '#ffffff',
+      cardDark: '#131620',
+      borderLight: '#dfe3ec',
+      borderDark: '#232838',
+      radius: '12px',
+      displayFont: '"Outfit", sans-serif',
+      effect: 'bento',
+    },
+  },
+  {
+    id: 'editorial-style',
+    name: 'Editorial Style',
+    description: 'Print magazine and broadsheet hierarchy with Playfair Display type, large feature visuals, and expressive layouts',
+    supportedModes: ['light', 'dark'],
+    preview: {
+      canvasLight: '#faf8f3',
+      canvasDark: '#121110',
+      sidebarLight: '#f3efe6',
+      sidebarDark: '#171614',
+      cardLight: '#faf8f3',
+      cardDark: '#161513',
+      borderLight: '#1c1917',
+      borderDark: '#d6d0c4',
+      radius: '0px',
+      displayFont: '"Playfair Display", Georgia, serif',
+      effect: 'magazine',
+    },
+  },
+  {
+    id: 'brutalism',
+    name: 'Neobrutalism & Brutalism',
+    description: 'Bold ink outlines, raw grid geometry, oversized Archivo type, hard offset shadows, and clashing high-contrast colors',
+    supportedModes: ['light', 'dark'],
+    preview: {
+      canvasLight: '#f3efe0',
+      canvasDark: '#0b0b0b',
+      sidebarLight: '#fffdf7',
+      sidebarDark: '#121212',
+      cardLight: '#ffffff',
+      cardDark: '#161616',
+      borderLight: '#000000',
+      borderDark: '#f5f5f0',
+      radius: '0px',
+      displayFont: '"Archivo", sans-serif',
+      effect: 'brutalism',
+    },
+  },
+  {
+    id: 'swiss',
+    name: 'Swiss Style',
+    description: 'International Typographic Style with strict modular grids, crisp sans-serif type, and objective alignment',
+    supportedModes: ['light', 'dark'],
+    preview: {
+      canvasLight: '#f6f6f4',
+      canvasDark: '#0d0d0e',
+      sidebarLight: '#ffffff',
+      sidebarDark: '#111113',
+      cardLight: '#ffffff',
+      cardDark: '#141416',
+      borderLight: '#111111',
+      borderDark: '#e4e4e0',
+      radius: '0px',
+      displayFont: '"Plus Jakarta Sans", sans-serif',
+      effect: 'swiss',
+    },
+  },
+  {
+    id: 'motion-3d',
+    name: '3D & Interactive / Motion',
+    description: 'Interactive 3D spatial backdrop, pointer-tilted metric surfaces, scroll depth reveals, and spring micro-interactions',
+    supportedModes: ['light', 'dark'],
+    preview: {
+      canvasLight: '#eef2f9',
+      canvasDark: '#070a12',
+      sidebarLight: '#ffffff',
+      sidebarDark: '#0b0f1b',
+      cardLight: '#ffffff',
+      cardDark: '#101626',
+      borderLight: 'rgba(148, 163, 184, 0.36)',
+      borderDark: 'rgba(148, 163, 184, 0.24)',
+      radius: '14px',
+      displayFont: '"Outfit", sans-serif',
+      effect: 'motion-3d',
     },
   },
 ];

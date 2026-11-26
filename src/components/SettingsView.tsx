@@ -5,6 +5,8 @@ import {
   Bell,
   BellOff,
   Check,
+  CheckSquare,
+  ChevronDown,
   Database,
   Download,
   Globe,
@@ -144,6 +146,25 @@ const LANDING_VIEWS: Array<{ value: DashboardView; label: string }> = [
   { value: DashboardView.GoogleWorkspace, label: 'Google Apps' },
 ];
 
+type SettingsSectionId =
+  | 'appearance'
+  | 'general'
+  | 'defaults'
+  | 'notifications'
+  | 'account'
+  | 'backup'
+  | 'pwa';
+
+const INITIAL_COLLAPSED_SECTIONS: Record<SettingsSectionId, boolean> = {
+  appearance: false,
+  general: false,
+  defaults: false,
+  notifications: false,
+  account: false,
+  backup: false,
+  pwa: false,
+};
+
 export function SettingsView({
   settings,
   tasks,
@@ -167,6 +188,27 @@ export function SettingsView({
 }: SettingsViewProps) {
   const [confirmResetWorkspace, setConfirmResetWorkspace] = useState(false);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Record<SettingsSectionId, boolean>>(
+    INITIAL_COLLAPSED_SECTIONS
+  );
+
+  const toggleSection = (id: SettingsSectionId) => {
+    setExpandedSections((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const allExpanded = Object.values(expandedSections).every(Boolean);
+  const toggleAllSections = () => {
+    const next = !allExpanded;
+    setExpandedSections({
+      appearance: next,
+      general: next,
+      defaults: next,
+      notifications: next,
+      account: next,
+      backup: next,
+      pwa: next,
+    });
+  };
 
   const activeStyle = getStyleDefinition(settings.style);
   const activeTheme = THEME_OPTIONS.find((t) => t.id === settings.theme) ?? THEME_OPTIONS[0];
@@ -200,7 +242,7 @@ export function SettingsView({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
           {settings.style === 'doodle' && <DoodleHeaderScene tab={DashboardView.Settings} />}
           {statusNotice && (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200">
@@ -208,28 +250,52 @@ export function SettingsView({
               <span>{statusNotice}</span>
             </div>
           )}
+          <button
+            type="button"
+            onClick={toggleAllSections}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors whitespace-nowrap"
+          >
+            {allExpanded ? 'Collapse all' : 'Expand all'}
+          </button>
         </div>
       </div>
 
       {/* Section 1: Appearance & Themes */}
       <section className="editorial-rise editorial-rise-2 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
-          <Palette className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-          <div>
-            <span className="editorial-kicker">
-              <span className="editorial-marker" aria-hidden="true">01</span>
-              <span className="editorial-kicker-text">Visual System</span>
-            </span>
-            <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-              Appearance
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Color mode, visual style, website themes, spacing density, and motion preferences
-            </p>
+        <button
+          type="button"
+          onClick={() => toggleSection('appearance')}
+          aria-expanded={expandedSections.appearance}
+          aria-controls="settings-panel-appearance"
+          className={`w-full text-left px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${
+            expandedSections.appearance ? 'border-b border-slate-200 dark:border-slate-800' : ''
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Palette className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <div className="min-w-0">
+              <span className="editorial-kicker">
+                <span className="editorial-marker" aria-hidden="true">01</span>
+                <span className="editorial-kicker-text">Visual System</span>
+              </span>
+              <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                Appearance
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Color mode, visual style, website themes, spacing density, and motion preferences
+              </p>
+            </div>
           </div>
-        </div>
+          <ChevronDown
+            className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+              expandedSections.appearance ? 'rotate-180' : ''
+            }`}
+            aria-hidden="true"
+          />
+        </button>
 
-        <div className="p-6 space-y-6">
+        {expandedSections.appearance && (
+        <div id="settings-panel-appearance" className="p-6 space-y-6">
           {/* Color Mode */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -302,6 +368,17 @@ export function SettingsView({
                 const textPrimary = previewDark ? '#f1f5f9' : '#0f172a';
                 const textMuted = previewDark ? 'rgba(148,163,184,0.45)' : 'rgba(100,116,139,0.45)';
                 const modeLabel = formatSupportedModesLabel(styleDef.supportedModes);
+                const isMinimal = p.effect === 'minimal';
+                const isBento = p.effect === 'bento';
+                const isMagazine = p.effect === 'magazine';
+                const isBrutal = p.effect === 'brutalism';
+                const isSwiss = p.effect === 'swiss';
+                const isMotion3D = p.effect === 'motion-3d';
+                const previewAccent = isMinimal
+                  ? previewDark
+                    ? '#e4e4e7'
+                    : '#18181b'
+                  : activeTheme.accentHex;
 
                 let backdropBg = 'none';
                 if (p.effect === 'glass') {
@@ -310,8 +387,18 @@ export function SettingsView({
                   backdropBg = `radial-gradient(1.5px 1.5px at 22% 24%, rgba(255,255,255,0.65), transparent), radial-gradient(1px 1px at 78% 20%, rgba(255,255,255,0.5), transparent), radial-gradient(1.5px 1.5px at 66% 74%, ${activeTheme.accentHex}aa, transparent), radial-gradient(140px circle at 80% 12%, ${activeTheme.accentHex}2b, transparent 70%)`;
                 } else if (p.effect === 'editorial') {
                   backdropBg = `linear-gradient(180deg, ${activeTheme.accentHex}0d 0%, transparent 65%)`;
+                } else if (p.effect === 'magazine') {
+                  backdropBg = `linear-gradient(180deg, ${activeTheme.accentHex}10 0%, transparent 55%)`;
                 } else if (p.effect === 'doodle') {
                   backdropBg = `radial-gradient(4px circle at 88% 22%, #fbbc04, transparent), radial-gradient(3px circle at 76% 78%, #fb7185, transparent), linear-gradient(135deg, ${activeTheme.accentHex}14 0%, transparent 70%)`;
+                } else if (isBento) {
+                  backdropBg = `radial-gradient(${previewDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)'} 1px, transparent 1px)`;
+                } else if (isBrutal) {
+                  backdropBg = `linear-gradient(to right, ${previewDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'} 1px, transparent 1px), linear-gradient(to bottom, ${previewDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'} 1px, transparent 1px)`;
+                } else if (isSwiss) {
+                  backdropBg = `linear-gradient(to right, ${previewDark ? 'rgba(255,255,255,0.06)' : 'rgba(17,17,17,0.055)'} 1px, transparent 1px), linear-gradient(to bottom, ${previewDark ? 'rgba(255,255,255,0.06)' : 'rgba(17,17,17,0.055)'} 1px, transparent 1px)`;
+                } else if (isMotion3D) {
+                  backdropBg = `radial-gradient(110px circle at 82% 22%, ${activeTheme.accentHex}2a, transparent 70%), linear-gradient(160deg, transparent 55%, ${activeTheme.accentHex}14 100%)`;
                 }
 
                 return (
@@ -336,26 +423,36 @@ export function SettingsView({
                       style={{
                         backgroundColor: canvasBg,
                         backgroundImage: backdropBg,
-                        borderColor,
+                        backgroundSize: isBento
+                          ? '10px 10px'
+                          : isBrutal
+                            ? '12px 12px'
+                            : isSwiss
+                              ? '16px 16px'
+                              : undefined,
+                        borderColor: isSwiss ? (previewDark ? '#323236' : '#d4d4cf') : borderColor,
                         borderRadius: p.radius,
-                        borderWidth: p.effect === 'doodle' ? '2px' : '1px',
+                        borderWidth: isBrutal || p.effect === 'doodle' ? '2px' : '1px',
                         boxShadow:
                           p.effect === 'doodle'
                             ? `3px 3px 0 0 ${activeTheme.accentHex}55`
-                            : undefined,
+                            : isBrutal
+                              ? `3px 3px 0 0 ${previewDark ? '#ffe600' : '#000000'}`
+                              : undefined,
                       }}
                     >
                       <div
                         className="w-12 h-full shrink-0 p-2 flex flex-col justify-between border-r"
                         style={{
                           backgroundColor: sidebarBg,
-                          borderColor,
+                          borderColor: isMagazine ? textMuted : borderColor,
+                          borderRightWidth: isBrutal ? '2px' : undefined,
                         }}
                       >
                         <div className="space-y-1.5">
                           <div
                             className="h-1.5 w-6 rounded-xs"
-                            style={{ backgroundColor: activeTheme.accentHex }}
+                            style={{ backgroundColor: isBrutal ? '#ffe600' : previewAccent }}
                           />
                           <div className="h-1 w-7 rounded-xs" style={{ backgroundColor: textMuted }} />
                           <div className="h-1 w-5 rounded-xs" style={{ backgroundColor: textMuted }} />
@@ -363,53 +460,321 @@ export function SettingsView({
                         <div
                           className="h-2 w-7"
                           style={{
-                            backgroundColor: activeTheme.accentHex,
-                            borderRadius: p.radius === '12px' ? '6px' : p.radius === '3px' ? '2px' : '4px',
+                            backgroundColor: isMinimal ? textMuted : isBrutal ? '#5ce1e6' : activeTheme.accentHex,
+                            borderRadius:
+                              isBrutal || isSwiss
+                                ? '0px'
+                                : p.radius === '12px'
+                                  ? '6px'
+                                  : p.radius === '3px'
+                                    ? '2px'
+                                    : '4px',
                           }}
                         />
                       </div>
 
-                      <div className="flex-1 p-2.5 flex flex-col gap-2 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span
-                            className="text-[11px] font-semibold leading-none"
-                            style={{ fontFamily: p.displayFont, color: textPrimary }}
-                          >
-                            Aa Cadence
-                          </span>
-                          <span
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: activeTheme.accentHex }}
-                          />
+                      {isMotion3D ? (
+                        <div className="p-2 flex-1 flex flex-col justify-between gap-1.5 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <div
+                              className="px-2 py-1 flex-1 flex items-center justify-between border"
+                              style={{
+                                backgroundColor: cardBg,
+                                borderColor,
+                                borderRadius: '8px',
+                                boxShadow: previewDark
+                                  ? '0 6px 14px -6px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.12)'
+                                  : '0 6px 14px -6px rgba(15,23,42,0.16), inset 0 1px 0 rgba(255,255,255,0.9)',
+                                transform: 'perspective(220px) rotateY(-5deg)',
+                              }}
+                            >
+                              <span
+                                className="text-[10px] font-bold leading-none"
+                                style={{ fontFamily: p.displayFont, color: textPrimary }}
+                              >
+                                Aa 3D
+                              </span>
+                              <span
+                                className="w-2.5 h-2.5 rotate-45 border"
+                                style={{
+                                  borderColor: activeTheme.accentHex,
+                                  backgroundColor: `${activeTheme.accentHex}33`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1.5 flex-1">
+                            <div
+                              className="border p-1.5 flex flex-col justify-between"
+                              style={{
+                                backgroundColor: cardBg,
+                                borderColor,
+                                borderRadius: '8px',
+                                boxShadow: previewDark
+                                  ? '0 8px 16px -6px rgba(0,0,0,0.75)'
+                                  : '0 8px 16px -6px rgba(15,23,42,0.14)',
+                                transform: 'perspective(220px) rotateX(6deg)',
+                              }}
+                            >
+                              <div className="h-1 w-5 rounded-full" style={{ backgroundColor: activeTheme.accentHex }} />
+                              <div className="h-2 w-8 rounded-xs" style={{ backgroundColor: textPrimary }} />
+                            </div>
+                            <div
+                              className="border p-1.5 flex flex-col justify-between"
+                              style={{
+                                backgroundColor: cardBg,
+                                borderColor,
+                                borderRadius: '8px',
+                                boxShadow: previewDark
+                                  ? '0 8px 16px -6px rgba(0,0,0,0.75)'
+                                  : '0 8px 16px -6px rgba(15,23,42,0.14)',
+                                transform: 'perspective(220px) rotateX(-4deg) rotateY(4deg)',
+                              }}
+                            >
+                              <div className="h-1 w-6 rounded-full" style={{ backgroundColor: textMuted }} />
+                              <div className="h-1.5 w-6 rounded-xs" style={{ backgroundColor: textPrimary }} />
+                            </div>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-1.5 flex-1">
+                      ) : isSwiss ? (
+                        <div className="p-2 flex-1 flex flex-col justify-between gap-1.5 min-w-0">
                           <div
-                            className="border p-1.5 flex flex-col justify-between"
+                            className="px-2 py-1 flex items-center justify-between"
+                            style={{
+                              backgroundColor: cardBg,
+                              border: `1px solid ${previewDark ? '#2c2c30' : '#d4d4cf'}`,
+                              borderTop: `2.5px solid ${textPrimary}`,
+                            }}
+                          >
+                            <span
+                              className="text-[10px] font-extrabold tracking-tight leading-none"
+                              style={{ fontFamily: p.displayFont, color: textPrimary }}
+                            >
+                              Aa Grid
+                            </span>
+                            <span
+                              className="text-[8px] font-mono font-semibold"
+                              style={{ color: activeTheme.accentHex }}
+                            >
+                              01
+                            </span>
+                          </div>
+                          <div
+                            className="grid grid-cols-3 flex-1"
+                            style={{
+                              backgroundColor: cardBg,
+                              borderTop: `2px solid ${textPrimary}`,
+                              borderBottom: `2px solid ${textPrimary}`,
+                              borderLeft: `1px solid ${previewDark ? '#2c2c30' : '#d4d4cf'}`,
+                              borderRight: `1px solid ${previewDark ? '#2c2c30' : '#d4d4cf'}`,
+                            }}
+                          >
+                            <div
+                              className="p-1.5 flex flex-col justify-between border-r"
+                              style={{
+                                borderColor: previewDark ? '#2c2c30' : '#d4d4cf',
+                                boxShadow: `inset 0 2px 0 0 ${activeTheme.accentHex}`,
+                              }}
+                            >
+                              <div className="h-1 w-4" style={{ backgroundColor: textMuted }} />
+                              <div className="h-2 w-6" style={{ backgroundColor: textPrimary }} />
+                            </div>
+                            <div
+                              className="p-1.5 flex flex-col justify-between border-r"
+                              style={{ borderColor: previewDark ? '#2c2c30' : '#d4d4cf' }}
+                            >
+                              <div className="h-1 w-5" style={{ backgroundColor: textMuted }} />
+                              <div className="h-2 w-5" style={{ backgroundColor: textPrimary }} />
+                            </div>
+                            <div className="p-1.5 flex flex-col justify-between">
+                              <div className="h-1 w-4" style={{ backgroundColor: textMuted }} />
+                              <div className="h-2 w-6" style={{ backgroundColor: textPrimary }} />
+                            </div>
+                          </div>
+                        </div>
+                      ) : isBrutal ? (
+                        <div className="p-2 flex-1 flex flex-col justify-between gap-1.5 min-w-0">
+                          <div
+                            className="px-1.5 py-1 flex items-center justify-between"
+                            style={{
+                              backgroundColor: '#ffe600',
+                              border: '2px solid #000000',
+                              boxShadow: '2px 2px 0 0 #000000',
+                            }}
+                          >
+                            <span
+                              className="text-[10px] font-black uppercase tracking-tight leading-none"
+                              style={{ fontFamily: p.displayFont, color: '#000000' }}
+                            >
+                              AA RAW
+                            </span>
+                            <span className="w-2 h-2 bg-black" />
+                          </div>
+                          <div className="grid grid-cols-2 gap-1.5 flex-1">
+                            <div
+                              className="p-1.5 flex flex-col justify-between"
+                              style={{
+                                backgroundColor: '#5ef2a8',
+                                border: '2px solid #000000',
+                                boxShadow: '2px 2px 0 0 #000000',
+                              }}
+                            >
+                              <div className="h-1 w-6 bg-black" />
+                              <div className="h-2 w-8 bg-black" />
+                            </div>
+                            <div
+                              className="p-1.5 flex flex-col justify-between"
+                              style={{
+                                backgroundColor: '#ff85b3',
+                                border: '2px solid #000000',
+                                boxShadow: '2px 2px 0 0 #000000',
+                              }}
+                            >
+                              <div className="h-1 w-7 bg-black" />
+                              <div className="h-1.5 w-5 bg-black" />
+                            </div>
+                          </div>
+                        </div>
+                      ) : isMagazine ? (
+                        <div className="p-2.5 flex-1 flex flex-col justify-between min-w-0">
+                          <div
+                            className="flex items-center justify-between pb-1"
+                            style={{
+                              borderTop: `2px solid ${textPrimary}`,
+                              borderBottom: `1px solid ${textMuted}`,
+                              paddingTop: '3px',
+                            }}
+                          >
+                            <span
+                              className="text-[11px] font-bold leading-none"
+                              style={{ fontFamily: p.displayFont, color: textPrimary }}
+                            >
+                              Aa Edition
+                            </span>
+                            <span
+                              className="text-[8px] font-mono uppercase tracking-wider"
+                              style={{ color: activeTheme.accentHex }}
+                            >
+                              VOL. I
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-12 gap-2 flex-1 pt-1.5">
+                            <div
+                              className="col-span-7 border flex items-end p-1"
+                              style={{
+                                borderColor: textMuted,
+                                background: `linear-gradient(135deg, ${activeTheme.accentHex}30 0%, ${textMuted} 100%)`,
+                              }}
+                            >
+                              <div className="h-1 w-8" style={{ backgroundColor: textPrimary }} />
+                            </div>
+                            <div className="col-span-5 flex flex-col justify-between py-0.5">
+                              <div className="h-1.5 w-full" style={{ backgroundColor: textPrimary }} />
+                              <div className="h-1 w-4/5" style={{ backgroundColor: textMuted }} />
+                              <div className="h-1 w-full" style={{ backgroundColor: textMuted }} />
+                            </div>
+                          </div>
+                        </div>
+                      ) : isBento ? (
+                        <div className="p-2 flex-1 grid grid-cols-12 grid-rows-2 gap-1.5 min-w-0">
+                          <div
+                            className="col-span-7 row-span-1 border px-2 py-1 flex items-center justify-between"
                             style={{
                               backgroundColor: cardBg,
                               borderColor,
-                              borderRadius: p.radius === '12px' ? '8px' : p.radius,
+                              borderRadius: '8px',
                             }}
                           >
-                            <div className="h-1 w-8 rounded-xs" style={{ backgroundColor: textMuted }} />
-                            <div
-                              className="h-2 w-10 rounded-xs"
-                              style={{ backgroundColor: activeTheme.accentHex, opacity: 0.75 }}
+                            <span
+                              className="text-[10px] font-semibold leading-none"
+                              style={{ fontFamily: p.displayFont, color: textPrimary }}
+                            >
+                              Aa Cadence
+                            </span>
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ backgroundColor: activeTheme.accentHex }}
                             />
                           </div>
                           <div
-                            className="border p-1.5 flex flex-col justify-between"
+                            className="col-span-5 row-span-2 border p-1.5 flex flex-col justify-between"
                             style={{
                               backgroundColor: cardBg,
                               borderColor,
-                              borderRadius: p.radius === '12px' ? '8px' : p.radius,
+                              borderRadius: '8px',
+                              backgroundImage: `linear-gradient(155deg, ${activeTheme.accentHex}18 0%, transparent 75%)`,
                             }}
                           >
                             <div className="h-1 w-6 rounded-xs" style={{ backgroundColor: textMuted }} />
-                            <div className="h-1.5 w-9 rounded-xs" style={{ backgroundColor: textMuted }} />
+                            <div
+                              className="h-2.5 w-8 rounded-xs"
+                              style={{ backgroundColor: activeTheme.accentHex, opacity: 0.85 }}
+                            />
+                          </div>
+                          <div
+                            className="col-span-3 row-span-1 border p-1 flex flex-col justify-center gap-1"
+                            style={{
+                              backgroundColor: cardBg,
+                              borderColor,
+                              borderRadius: '8px',
+                            }}
+                          >
+                            <div className="h-1 w-5 rounded-xs" style={{ backgroundColor: textMuted }} />
+                          </div>
+                          <div
+                            className="col-span-4 row-span-1 border p-1 flex flex-col justify-center gap-1"
+                            style={{
+                              backgroundColor: cardBg,
+                              borderColor,
+                              borderRadius: '8px',
+                            }}
+                          >
+                            <div className="h-1 w-7 rounded-xs" style={{ backgroundColor: textMuted }} />
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className={`${isMinimal ? 'p-3.5 gap-2.5' : 'p-2.5 gap-2'} flex-1 flex flex-col min-w-0`}>
+                          <div className="flex items-center justify-between">
+                            <span
+                              className="text-[11px] font-semibold leading-none"
+                              style={{ fontFamily: p.displayFont, color: textPrimary }}
+                            >
+                              Aa Cadence
+                            </span>
+                            <span
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: activeTheme.accentHex }}
+                            />
+                          </div>
+                          <div className={`grid grid-cols-2 ${isMinimal ? 'gap-2.5' : 'gap-1.5'} flex-1`}>
+                            <div
+                              className="border p-1.5 flex flex-col justify-between"
+                              style={{
+                                backgroundColor: cardBg,
+                                borderColor,
+                                borderRadius: p.radius === '12px' ? '8px' : p.radius,
+                              }}
+                            >
+                              <div className="h-1 w-8 rounded-xs" style={{ backgroundColor: textMuted }} />
+                              <div
+                                className="h-2 w-10 rounded-xs"
+                                style={{ backgroundColor: previewAccent, opacity: isMinimal ? 0.85 : 0.75 }}
+                              />
+                            </div>
+                            <div
+                              className="border p-1.5 flex flex-col justify-between"
+                              style={{
+                                backgroundColor: cardBg,
+                                borderColor,
+                                borderRadius: p.radius === '12px' ? '8px' : p.radius,
+                              }}
+                            >
+                              <div className="h-1 w-6 rounded-xs" style={{ backgroundColor: textMuted }} />
+                              <div className="h-1.5 w-9 rounded-xs" style={{ backgroundColor: textMuted }} />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-start justify-between gap-2">
@@ -560,27 +925,45 @@ export function SettingsView({
             </div>
           </div>
         </div>
+        )}
       </section>
 
       {/* Section 2: General & Overview */}
       <section className="editorial-rise editorial-rise-3 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
-          <Sliders className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-          <div>
-            <span className="editorial-kicker">
-              <span className="editorial-marker" aria-hidden="true">02</span>
-              <span className="editorial-kicker-text">Overview Layout</span>
-            </span>
-            <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-              General &amp; Overview
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Default tab, clock format, and visible Overview widgets
-            </p>
+        <button
+          type="button"
+          onClick={() => toggleSection('general')}
+          aria-expanded={expandedSections.general}
+          aria-controls="settings-panel-general"
+          className={`w-full text-left px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${
+            expandedSections.general ? 'border-b border-slate-200 dark:border-slate-800' : ''
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Sliders className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <div className="min-w-0">
+              <span className="editorial-kicker">
+                <span className="editorial-marker" aria-hidden="true">02</span>
+                <span className="editorial-kicker-text">Overview Layout</span>
+              </span>
+              <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                General &amp; Overview
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Default tab, clock format, and visible Overview widgets
+              </p>
+            </div>
           </div>
-        </div>
+          <ChevronDown
+            className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+              expandedSections.general ? 'rotate-180' : ''
+            }`}
+            aria-hidden="true"
+          />
+        </button>
 
-        <div className="p-6 space-y-5">
+        {expandedSections.general && (
+        <div id="settings-panel-general" className="p-6 space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
               <label
@@ -659,24 +1042,45 @@ export function SettingsView({
             </div>
           </div>
         </div>
+        )}
       </section>
 
       {/* Section 3: Tasks, Categories & Focus Defaults */}
       <section className="editorial-rise editorial-rise-4 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
-          <span className="editorial-kicker">
-            <span className="editorial-marker" aria-hidden="true">03</span>
-            <span className="editorial-kicker-text">Workflow Defaults</span>
-          </span>
-          <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-            Tasks &amp; Focus Defaults
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Pre-selected defaults, priority &amp; matrix rules, and custom categories
-          </p>
-        </div>
+        <button
+          type="button"
+          onClick={() => toggleSection('defaults')}
+          aria-expanded={expandedSections.defaults}
+          aria-controls="settings-panel-defaults"
+          className={`w-full text-left px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${
+            expandedSections.defaults ? 'border-b border-slate-200 dark:border-slate-800' : ''
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <CheckSquare className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <div className="min-w-0">
+              <span className="editorial-kicker">
+                <span className="editorial-marker" aria-hidden="true">03</span>
+                <span className="editorial-kicker-text">Workflow Defaults</span>
+              </span>
+              <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                Tasks &amp; Focus Defaults
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Pre-selected defaults, priority &amp; matrix rules, and custom categories
+              </p>
+            </div>
+          </div>
+          <ChevronDown
+            className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+              expandedSections.defaults ? 'rotate-180' : ''
+            }`}
+            aria-hidden="true"
+          />
+        </button>
 
-        <div className="p-6 space-y-6">
+        {expandedSections.defaults && (
+        <div id="settings-panel-defaults" className="p-6 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
               <label
@@ -1001,27 +1405,45 @@ export function SettingsView({
             />
           </div>
         </div>
+        )}
       </section>
 
       {/* Section: Notifications & Task Reminders */}
       <section className="editorial-rise editorial-rise-4 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
-          <Bell className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-          <div>
-            <span className="editorial-kicker">
-              <span className="editorial-marker" aria-hidden="true">04</span>
-              <span className="editorial-kicker-text">Alerts &amp; Timing</span>
-            </span>
-            <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-              Notifications
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Task reminder lead times, browser notification permission, morning schedule, and sound
-            </p>
+        <button
+          type="button"
+          onClick={() => toggleSection('notifications')}
+          aria-expanded={expandedSections.notifications}
+          aria-controls="settings-panel-notifications"
+          className={`w-full text-left px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${
+            expandedSections.notifications ? 'border-b border-slate-200 dark:border-slate-800' : ''
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Bell className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <div className="min-w-0">
+              <span className="editorial-kicker">
+                <span className="editorial-marker" aria-hidden="true">04</span>
+                <span className="editorial-kicker-text">Alerts &amp; Timing</span>
+              </span>
+              <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                Notifications
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Task reminder lead times, browser notification permission, morning schedule, and sound
+              </p>
+            </div>
           </div>
-        </div>
+          <ChevronDown
+            className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+              expandedSections.notifications ? 'rotate-180' : ''
+            }`}
+            aria-hidden="true"
+          />
+        </button>
 
-        <div className="p-6 space-y-5">
+        {expandedSections.notifications && (
+        <div id="settings-panel-notifications" className="p-6 space-y-5">
           {/* Master Toggle */}
           <div className="flex items-center justify-between gap-4">
             <label htmlFor="settings-notifications-master" className="cursor-pointer">
@@ -1200,27 +1622,45 @@ export function SettingsView({
             </div>
           </div>
         </div>
+        )}
       </section>
 
       {/* Section 4: Google Account & Connected Apps */}
       <section className="editorial-rise editorial-rise-5 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
-          <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-          <div>
-            <span className="editorial-kicker">
-              <span className="editorial-marker" aria-hidden="true">05</span>
-              <span className="editorial-kicker-text">Cloud Sync</span>
-            </span>
-            <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-              Google Account &amp; Sync
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Cloud Firestore persistence and Google Workspace access
-            </p>
+        <button
+          type="button"
+          onClick={() => toggleSection('account')}
+          aria-expanded={expandedSections.account}
+          aria-controls="settings-panel-account"
+          className={`w-full text-left px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${
+            expandedSections.account ? 'border-b border-slate-200 dark:border-slate-800' : ''
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <div className="min-w-0">
+              <span className="editorial-kicker">
+                <span className="editorial-marker" aria-hidden="true">05</span>
+                <span className="editorial-kicker-text">Cloud Sync</span>
+              </span>
+              <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                Google Account &amp; Sync
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Cloud Firestore persistence and Google Workspace access
+              </p>
+            </div>
           </div>
-        </div>
+          <ChevronDown
+            className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+              expandedSections.account ? 'rotate-180' : ''
+            }`}
+            aria-hidden="true"
+          />
+        </button>
 
-        <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {expandedSections.account && (
+        <div id="settings-panel-account" className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             {user ? (
               <>
@@ -1273,27 +1713,45 @@ export function SettingsView({
             )}
           </div>
         </div>
+        )}
       </section>
 
       {/* Section 5: Data, Backup & Reset */}
       <section className="editorial-rise editorial-rise-6 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
-          <Database className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-          <div>
-            <span className="editorial-kicker">
-              <span className="editorial-marker" aria-hidden="true">06</span>
-              <span className="editorial-kicker-text">Archive &amp; Reset</span>
-            </span>
-            <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-              Data &amp; Backup
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Export your workspace data or restore default preferences
-            </p>
+        <button
+          type="button"
+          onClick={() => toggleSection('backup')}
+          aria-expanded={expandedSections.backup}
+          aria-controls="settings-panel-backup"
+          className={`w-full text-left px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${
+            expandedSections.backup ? 'border-b border-slate-200 dark:border-slate-800' : ''
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Database className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <div className="min-w-0">
+              <span className="editorial-kicker">
+                <span className="editorial-marker" aria-hidden="true">06</span>
+                <span className="editorial-kicker-text">Archive &amp; Reset</span>
+              </span>
+              <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                Data &amp; Backup
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Export your workspace data or restore default preferences
+              </p>
+            </div>
           </div>
-        </div>
+          <ChevronDown
+            className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+              expandedSections.backup ? 'rotate-180' : ''
+            }`}
+            aria-hidden="true"
+          />
+        </button>
 
-        <div className="p-6 flex flex-wrap items-center gap-3">
+        {expandedSections.backup && (
+        <div id="settings-panel-backup" className="p-6 flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={() => {
@@ -1349,27 +1807,45 @@ export function SettingsView({
             </div>
           )}
         </div>
+        )}
       </section>
 
       {/* Section 7: Install & Offline App */}
       <section className="editorial-rise editorial-rise-6 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
-          <Smartphone className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-          <div>
-            <span className="editorial-kicker">
-              <span className="editorial-marker" aria-hidden="true">07</span>
-              <span className="editorial-kicker-text">Progressive Web App</span>
-            </span>
-            <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-              Install &amp; Offline Support
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Install Cadence as a standalone app and work seamlessly without an internet connection
-            </p>
+        <button
+          type="button"
+          onClick={() => toggleSection('pwa')}
+          aria-expanded={expandedSections.pwa}
+          aria-controls="settings-panel-pwa"
+          className={`w-full text-left px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${
+            expandedSections.pwa ? 'border-b border-slate-200 dark:border-slate-800' : ''
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Smartphone className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <div className="min-w-0">
+              <span className="editorial-kicker">
+                <span className="editorial-marker" aria-hidden="true">07</span>
+                <span className="editorial-kicker-text">Progressive Web App</span>
+              </span>
+              <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                Install &amp; Offline Support
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Install Cadence as a standalone app and work seamlessly without an internet connection
+              </p>
+            </div>
           </div>
-        </div>
+          <ChevronDown
+            className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+              expandedSections.pwa ? 'rotate-180' : ''
+            }`}
+            aria-hidden="true"
+          />
+        </button>
 
-        <div className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {expandedSections.pwa && (
+        <div id="settings-panel-pwa" className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
               Offline App Shell &amp; Local Persistence
@@ -1382,6 +1858,7 @@ export function SettingsView({
             <PWAInstallButton variant="settings" />
           </div>
         </div>
+        )}
       </section>
     </div>
   );

@@ -1,0 +1,361 @@
+/* Style: Editorial Style — print magazine & broadsheet newspaper under data-style="editorial-style" */
+
+html[data-style="editorial-style"] {
+  --cadence-font-display: "Playfair Display", Georgia, "Times New Roman", serif;
+  --cadence-font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --cadence-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --cadence-radius-card: 0px;
+  --cadence-radius-control: 2px;
+  --cadence-radius-sm: 2px;
+
+  --cadence-border-width: 1px;
+  --cadence-border-color: #d4cdc0;
+  --cadence-border-subtle: #e5dfd3;
+  --editorial-ink-rule: #181615;
+
+  --cadence-bg-canvas: #faf8f3;
+  --cadence-bg-sidebar: #f3efe6;
+  --cadence-bg-header: rgba(250, 248, 243, 0.96);
+  --cadence-bg-card: transparent;
+  --cadence-bg-input: #f2ede2;
+  --cadence-bg-modal: #faf8f3;
+  --cadence-bg-popover: #faf8f3;
+  --cadence-bg-popover-hover: #ebe5d8;
+  --cadence-popover-text: #141312;
+  --cadence-popover-muted: #57524c;
+  --cadence-popover-shadow: 0 14px 34px rgba(20, 19, 18, 0.16);
+  --cadence-blur-popover: 0px;
+
+  --cadence-shadow-card: none;
+  --cadence-shadow-elevated: 0 18px 42px rgba(20, 19, 18, 0.14);
+
+  --cadence-blur-card: 0px;
+  --cadence-blur-header: 0px;
+
+  --cadence-space-card: 1.75rem;
+  --cadence-space-section: 2.25rem;
+  --cadence-space-main-x: 2.75rem;
+  --cadence-space-main-y: 2.25rem;
+
+  /* Fine archival newsprint fiber texture */
+  --cadence-bg-layer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='mg'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.12 0 0 0 0 0.11 0 0 0 0 0.09 0 0 0 0.036 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23mg)'/%3E%3C/svg%3E");
+}
+
+html[data-style="editorial-style"]:not(.high-contrast) {
+  --color-slate-50: #f7f4ec;
+  --color-slate-100: #eee9de;
+  --color-slate-200: #d4cdc0;
+  --color-slate-300: #bfb6a6;
+  --color-slate-400: #6b645c;
+  --color-slate-500: #57524c;
+  --color-slate-600: #45403b;
+  --color-slate-700: #302c28;
+  --color-slate-800: #1e1c1a;
+  --color-slate-900: #141312;
+  --color-slate-950: #0c0b0a;
+}
+
+html.dark[data-style="editorial-style"] {
+  --cadence-border-color: #34302b;
+  --cadence-border-subtle: #25221e;
+  --editorial-ink-rule: #ded8cc;
+
+  --cadence-bg-canvas: #121110;
+  --cadence-bg-sidebar: #171614;
+  --cadence-bg-header: rgba(18, 17, 16, 0.96);
+  --cadence-bg-card: transparent;
+  --cadence-bg-input: #1c1a17;
+  --cadence-bg-modal: #181715;
+  --cadence-bg-popover: #1a1816;
+  --cadence-bg-popover-hover: #292622;
+  --cadence-popover-text: #f4f1ea;
+  --cadence-popover-muted: #b3aba0;
+  --cadence-popover-shadow: 0 18px 40px rgba(0, 0, 0, 0.65);
+  --cadence-shadow-elevated: 0 20px 44px rgba(0, 0, 0, 0.6);
+
+  --cadence-bg-layer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='mg'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.96 0 0 0 0 0.94 0 0 0 0 0.89 0 0 0 0.032 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23mg)'/%3E%3C/svg%3E");
+}
+
+html.dark[data-style="editorial-style"]:not(.high-contrast) {
+  --color-slate-50: #faf8f4;
+  --color-slate-100: #f4f1ea;
+  --color-slate-200: #e5dfd3;
+  --color-slate-300: #cec6b8;
+  --color-slate-400: #b3aba0;
+  --color-slate-500: #9c9489;
+  --color-slate-600: #7a736a;
+  --color-slate-700: #46413b;
+  --color-slate-800: #2b2824;
+  --color-slate-900: #1b1917;
+  --color-slate-950: #100f0e;
+}
+
+html[data-style="editorial-style"]:not(.high-contrast) body,
+html[data-style="editorial-style"]:not(.high-contrast) .cadence-shell {
+  background-repeat: repeat;
+  background-size: 160px 160px;
+}
+
+/* Broadsheet masthead framing on top page hero */
+html[data-style="editorial-style"]:not(.high-contrast) .aurora-hero-header {
+  border-top: 3px solid var(--editorial-ink-rule);
+  border-bottom: 1px solid var(--editorial-ink-rule);
+  padding-top: 1.125rem;
+  padding-bottom: 1.125rem;
+}
+
+/* Strong print magazine typographic hierarchy */
+html[data-style="editorial-style"] main h1 {
+  font-family: var(--cadence-font-display);
+  font-size: clamp(2.15rem, 3.5vw, 3.05rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+html[data-style="editorial-style"] .cadence-card h2 {
+  font-family: var(--cadence-font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+html[data-style="editorial-style"] .editorial-kpi-value {
+  font-family: var(--cadence-font-display);
+  font-size: clamp(2.35rem, 3.2vw, 3rem);
+  line-height: 0.96;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+html[data-style="editorial-style"] .editorial-timer-display {
+  font-family: var(--cadence-font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Folio section kickers & numbered print markers */
+html[data-style="editorial-style"] .editorial-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.3rem;
+}
+
+html[data-style="editorial-style"] .editorial-marker {
+  display: inline-block;
+  font-family: var(--cadence-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-blue-600);
+}
+
+html.dark[data-style="editorial-style"] .editorial-marker {
+  color: var(--color-blue-400);
+}
+
+html[data-style="editorial-style"] .editorial-kicker-text {
+  font-family: var(--cadence-font-sans);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-slate-500);
+}
+
+html[data-style="editorial-style"] .editorial-kpi-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-slate-500);
+}
+
+/* Unboxed broadsheet sections framed by bold top rules & clean bottom hairlines */
+html[data-style="editorial-style"] .cadence-card {
+  background-color: transparent;
+  border-width: 0;
+  border-top: 2px solid var(--editorial-ink-rule);
+  border-bottom: 1px solid var(--cadence-border-subtle);
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-style="editorial-style"] .cadence-card:not(.editorial-preserve-pad) {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+html[data-style="editorial-style"] .cadence-card:not(.editorial-preserve-pad) > .px-6,
+html[data-style="editorial-style"] .cadence-card:not(.editorial-preserve-pad) > .p-6,
+html[data-style="editorial-style"] .cadence-card:not(.editorial-preserve-pad) > ul > li.px-6,
+html[data-style="editorial-style"] .cadence-card:not(.editorial-preserve-pad) > form.p-5 {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+html[data-style="editorial-style"] .cadence-card:not(.editorial-preserve-pad) table th:first-child,
+html[data-style="editorial-style"] .cadence-card:not(.editorial-preserve-pad) table td:first-child {
+  padding-left: 0;
+}
+
+html[data-style="editorial-style"] .cadence-card:not(.editorial-preserve-pad) table th:last-child,
+html[data-style="editorial-style"] .cadence-card:not(.editorial-preserve-pad) table td:last-child {
+  padding-right: 0;
+}
+
+/* Broadsheet Metrics Ledger bounded top & bottom by heavy 2px ink rules */
+html[data-style="editorial-style"] section[aria-label$="Metrics Summary"].cadence-card {
+  border-top: 2px solid var(--editorial-ink-rule);
+  border-bottom: 2px solid var(--editorial-ink-rule);
+}
+
+html[data-style="editorial-style"] section[aria-label$="Metrics Summary"].cadence-card > div {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+@media (min-width: 640px) {
+  html[data-style="editorial-style"] section[aria-label$="Metrics Summary"].cadence-card > div {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  html[data-style="editorial-style"] section[aria-label$="Metrics Summary"].cadence-card > div:first-child {
+    padding-left: 0;
+  }
+
+  html[data-style="editorial-style"] section[aria-label$="Metrics Summary"].cadence-card > div:last-child {
+    padding-right: 0;
+  }
+}
+
+html[data-style="editorial-style"] .cadence-card.editorial-toolbar {
+  border-bottom: 1px solid var(--cadence-border-color);
+  padding: 0.875rem 0;
+}
+
+html[data-style="editorial-style"] .cadence-card.editorial-split-pane {
+  border-bottom: 1px solid var(--cadence-border-color);
+}
+
+/* Modals stay solid archival paper with sharp ink frame */
+html[data-style="editorial-style"] [role="dialog"] .cadence-card,
+html[data-style="editorial-style"] .cadence-card.editorial-modal {
+  background-color: var(--cadence-bg-modal);
+  border: 1px solid var(--editorial-ink-rule);
+  border-radius: 2px;
+  box-shadow: var(--cadence-shadow-elevated);
+}
+
+/* Inputs & controls align cleanly with print rules */
+html[data-style="editorial-style"]:not(.high-contrast) main :is(input:not([type="checkbox"]), textarea, select) {
+  background-color: var(--cadence-bg-input);
+  border-color: var(--cadence-border-color);
+  border-radius: var(--cadence-radius-control);
+}
+
+html[data-style="editorial-style"]:not(.high-contrast) main input[type="text"].bg-transparent,
+html[data-style="editorial-style"]:not(.high-contrast) main textarea.bg-transparent {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+html[data-style="editorial-style"]:not(.high-contrast) .editorial-subtle-box {
+  background-color: var(--cadence-bg-input);
+  border-color: var(--cadence-border-color);
+  border-radius: var(--cadence-radius-control);
+}
+
+html[data-style="editorial-style"] aside .font-display {
+  font-family: var(--cadence-font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+html[data-style="editorial-style"] aside nav button,
+html[data-style="editorial-style"] .cadence-input,
+html[data-style="editorial-style"] .cadence-control,
+html[data-style="editorial-style"] button.rounded-lg,
+html[data-style="editorial-style"] button.rounded-xl {
+  border-radius: var(--cadence-radius-control);
+}
+
+/* Classic editorial animated underline on links */
+html[data-style="editorial-style"] :is(a, .editorial-link) {
+  text-decoration: none !important;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  padding-bottom: 1px;
+  transition: background-size 220ms cubic-bezier(0.22, 1, 0.36, 1), color 180ms ease;
+}
+
+html[data-style="editorial-style"] :is(a, .editorial-link):hover,
+html[data-style="editorial-style"] :is(a, .editorial-link):focus-visible {
+  background-size: 100% 1px;
+}
+
+/* Staggered magazine entrance cadence */
+@keyframes editorialPrintRise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+html[data-style="editorial-style"]:not(.reduce-motion) .tab-transition-enter .editorial-rise {
+  animation: editorialPrintRise 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html[data-style="editorial-style"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-1 {
+  animation-delay: 0ms;
+}
+html[data-style="editorial-style"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-2 {
+  animation-delay: 55ms;
+}
+html[data-style="editorial-style"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-3 {
+  animation-delay: 110ms;
+}
+html[data-style="editorial-style"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-4 {
+  animation-delay: 165ms;
+}
+html[data-style="editorial-style"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-5 {
+  animation-delay: 220ms;
+}
+html[data-style="editorial-style"]:not(.reduce-motion) .tab-transition-enter .editorial-rise-6 {
+  animation-delay: 275ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-style="editorial-style"] .tab-transition-enter .editorial-rise {
+    animation: none !important;
+  }
+  html[data-style="editorial-style"] :is(a, .editorial-link) {
+    transition: none !important;
+  }
+}
+
+html[data-style="editorial-style"][data-density="compact"] {
+  --cadence-space-card: 1.35rem;
+  --cadence-space-section: 1.5rem;
+  --cadence-space-main-y: 1.5rem;
+}
+
+html.high-contrast[data-style="editorial-style"] .cadence-card {
+  border-top-width: 2px;
+}
