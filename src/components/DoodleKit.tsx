@@ -492,6 +492,7 @@ interface DoodleHeaderSceneProps {
 
 export function DoodleHeaderScene({ tab, mascotOverride }: DoodleHeaderSceneProps) {
   switch (tab) {
+    case DashboardView.Home:
     case DashboardView.Overview: {
       const mState: MascotState = mascotOverride ?? 'waving';
       return (
@@ -665,6 +666,7 @@ export function DoodleHeaderScene({ tab, mascotOverride }: DoodleHeaderSceneProp
       );
     }
 
+    case DashboardView.Journal:
     case DashboardView.Notes:
       return (
         <div
@@ -714,6 +716,10 @@ export function DoodleHeaderScene({ tab, mascotOverride }: DoodleHeaderSceneProp
         </div>
       );
 
+    case DashboardView.Body:
+    case DashboardView.Life:
+    case DashboardView.Stats:
+    case DashboardView.Reports:
     case DashboardView.Settings:
       return (
         <div
@@ -866,6 +872,7 @@ export function DoodleEmptyScene({ kind }: { kind: EmptyIllustrationKind }) {
         </svg>
       );
 
+    case 'journal':
     case 'notes':
       return (
         <svg viewBox="0 0 176 112" fill="none" aria-hidden="true" className="w-44 h-28 mx-auto overflow-visible">
@@ -885,6 +892,30 @@ export function DoodleEmptyScene({ kind }: { kind: EmptyIllustrationKind }) {
         </svg>
       );
 
+    case 'body':
+      return (
+        <svg viewBox="0 0 176 112" fill="none" aria-hidden="true" className="w-44 h-28 mx-auto overflow-visible">
+          <rect x="24" y="20" width="128" height="72" rx="14" fill="#ffffff" stroke={DOODLE_INK} strokeWidth="2.6" />
+          <path d="M40 58 H62 L71 38 L82 74 L93 48 L102 58 H136" stroke="var(--doodle-coral, #fb7185)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="132" cy="34" r="7" fill="var(--doodle-mint, #34d399)" stroke={DOODLE_INK} strokeWidth="2" />
+          <g transform="translate(18, 12)">
+            <DoodleStar size={20} className="doodle-sparkle-twinkle" />
+          </g>
+        </svg>
+      );
+
+    case 'life':
+      return (
+        <svg viewBox="0 0 176 112" fill="none" aria-hidden="true" className="w-44 h-28 mx-auto overflow-visible">
+          <circle cx="88" cy="56" r="36" fill="#ffffff" stroke={DOODLE_INK} strokeWidth="2.6" />
+          <circle cx="88" cy="56" r="22" fill="var(--doodle-accent-tint, #eff6ff)" stroke={DOODLE_INK} strokeWidth="2" strokeDasharray="4 4" />
+          <path d="M88 28 L96 48 L116 56 L96 64 L88 84 L80 64 L60 56 L80 48 Z" fill="var(--doodle-sun, #fbbc04)" stroke={DOODLE_INK} strokeWidth="2.2" strokeLinejoin="round" />
+          <circle cx="88" cy="56" r="4" fill={DOODLE_INK} />
+        </svg>
+      );
+
+    case 'stats':
+    case 'reports':
     case 'workspace':
       return (
         <svg viewBox="0 0 176 112" fill="none" aria-hidden="true" className="w-44 h-28 mx-auto overflow-visible">

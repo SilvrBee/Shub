@@ -285,6 +285,48 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["ownerId", "kind", "title", "dateAdded", "tags", "createdAt", "updatedAt"]
+    },
+    "MoodRating": {
+      "title": "MoodRating",
+      "description": "Daily optional 1-10 mood rating stored one document per date (YYYY-MM-DD).",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "dateKey": { "type": "string", "minLength": 10, "maxLength": 10 },
+        "rating": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "dateKey", "rating", "createdAt", "updatedAt"]
+    },
+    "LifeChapter": {
+      "title": "LifeChapter",
+      "description": "Active personal life chapter with theme, start/end dates, and main goals.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "theme": { "type": "string", "maxLength": 240 },
+        "startDate": { "type": "string", "maxLength": 10 },
+        "endDate": { "type": "string", "maxLength": 10 },
+        "goals": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name", "theme", "startDate", "endDate", "goals", "createdAt", "updatedAt"]
+    },
+    "LifeProfile": {
+      "title": "LifeProfile",
+      "description": "User life profile for nested time and life expectancy progress bars.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "birthDate": { "type": "string", "minLength": 10, "maxLength": 10 },
+        "lifeExpectancy": { "type": "integer", "minimum": 1, "maximum": 150 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "birthDate", "lifeExpectancy", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
@@ -343,6 +385,18 @@
     "/users/{uid}/vaultItems/{itemId}": {
       "schema": { "$ref": "#/entities/VaultItem" },
       "description": "Personal Vault collection items."
+    },
+    "/users/{uid}/moodRatings/{dateId}": {
+      "schema": { "$ref": "#/entities/MoodRating" },
+      "description": "Daily mood rating documents keyed by YYYY-MM-DD."
+    },
+    "/users/{uid}/lifeChapters/{chapterId}": {
+      "schema": { "$ref": "#/entities/LifeChapter" },
+      "description": "User-owned active life chapter configuration."
+    },
+    "/users/{uid}/lifeProfiles/{profileId}": {
+      "schema": { "$ref": "#/entities/LifeProfile" },
+      "description": "User-owned birth date and life expectancy settings."
     }
   }
 }

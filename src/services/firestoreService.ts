@@ -23,6 +23,8 @@ import {
   HabitItem,
   JournalConfig,
   JournalEntrySummary,
+  LifeChapter,
+  LifeProfileSettings,
   NoteItem,
   PersonProfile,
   PersonSuggestion,
@@ -728,6 +730,109 @@ export const fsVault = {
   update: (uid: string, id: string, patch: Partial<VaultItem>) =>
     updateUserDoc(uid, 'vaultItems', id, patch as Record<string, unknown>),
   remove: (uid: string, id: string) => deleteUserDoc(uid, 'vaultItems', id),
+};
+
+export const fsMoodRatings = {
+  upsert: async (uid: string, dateKey: string, rating: number): Promise<void> => {
+    const firestore = getDb();
+    const safeDateKey = dateKey.slice(0, 10);
+    const safeRating = Math.max(1, Math.min(10, Math.round(rating)));
+    const path = `users/${uid}/moodRatings/${safeDateKey}`;
+    try {
+      const ref = doc(firestore, 'users', uid, 'moodRatings', safeDateKey);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        await updateDoc(ref, {
+          rating: safeRating,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        await setDoc(ref, {
+          ownerId: uid,
+          dateKey: safeDateKey,
+          rating: safeRating,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+};
+
+export const fsLifeChapter = {
+  saveActive: async (uid: string, chapter: LifeChapter): Promise<void> => {
+    const firestore = getDb();
+    const chapterId = 'active';
+    const path = `users/${uid}/lifeChapters/${chapterId}`;
+    const sanitizedName = (chapter.name || 'Drop Year').trim().slice(0, 120) || 'Drop Year';
+    const sanitizedTheme = (chapter.theme || '').trim().slice(0, 240);
+    const sanitizedStart = (chapter.startDate || '').slice(0, 10);
+    const sanitizedEnd = (chapter.endDate || '').slice(0, 10);
+    const sanitizedGoals = chapter.goals
+      .map((g) => g.trim().slice(0, 80))
+      .filter(Boolean)
+      .slice(0, 10);
+    try {
+      const ref = doc(firestore, 'users', uid, 'lifeChapters', chapterId);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        await updateDoc(ref, {
+          name: sanitizedName,
+          theme: sanitizedTheme,
+          startDate: sanitizedStart,
+          endDate: sanitizedEnd,
+          goals: sanitizedGoals,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        await setDoc(ref, {
+          ownerId: uid,
+          name: sanitizedName,
+          theme: sanitizedTheme,
+          startDate: sanitizedStart,
+          endDate: sanitizedEnd,
+          goals: sanitizedGoals,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+};
+
+export const fsLifeProfile = {
+  saveDefault: async (uid: string, profile: LifeProfileSettings): Promise<void> => {
+    const firestore = getDb();
+    const profileId = 'default';
+    const path = `users/${uid}/lifeProfiles/${profileId}`;
+    const safeBirthDate = profile.birthDate.slice(0, 10);
+    const safeExpectancy = Math.max(1, Math.min(150, Math.round(profile.lifeExpectancy)));
+    try {
+      const ref = doc(firestore, 'users', uid, 'lifeProfiles', profileId);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        await updateDoc(ref, {
+          birthDate: safeBirthDate,
+          lifeExpectancy: safeExpectancy,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        await setDoc(ref, {
+          ownerId: uid,
+          birthDate: safeBirthDate,
+          lifeExpectancy: safeExpectancy,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
 };
 
 export async function deleteAllJournalIntelligenceData(uid: string): Promise<void> {

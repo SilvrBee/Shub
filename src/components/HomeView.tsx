@@ -1,0 +1,463 @@
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowRight, BookOpen, Calendar, Check, Flame, Sparkles } from 'lucide-react';
+import {
+  AppSettings,
+  DashboardView,
+  HabitItem,
+  LifeChapter,
+  LifeProfileSettings,
+  MoodRatingRecord,
+  TaskItem,
+} from '../types/dashboard';
+import { formatDateKey } from '../data/initialData';
+import {
+  computeChapterStatus,
+  computeTimeProgressBars,
+  getHabitsDueToday,
+  getTodayTasksSorted,
+} from '../utils/lifeUtils';
+import { formatShortDateLabel, formatTimeShort } from '../utils/taskUtils';
+import { DoodleHeaderScene } from './DoodleKit';
+import { PriorityFlagDisplay } from './PriorityFlag';
+import { TaskCheckButton } from './TaskCheckButton';
+import { CategoryBadge } from './ui/CategoryBadge';
+
+interface HomeViewProps {
+  tasks: TaskItem[];
+  habits: HabitItem[];
+  settings: AppSettings;
+  chapter: LifeChapter;
+  lifeProfile: LifeProfileSettings;
+  moodRatings: MoodRatingRecord[];
+  userFirstName?: string | null;
+  onToggleTask: (id: string) => void;
+  onToggleHabitDay: (habitId: string, dayIndex: number) => void;
+  onSetMoodRating: (dateKey: string, rating: number) => void;
+  onNavigate: (view: DashboardView) => void;
+}
+
+const MOOD_SCALE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+
+const SORT_MODE_LABELS: Record<AppSettings['smartSortMode'], string> = {
+  balanced: 'Balanced',
+  priority: 'Priority',
+  deadline: 'Deadline',
+  'quick-wins': 'Quick wins',
+};
+
+export function HomeView({
+  tasks,
+  habits,
+  settings,
+  chapter,
+  lifeProfile,
+  moodRatings,
+  userFirstName,
+  onToggleTask,
+  onToggleHabitDay,
+  onSetMoodRating,
+  onNavigate,
+}: HomeViewProps) {
+  const [now, setNow] = useState(() => new Date());
+
+  // Live update each minute, aligned closely to minute boundaries
+  useEffect(() => {
+    let intervalId: number | undefined;
+    const tick = () => setNow(new Date());
+
+    const msUntilNextMinute = Math.max(250, 60_000 - (Date.now() % 60_000));
+    const timeoutId = window.setTimeout(() => {
+      tick();
+      intervalId = window.setInterval(tick, 60_000);
+    }, msUntilNextMinute);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        tick();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (intervalId !== undefined) window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
+
+  const todayKey = formatDateKey(now);
+
+  const chapterStatus = useMemo(
+    () => computeChapterStatus(chapter, now),
+    [chapter, now]
+  );
+
+  const timeBars = useMemo(
+    () => computeTimeProgressBars(now, lifeProfile),
+    [now, lifeProfile]
+  );
+
+  const todayTasks = useMemo(
+    () => getTodayTasksSorted(tasks, settings, todayKey, 5),
+    [tasks, settings, todayKey]
+  );
+
+  const todayHabits = useMemo(
+    () => getHabitsDueToday(habits, now),
+    [habits, now]
+  );
+
+  const todayMood = useMemo(
+    () => moodRatings.find((m) => m.dateKey === todayKey)?.rating ?? null,
+    [moodRatings, todayKey]
+  );
+
+  const formattedToday = useMemo(
+    () =>
+      now.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+      }),
+    [now]
+  );
+
+  return (
+    <div className="space-y-6 max-w-5xl">
+      {/* Top Row: Quiet Welcome + Doodle Scene */}
+      <div className="editorial-rise editorial-rise-1 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <span className="editorial-kicker">
+            <span className="editorial-marker" aria-hidden="true">HOME</span>
+            <span className="editorial-kicker-text">Dashboard of Life</span>
+          </span>
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 text-balance">
+            {userFirstName ? `Welcome back, ${userFirstName}` : 'Home'}
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            {formattedToday}
+          </p>
+        </div>
+
+        {settings.style === 'doodle' && <DoodleHeaderScene tab={DashboardView.Home} />}
+      </div>
+
+      {/* 2a) Chapter Banner */}
+      <section
+        aria-label="Current life chapter"
+        className="editorial-rise editorial-rise-2 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4"
+      >
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+          <div className="space-y-1.5 min-w-0">
+            <div className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+              <Sparkles className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <span>Current Chapter</span>
+            </div>
+            <h2 className="font-display text-xl sm:text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+              {chapter.name}
+            </h2>
+            {chapter.theme && (
+              <p className="text-sm text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
+                {chapter.theme}
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-wrap md:flex-col md:items-end gap-2 shrink-0">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 tabular-nums">
+              {chapterStatus.dayLabel}
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
+              <Calendar className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <span>{chapterStatus.remainingLabel}</span>
+            </span>
+          </div>
+        </div>
+
+        {chapter.goals.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {chapter.goals.map((goal, idx) => (
+              <span
+                key={`${goal}-${idx}`}
+                className="editorial-subtle-box inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/80"
+              >
+                {goal}
+              </span>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* 2b) Nested Time Bars */}
+      <section
+        aria-label="Time progress horizons"
+        className="editorial-rise editorial-rise-3 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl px-6 py-5"
+      >
+        <div className="space-y-3">
+          {timeBars.map((bar) => (
+            <div
+              key={bar.id}
+              className="grid grid-cols-[88px_1fr_auto] sm:grid-cols-[96px_1fr_56px_132px] items-center gap-3 sm:gap-4"
+            >
+              <span className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate">
+                {bar.label}
+              </span>
+
+              <div
+                className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"
+                role="progressbar"
+                aria-label={`${bar.label} progress`}
+                aria-valuenow={Math.round(bar.percent)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div
+                  className="h-full rounded-full bg-blue-600 dark:bg-blue-500 transition-[width] duration-500 ease-out"
+                  style={{ width: `${Math.max(bar.percent > 0 ? 1.5 : 0, Math.min(100, bar.percent))}%` }}
+                />
+              </div>
+
+              <span className="font-mono text-xs font-semibold tabular-nums text-slate-900 dark:text-slate-100 text-right">
+                {bar.percent.toFixed(1)}%
+              </span>
+
+              <span className="hidden sm:block font-mono text-xs tabular-nums text-slate-500 dark:text-slate-400 text-right truncate">
+                {bar.detailLabel}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 2c) Today Card */}
+      <section
+        aria-label="Today"
+        className="editorial-rise editorial-rise-4 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden"
+      >
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <span className="editorial-kicker">
+              <span className="editorial-marker" aria-hidden="true">TODAY</span>
+              <span className="editorial-kicker-text">Daily Focus</span>
+            </span>
+            <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+              Today
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Sorted by {SORT_MODE_LABELS[settings.smartSortMode]} · Check off tasks, habits, and mood
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onNavigate(DashboardView.Journal)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors shrink-0"
+          >
+            <BookOpen className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>Write journal</span>
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Top 3-5 Tasks for Today */}
+            <div className="lg:col-span-7 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Tasks for today
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => onNavigate(DashboardView.Tasks)}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  <span>All tasks</span>
+                  <ArrowRight className="w-3 h-3" aria-hidden="true" />
+                </button>
+              </div>
+
+              {todayTasks.length === 0 ? (
+                <div className="editorial-subtle-box rounded-lg border border-dashed border-slate-200 dark:border-slate-800 px-4 py-6 text-center">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    No tasks scheduled for today.
+                  </p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-slate-100 dark:divide-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-800">
+                  {todayTasks.map((task) => {
+                    const isOverdue =
+                      !task.completed && Boolean(task.dueDate && task.dueDate < todayKey);
+                    return (
+                      <li
+                        key={task.id}
+                        className="flex items-center justify-between gap-3 px-3.5 py-2.5"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <TaskCheckButton
+                            checked={task.completed}
+                            onToggle={() => onToggleTask(task.id)}
+                            label={`Mark "${task.title}" as ${
+                              task.completed ? 'incomplete' : 'complete'
+                            }`}
+                          />
+                          <div className="min-w-0">
+                            <p
+                              className={`text-sm font-medium truncate ${
+                                task.completed
+                                  ? 'line-through text-slate-400 dark:text-slate-500'
+                                  : 'text-slate-900 dark:text-slate-100'
+                              }`}
+                            >
+                              {task.title}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                              {task.category && (
+                                <CategoryBadge
+                                  name={task.category}
+                                  categories={settings.categories}
+                                  compact
+                                />
+                              )}
+                              {task.dueTime && (
+                                <span className="font-mono tabular-nums">
+                                  {formatTimeShort(task.dueTime, settings.timeFormat)}
+                                </span>
+                              )}
+                              {isOverdue && task.dueDate && (
+                                <span className="text-rose-600 dark:text-rose-400 font-medium">
+                                  Overdue · {formatShortDateLabel(task.dueDate)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <PriorityFlagDisplay priority={task.priority} compact />
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            {/* Habits Due Today */}
+            <div className="lg:col-span-5 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Habits due today
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => onNavigate(DashboardView.Habits)}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  <span>Habits</span>
+                  <ArrowRight className="w-3 h-3" aria-hidden="true" />
+                </button>
+              </div>
+
+              {todayHabits.length === 0 ? (
+                <div className="editorial-subtle-box rounded-lg border border-dashed border-slate-200 dark:border-slate-800 px-4 py-6 text-center">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    All weekly habit targets met or none scheduled.
+                  </p>
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {todayHabits.map((entry) => (
+                    <li key={entry.habit.id}>
+                      <button
+                        type="button"
+                        onClick={() => onToggleHabitDay(entry.habit.id, entry.todayIndex)}
+                        aria-pressed={entry.completedToday}
+                        className={`w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border text-left transition-colors ${
+                          entry.completedToday
+                            ? 'border-blue-200 dark:border-blue-800/60 bg-blue-50/50 dark:bg-blue-950/20'
+                            : 'editorial-subtle-box border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2.5 min-w-0">
+                          <span
+                            className={`w-5 h-5 rounded-md flex items-center justify-center border shrink-0 transition-colors ${
+                              entry.completedToday
+                                ? 'bg-blue-600 border-blue-600 text-white dark:bg-blue-500 dark:border-blue-500'
+                                : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
+                            }`}
+                          >
+                            {entry.completedToday && (
+                              <Check className="w-3.5 h-3.5" aria-hidden="true" />
+                            )}
+                          </span>
+                          <span
+                            className={`text-sm font-medium truncate ${
+                              entry.completedToday
+                                ? 'text-slate-500 dark:text-slate-400 line-through'
+                                : 'text-slate-900 dark:text-slate-100'
+                            }`}
+                          >
+                            {entry.habit.name}
+                          </span>
+                        </span>
+
+                        <span className="inline-flex items-center gap-1 font-mono text-xs tabular-nums text-slate-500 dark:text-slate-400 shrink-0">
+                          <Flame className="w-3 h-3 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                          <span>
+                            {entry.doneThisWeek}/{entry.targetDaysPerWeek}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          {/* Mood Row (1-10 optional, one rating per day, changeable same day) */}
+          <div className="pt-5 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                Mood today
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {todayMood !== null
+                  ? `Rated ${todayMood} / 10 · Tap any number to update`
+                  : 'Optional · Tap 1–10 to log how today feels'}
+              </p>
+            </div>
+
+            <div
+              role="radiogroup"
+              aria-label="Mood rating for today"
+              className="flex flex-wrap items-center gap-1.5"
+            >
+              {MOOD_SCALE.map((score) => {
+                const selected = todayMood === score;
+                return (
+                  <button
+                    key={score}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    aria-label={`Mood ${score} out of 10`}
+                    onClick={() => onSetMoodRating(todayKey, score)}
+                    className={`w-8 h-8 rounded-full font-mono text-xs font-semibold tabular-nums transition-colors flex items-center justify-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
+                      selected
+                        ? 'bg-blue-600 text-white dark:bg-blue-500 shadow-xs'
+                        : 'border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400'
+                    }`}
+                  >
+                    {score}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2d) Reserved vertical room below for Life Wheel and Next Up in next step */}
+      <div className="min-h-[240px]" aria-hidden="true" />
+    </div>
+  );
+}

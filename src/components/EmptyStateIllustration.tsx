@@ -8,7 +8,12 @@ export type EmptyIllustrationKind =
   | 'focus'
   | 'habits'
   | 'notes'
-  | 'workspace';
+  | 'workspace'
+  | 'journal'
+  | 'body'
+  | 'life'
+  | 'stats'
+  | 'reports';
 
 interface EmptyStateIllustrationProps {
   kind: EmptyIllustrationKind;
@@ -291,6 +296,132 @@ export function IllustrationSvg({ kind }: { kind: EmptyIllustrationKind }) {
           <circle cx="66" cy="49" r="6" className="fill-blue-600/15 dark:fill-blue-500/20 stroke-blue-600 dark:stroke-blue-400" strokeWidth="1.5" />
           <rect x="77" y="47" width="18" height="4" rx="2" className="fill-slate-300 dark:fill-slate-600" />
           <rect x="61" y="61" width="33" height="3.5" rx="1.75" className="fill-slate-200 dark:fill-slate-700" />
+        </svg>
+      );
+
+    case 'journal':
+      return (
+        <svg viewBox="0 0 120 92" fill="none" aria-hidden="true" className="w-28 h-22 mx-auto">
+          <rect
+            x="24"
+            y="12"
+            width="72"
+            height="68"
+            rx="9"
+            className="fill-slate-50 dark:fill-slate-900/80 stroke-slate-200 dark:stroke-slate-700"
+            strokeWidth="1.5"
+          />
+          <line
+            x1="40"
+            y1="12"
+            x2="40"
+            y2="80"
+            className="stroke-slate-200 dark:stroke-slate-700"
+            strokeWidth="1.5"
+          />
+          <rect x="49" y="25" width="30" height="5" rx="2.5" className="fill-blue-600/75 dark:fill-blue-400/75" />
+          <rect x="49" y="37" width="36" height="3.5" rx="1.75" className="fill-slate-200 dark:fill-slate-700" />
+          <rect x="49" y="45" width="32" height="3.5" rx="1.75" className="fill-slate-200 dark:fill-slate-700" />
+          <rect x="49" y="53" width="24" height="3.5" rx="1.75" className="fill-slate-200 dark:fill-slate-700" />
+          <path
+            d="M78 60l10-10 4.5 4.5-10 10-5.5 1 1-5.5z"
+            className="fill-blue-600/15 dark:fill-blue-500/20 stroke-blue-600 dark:stroke-blue-400"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+
+    case 'body':
+      return (
+        <svg viewBox="0 0 120 92" fill="none" aria-hidden="true" className="w-28 h-22 mx-auto">
+          <rect
+            x="16"
+            y="14"
+            width="88"
+            height="64"
+            rx="10"
+            className="fill-slate-50 dark:fill-slate-900/80 stroke-slate-200 dark:stroke-slate-700"
+            strokeWidth="1.5"
+          />
+          <path
+            d="M26 48h16l7-14 8 24 8-17 6 7h23"
+            className="stroke-blue-600 dark:stroke-blue-400"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle cx="88" cy="27" r="5" className="fill-blue-600/15 dark:fill-blue-500/20 stroke-blue-600 dark:stroke-blue-400" strokeWidth="1.5" />
+          <rect x="26" y="25" width="28" height="4" rx="2" className="fill-slate-200 dark:fill-slate-700" />
+        </svg>
+      );
+
+    case 'life':
+      return (
+        <svg viewBox="0 0 120 92" fill="none" aria-hidden="true" className="w-28 h-22 mx-auto">
+          <circle
+            cx="60"
+            cy="46"
+            r="31"
+            className="fill-slate-50 dark:fill-slate-900/80 stroke-slate-200 dark:stroke-slate-700"
+            strokeWidth="1.5"
+          />
+          <circle
+            cx="60"
+            cy="46"
+            r="20"
+            className="stroke-slate-200 dark:stroke-slate-700"
+            strokeWidth="1.25"
+            strokeDasharray="3 3"
+          />
+          <line x1="60" y1="15" x2="60" y2="77" className="stroke-slate-200 dark:stroke-slate-700" strokeWidth="1.25" />
+          <line x1="29" y1="46" x2="91" y2="46" className="stroke-slate-200 dark:stroke-slate-700" strokeWidth="1.25" />
+          <path
+            d="M60 28l6 12 12 6-12 6-6 12-6-12-12-6 12-6 6-12z"
+            className="fill-blue-600/15 dark:fill-blue-500/20 stroke-blue-600 dark:stroke-blue-400"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
+          <circle cx="60" cy="46" r="3.5" className="fill-blue-600 dark:fill-blue-400" />
+        </svg>
+      );
+
+    case 'stats':
+      return (
+        <svg viewBox="0 0 120 92" fill="none" aria-hidden="true" className="w-28 h-22 mx-auto">
+          <rect
+            x="16"
+            y="14"
+            width="88"
+            height="64"
+            rx="10"
+            className="fill-slate-50 dark:fill-slate-900/80 stroke-slate-200 dark:stroke-slate-700"
+            strokeWidth="1.5"
+          />
+          <rect x="28" y="48" width="11" height="18" rx="3" className="fill-slate-200 dark:fill-slate-700" />
+          <rect x="45" y="38" width="11" height="28" rx="3" className="fill-blue-600/50 dark:fill-blue-400/50" />
+          <rect x="62" y="28" width="11" height="38" rx="3" className="fill-blue-600/85 dark:fill-blue-400/85" />
+          <rect x="79" y="42" width="11" height="24" rx="3" className="fill-slate-200 dark:fill-slate-700" />
+        </svg>
+      );
+
+    case 'reports':
+      return (
+        <svg viewBox="0 0 120 92" fill="none" aria-hidden="true" className="w-28 h-22 mx-auto">
+          <rect
+            x="24"
+            y="12"
+            width="72"
+            height="68"
+            rx="9"
+            className="fill-slate-50 dark:fill-slate-900/80 stroke-slate-200 dark:stroke-slate-700"
+            strokeWidth="1.5"
+          />
+          <rect x="35" y="23" width="28" height="5" rx="2.5" className="fill-blue-600/75 dark:fill-blue-400/75" />
+          <rect x="35" y="34" width="48" height="3.5" rx="1.75" className="fill-slate-200 dark:fill-slate-700" />
+          <rect x="35" y="42" width="38" height="3.5" rx="1.75" className="fill-slate-200 dark:fill-slate-700" />
+          <rect x="35" y="54" width="20" height="14" rx="3" className="fill-blue-600/15 dark:fill-blue-500/20 stroke-blue-600 dark:stroke-blue-400" strokeWidth="1.4" />
+          <rect x="61" y="54" width="22" height="14" rx="3" className="fill-slate-100 dark:fill-slate-800 stroke-slate-200 dark:stroke-slate-700" strokeWidth="1.4" />
         </svg>
       );
   }

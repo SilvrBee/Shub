@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
 import {
+  BarChart3,
+  BookOpen,
   CalendarCheck,
-  CalendarClock,
   CheckSquare,
+  Compass,
   FileText,
-  Layers,
-  LayoutDashboard,
+  HeartPulse,
+  Home,
   LogOut,
   Moon,
   Settings,
@@ -33,14 +35,36 @@ interface SidebarProps {
   onSignOut: () => void;
 }
 
-const NAV_ITEMS: { id: DashboardView; label: string; icon: typeof LayoutDashboard }[] = [
-  { id: DashboardView.Overview, label: 'Overview', icon: LayoutDashboard },
-  { id: DashboardView.Tasks, label: 'Tasks', icon: CheckSquare },
-  { id: DashboardView.Schedule, label: 'Schedule', icon: CalendarClock },
-  { id: DashboardView.Focus, label: 'Focus', icon: Timer },
-  { id: DashboardView.Habits, label: 'Habits', icon: CalendarCheck },
-  { id: DashboardView.Notes, label: 'Notes', icon: FileText },
-  { id: DashboardView.GoogleWorkspace, label: 'Google Apps', icon: Layers },
+interface NavGroup {
+  label: string;
+  items: { id: DashboardView; label: string; icon: typeof Home }[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: 'DAILY',
+    items: [
+      { id: DashboardView.Home, label: 'Home', icon: Home },
+      { id: DashboardView.Tasks, label: 'Tasks', icon: CheckSquare },
+      { id: DashboardView.Focus, label: 'Focus', icon: Timer },
+      { id: DashboardView.Habits, label: 'Habits', icon: CalendarCheck },
+    ],
+  },
+  {
+    label: 'LIFE',
+    items: [
+      { id: DashboardView.Journal, label: 'Journal', icon: BookOpen },
+      { id: DashboardView.Body, label: 'Body', icon: HeartPulse },
+      { id: DashboardView.Life, label: 'Life', icon: Compass },
+    ],
+  },
+  {
+    label: 'INSIGHTS',
+    items: [
+      { id: DashboardView.Stats, label: 'Stats', icon: BarChart3 },
+      { id: DashboardView.Reports, label: 'Reports', icon: FileText },
+    ],
+  },
 ];
 
 function getInitials(nameOrEmail: string): string {
@@ -84,7 +108,7 @@ export function Sidebar({
           <button
             type="button"
             onClick={() => {
-              onSelectView(DashboardView.Overview);
+              onSelectView(DashboardView.Home);
               onCloseMobile();
             }}
             className="font-display text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 rounded"
@@ -101,41 +125,48 @@ export function Sidebar({
           </button>
         </div>
 
-        <nav aria-label="Primary Navigation" className="px-3 py-4 space-y-0.5 overflow-y-auto flex-1">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeView === item.id;
-            const count = item.id === DashboardView.Tasks ? pendingCount : 0;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => {
-                  onSelectView(item.id);
-                  onCloseMobile();
-                }}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
-                  isActive
-                    ? 'bg-slate-100 dark:bg-slate-800/80 text-slate-900 dark:text-white'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                }`}
-              >
-                <span className="flex items-center gap-3 min-w-0">
-                  <Icon
-                    className={`w-4 h-4 shrink-0 ${
-                      isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'
+        <nav aria-label="Primary Navigation" className="px-3 py-4 space-y-4 overflow-y-auto flex-1">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label} className="space-y-0.5">
+              <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                {group.label}
+              </p>
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeView === item.id;
+                const count = item.id === DashboardView.Tasks ? pendingCount : 0;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      onSelectView(item.id);
+                      onCloseMobile();
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
+                      isActive
+                        ? 'bg-slate-100 dark:bg-slate-800/80 text-slate-900 dark:text-white'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/40'
                     }`}
-                  />
-                  <span className="editorial-link truncate">{item.label}</span>
-                </span>
-                {count > 0 && (
-                  <span className="font-mono text-xs tabular-nums text-slate-500 dark:text-slate-400 ml-2">
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+                  >
+                    <span className="flex items-center gap-3 min-w-0">
+                      <Icon
+                        className={`w-4 h-4 shrink-0 ${
+                          isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'
+                        }`}
+                      />
+                      <span className="editorial-link truncate">{item.label}</span>
+                    </span>
+                    {count > 0 && (
+                      <span className="font-mono text-xs tabular-nums text-slate-500 dark:text-slate-400 ml-2">
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
       </div>
 

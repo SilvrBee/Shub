@@ -22,6 +22,9 @@ import {
   ensureUserRootProfile,
   fsFocus,
   fsHabits,
+  fsLifeChapter,
+  fsLifeProfile,
+  fsMoodRatings,
   fsNotes,
   fsSchedule,
   fsTasks,
@@ -30,6 +33,11 @@ import {
   subscribeUserProfile,
   updateUserScratchpad,
 } from './services/firestoreService';
+import {
+  validateLifeChapter,
+  validateLifeProfile,
+  validateMoodRatings,
+} from './utils/lifeUtils';
 import {
   completeTaskWithRecurrence,
   computeAutoPriorityEscalations,
@@ -64,8 +72,13 @@ import {
   DashboardView,
   DEFAULT_APP_SETTINGS,
   DEFAULT_CATEGORIES,
+  DEFAULT_LIFE_CHAPTER,
+  DEFAULT_LIFE_PROFILE,
   FocusSession,
   HabitItem,
+  LifeChapter,
+  LifeProfileSettings,
+  MoodRatingRecord,
   NoteItem,
   ReminderRecord,
   ScheduleBlock,
@@ -74,6 +87,8 @@ import {
 } from './types/dashboard';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
+import { HomeView } from './components/HomeView';
+import { PlaceholderPageView } from './components/PlaceholderPageView';
 import { OverviewView } from './components/OverviewView';
 import { TasksView } from './components/TasksView';
 import { ScheduleView } from './components/ScheduleView';
@@ -150,7 +165,10 @@ export default function App() {
   }, [storedSettings]);
 
   const [activeView, setActiveView] = useState<DashboardView>(() =>
-    VALID_VIEWS.has(appSettings.defaultView) ? appSettings.defaultView : DashboardView.Overview
+    VALID_VIEWS.has(appSettings.defaultView) &&
+    appSettings.defaultView !== DashboardView.Overview
+      ? appSettings.defaultView
+      : DashboardView.Home
   );
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
@@ -392,6 +410,21 @@ export default function App() {
     DEFAULT_SCRATCHPAD,
     validateScratchpad
   );
+  const [localLifeChapter, setLocalLifeChapter] = useLocalStorage<LifeChapter>(
+    'cadence_life_chapter',
+    DEFAULT_LIFE_CHAPTER,
+    validateLifeChapter
+  );
+  const [localLifeProfile, setLocalLifeProfile] = useLocalStorage<LifeProfileSettings>(
+    'cadence_life_profile',
+    DEFAULT_LIFE_PROFILE,
+    validateLifeProfile
+  );
+  const [localMoodRatings, setLocalMoodRatings] = useLocalStorage<MoodRatingRecord[]>(
+    'cadence_mood_ratings',
+    [],
+    validateMoodRatings
+  );
 
   // Cloud Firestore state when signed in
   const [cloudTasks, setCloudTasks] = useState<TaskItem[]>([]);
@@ -400,6 +433,9 @@ export default function App() {
   const [cloudFocusSessions, setCloudFocusSessions] = useState<FocusSession[]>([]);
   const [cloudNotes, setCloudNotes] = useState<NoteItem[]>([]);
   const [cloudScratchpad, setCloudScratchpad] = useState<string>('');
+  const [cloudChapters, setCloudChapters] = useState<Array<LifeChapter & { id: string }>>([]);
+  const [cloudProfiles, setCloudProfiles] = useState<Array<LifeProfileSettings & { id: string }>>([]);
+  const [cloudMoodRatings, setCloudMoodRatings] = useState<MoodRatingRecord[]>([]);
 
   const scratchpadTimerRef = useRef<number | null>(null);
 
@@ -411,6 +447,9 @@ export default function App() {
       setCloudFocusSessions([]);
       setCloudNotes([]);
       setCloudScratchpad('');
+      setCloudChapters([]);
+      setCloudProfiles([]);
+      setCloudMoodRatings([]);
       return;
     }
 
@@ -423,6 +462,13 @@ export default function App() {
       subscribeUserCollection<HabitItem>(uid, 'habits', setCloudHabits),
       subscribeUserCollection<FocusSession>(uid, 'focusSessions', setCloudFocusSessions),
       subscribeUserCollection<NoteItem>(uid, 'notes', setCloudNotes),
+      subscribeUserCollection<LifeChapter & { id: string }>(uid, 'lifeChapters', setCloudChapters),
+      subscribeUserCollection<LifeProfileSettings & { id: string }>(
+        uid,
+        'lifeProfiles',
+        setCloudProfiles
+      ),
+      subscribeUserCollection<MoodRatingRecord>(uid, 'moodRatings', setCloudMoodRatings),
     ];
 
     void ensureUserRootProfile(user).catch((err) => {
@@ -486,6 +532,26 @@ export default function App() {
     [uid, cloudNotes, localNotes]
   );
   const scratchpad = uid ? validateScratchpad(cloudScratchpad) : localScratchpad;
+  const lifeChapter = useMemo(() => {
+    if (uid) {
+      const cloudDoc = cloudChapters.find((c) => c.id === 'active') ?? cloudChapters[0];
+      return cloudDoc ? validateLifeChapter(cloudDoc) : DEFAULT_LIFE_CHAPTER;
+    }
+    return validateLifeChapter(localLifeChapter);
+  }, [uid, cloudChapters, localLifeChapter]);
+
+  const lifeProfile = useMemo(() => {
+    if (uid) {
+      const cloudDoc = cloudProfiles.find((p) => p.id === 'default') ?? cloudProfiles[0];
+      return cloudDoc ? validateLifeProfile(cloudDoc) : DEFAULT_LIFE_PROFILE;
+    }
+    return validateLifeProfile(localLifeProfile);
+  }, [uid, cloudProfiles, localLifeProfile]);
+
+  const moodRatings = useMemo(
+    () => validateMoodRatings(uid ? cloudMoodRatings : localMoodRatings),
+    [uid, cloudMoodRatings, localMoodRatings]
+  );
 
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
@@ -1224,6 +1290,54 @@ export default function App() {
     }
   };
 
+  const handleUpdateLifeChapter = (nextChapter: LifeChapter) => {
+    if (uid) {
+      const toSave: LifeChapter = {
+        ...nextChapter,
+        startDate: nextChapter.startDate,
+        endDate: nextChapter.endDate,
+      };
+      void fsLifeChapter.saveActive(uid, {
+        ...validateLifeChapter(toSave),
+        name: toSave.name.slice(0, 120),
+      });
+    } else {
+      setLocalLifeChapter((prev) => ({
+        ...prev,
+        ...nextChapter,
+      }));
+    }
+  };
+
+  const handleUpdateLifeProfile = (nextProfile: LifeProfileSettings) => {
+    const validated = validateLifeProfile(nextProfile);
+    if (uid) {
+      void fsLifeProfile.saveDefault(uid, validated);
+    } else {
+      setLocalLifeProfile(validated);
+    }
+  };
+
+  const handleSetMoodRating = (dateKey: string, rating: number) => {
+    const safeRating = Math.max(1, Math.min(10, Math.round(rating)));
+    if (uid) {
+      void fsMoodRatings.upsert(uid, dateKey, safeRating);
+    } else {
+      setLocalMoodRatings((prev) => {
+        const filtered = prev.filter((item) => item.dateKey !== dateKey);
+        return [
+          {
+            id: dateKey,
+            dateKey,
+            rating: safeRating,
+            updatedAt: new Date().toISOString(),
+          },
+          ...filtered,
+        ];
+      });
+    }
+  };
+
   const handleResetWorkspace = () => {
     setLocalTasks(INITIAL_TASKS);
     setLocalSchedule(INITIAL_SCHEDULE);
@@ -1333,6 +1447,30 @@ export default function App() {
             fallbackTitle="Unable to display this section"
           >
             <div key={activeView} className="tab-transition-enter cadence-stack space-y-6">
+              {activeView === DashboardView.Home && (
+                <HomeView
+                  tasks={tasks}
+                  habits={habits}
+                  settings={appSettings}
+                  chapter={lifeChapter}
+                  lifeProfile={lifeProfile}
+                  moodRatings={moodRatings}
+                  userFirstName={userFirstName}
+                  onToggleTask={handleToggleTask}
+                  onToggleHabitDay={handleToggleHabitDay}
+                  onSetMoodRating={handleSetMoodRating}
+                  onNavigate={setActiveView}
+                />
+              )}
+
+              {(activeView === DashboardView.Journal ||
+                activeView === DashboardView.Body ||
+                activeView === DashboardView.Life ||
+                activeView === DashboardView.Stats ||
+                activeView === DashboardView.Reports) && (
+                <PlaceholderPageView view={activeView} />
+              )}
+
               {activeView === DashboardView.Overview && (
                 <OverviewView
                   tasks={tasks}
@@ -1453,6 +1591,10 @@ export default function App() {
                   onResetSettings={handleResetSettings}
                   onResetWorkspace={handleResetWorkspace}
                   onExportWorkspace={handleExportWorkspace}
+                  lifeChapter={lifeChapter}
+                  lifeProfile={lifeProfile}
+                  onUpdateLifeChapter={handleUpdateLifeChapter}
+                  onUpdateLifeProfile={handleUpdateLifeProfile}
                   user={user}
                   hasWorkspaceToken={Boolean(accessToken)}
                   isSigningIn={isSigningIn}

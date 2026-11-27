@@ -1,12 +1,18 @@
 export enum DashboardView {
-  Overview = 'overview',
+  Home = 'home',
   Tasks = 'tasks',
-  Schedule = 'schedule',
   Focus = 'focus',
   Habits = 'habits',
+  Journal = 'journal',
+  Body = 'body',
+  Life = 'life',
+  Stats = 'stats',
+  Reports = 'reports',
+  Settings = 'settings',
+  Overview = 'overview',
+  Schedule = 'schedule',
   Notes = 'notes',
   GoogleWorkspace = 'workspace',
-  Settings = 'settings',
 }
 
 export enum TaskPriority {
@@ -203,7 +209,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   highContrast: false,
   density: 'comfortable',
   reducedMotion: false,
-  defaultView: DashboardView.Overview,
+  defaultView: DashboardView.Home,
   timeFormat: '24h',
   defaultFocusMinutes: 25,
   defaultFocusLabel: 'Deep work sprint',
@@ -364,3 +370,37 @@ export interface VaultItem {
   timelineEventTitle?: string;
   sourceEntryId?: string;
 }
+
+export interface LifeChapter {
+  name: string;
+  theme: string;
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+  goals: string[];
+}
+
+export const DEFAULT_LIFE_CHAPTER: LifeChapter = {
+  name: 'Drop Year',
+  theme: 'Focused growth, deep craft & steady daily momentum',
+  startDate: '2026-06-01',
+  endDate: '2027-05-31',
+  goals: ['Deep work daily', 'Stay consistent', 'Build core projects'],
+};
+
+export interface LifeProfileSettings {
+  birthDate: string; // YYYY-MM-DD
+  lifeExpectancy: number;
+}
+
+export const DEFAULT_LIFE_PROFILE: LifeProfileSettings = {
+  birthDate: '2007-03-04',
+  lifeExpectancy: 80,
+};
+
+export interface MoodRatingRecord {
+  id: string; // YYYY-MM-DD
+  dateKey: string; // YYYY-MM-DD
+  rating: number; // 1..10
+  updatedAt?: string;
+}
+

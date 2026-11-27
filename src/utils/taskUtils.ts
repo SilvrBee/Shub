@@ -281,10 +281,13 @@ export function validateAndMigrateSettings(raw: unknown): AppSettings {
 
   const density: LayoutDensity = rec.density === 'compact' ? 'compact' : 'comfortable';
   const validViews = new Set<string>(Object.values(DashboardView));
+  const rawView = typeof rec.defaultView === 'string' ? rec.defaultView : '';
   const defaultView: DashboardView =
-    typeof rec.defaultView === 'string' && validViews.has(rec.defaultView)
-      ? (rec.defaultView as DashboardView)
-      : DEFAULT_APP_SETTINGS.defaultView;
+    rawView === 'overview'
+      ? DashboardView.Home
+      : validViews.has(rawView)
+        ? (rawView as DashboardView)
+        : DEFAULT_APP_SETTINGS.defaultView;
 
   const categories = normalizeCategories(rec.categories);
   const defaultTaskCategory =

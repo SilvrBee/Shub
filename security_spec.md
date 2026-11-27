@@ -20,3 +20,6 @@
 10. **Array element type poisoning (`VaultItem.tags: [123]`)**: fails `tags[0] is string` -> `PERMISSION_DENIED`.
 11. **Backdated `createdAt` spoofing (`createdAt` != `request.time`)**: fails `createdAt == request.time` -> `PERMISSION_DENIED`.
 12. **Invalid enum state (`ReviewSuggestion.status: 'hacked'`)**: fails enum allowlist check -> `PERMISSION_DENIED`.
+13. **Invalid mood date key or out-of-range rating (`/users/userA/moodRatings/bad-date` or `rating: 11`)**: fails `isValidDateKey` and integer `[1..10]` bounds -> `PERMISSION_DENIED`.
+14. **Cross-user write or shadow field on `lifeChapters` / `lifeProfiles`**: fails `isOwner(uid)` and strict `keys().hasOnly(...)` / `affectedKeys().hasOnly(...)` -> `PERMISSION_DENIED`.
+

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
 import {
   AlertCircle,
@@ -7,16 +7,20 @@ import {
   Check,
   CheckSquare,
   ChevronDown,
+  Compass,
   Database,
   Download,
   Globe,
+  Hourglass,
   Monitor,
   Moon,
   Palette,
+  Plus,
   RotateCcw,
   Sliders,
   Smartphone,
   Sun,
+  X,
 } from 'lucide-react';
 import { PWAInstallButton } from './PWAInstallButton';
 import {
@@ -31,8 +35,12 @@ import {
   CategoryItem,
   ColorMode,
   DashboardView,
+  DEFAULT_LIFE_CHAPTER,
+  DEFAULT_LIFE_PROFILE,
   DefaultReminderOffset,
   LayoutDensity,
+  LifeChapter,
+  LifeProfileSettings,
   MatrixImportantRule,
   ScheduleBlock,
   SmartSortMode,
@@ -65,6 +73,10 @@ interface SettingsViewProps {
   onResetSettings: () => void;
   onResetWorkspace: () => void;
   onExportWorkspace: () => void;
+  lifeChapter: LifeChapter;
+  lifeProfile: LifeProfileSettings;
+  onUpdateLifeChapter: (chapter: LifeChapter) => void;
+  onUpdateLifeProfile: (profile: LifeProfileSettings) => void;
   user: User | null;
   hasWorkspaceToken: boolean;
   isSigningIn: boolean;
@@ -137,18 +149,22 @@ const COLOR_MODES: Array<{ id: ColorMode; label: string; icon: typeof Sun }> = [
 ];
 
 const LANDING_VIEWS: Array<{ value: DashboardView; label: string }> = [
-  { value: DashboardView.Overview, label: 'Overview' },
+  { value: DashboardView.Home, label: 'Home' },
   { value: DashboardView.Tasks, label: 'Tasks' },
-  { value: DashboardView.Schedule, label: 'Schedule' },
   { value: DashboardView.Focus, label: 'Focus' },
   { value: DashboardView.Habits, label: 'Habits' },
-  { value: DashboardView.Notes, label: 'Notes' },
-  { value: DashboardView.GoogleWorkspace, label: 'Google Apps' },
+  { value: DashboardView.Journal, label: 'Journal' },
+  { value: DashboardView.Body, label: 'Body' },
+  { value: DashboardView.Life, label: 'Life' },
+  { value: DashboardView.Stats, label: 'Stats' },
+  { value: DashboardView.Reports, label: 'Reports' },
 ];
 
 type SettingsSectionId =
   | 'appearance'
   | 'general'
+  | 'lifeChapter'
+  | 'lifeProfile'
   | 'defaults'
   | 'notifications'
   | 'account'
@@ -158,6 +174,8 @@ type SettingsSectionId =
 const INITIAL_COLLAPSED_SECTIONS: Record<SettingsSectionId, boolean> = {
   appearance: false,
   general: false,
+  lifeChapter: false,
+  lifeProfile: false,
   defaults: false,
   notifications: false,
   account: false,
@@ -180,6 +198,10 @@ export function SettingsView({
   onResetSettings,
   onResetWorkspace,
   onExportWorkspace,
+  lifeChapter,
+  lifeProfile,
+  onUpdateLifeChapter,
+  onUpdateLifeProfile,
   user,
   hasWorkspaceToken,
   isSigningIn,
@@ -188,9 +210,54 @@ export function SettingsView({
 }: SettingsViewProps) {
   const [confirmResetWorkspace, setConfirmResetWorkspace] = useState(false);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
+  const [newGoalInput, setNewGoalInput] = useState('');
+  const [chapterNameDraft, setChapterNameDraft] = useState(lifeChapter.name);
+  const [chapterThemeDraft, setChapterThemeDraft] = useState(lifeChapter.theme);
+  const [expectancyDraft, setExpectancyDraft] = useState(String(lifeProfile.lifeExpectancy));
   const [expandedSections, setExpandedSections] = useState<Record<SettingsSectionId, boolean>>(
     INITIAL_COLLAPSED_SECTIONS
   );
+
+  useEffect(() => {
+    setChapterNameDraft(lifeChapter.name);
+    setChapterThemeDraft(lifeChapter.theme);
+  }, [lifeChapter.name, lifeChapter.theme]);
+
+  useEffect(() => {
+    setExpectancyDraft(String(lifeProfile.lifeExpectancy));
+  }, [lifeProfile.lifeExpectancy]);
+
+  const commitChapterName = () => {
+    const trimmed = chapterNameDraft.trim().slice(0, 120);
+    const nextName = trimmed || DEFAULT_LIFE_CHAPTER.name;
+    setChapterNameDraft(nextName);
+    if (nextName !== lifeChapter.name) {
+      onUpdateLifeChapter({ ...lifeChapter, name: nextName });
+      showNotice('Chapter updated');
+    }
+  };
+
+  const commitChapterTheme = () => {
+    const nextTheme = chapterThemeDraft.trim().slice(0, 240);
+    setChapterThemeDraft(nextTheme);
+    if (nextTheme !== lifeChapter.theme) {
+      onUpdateLifeChapter({ ...lifeChapter, theme: nextTheme });
+      showNotice('Chapter updated');
+    }
+  };
+
+  const commitExpectancy = () => {
+    const parsed = Number(expectancyDraft.trim());
+    const nextExpectancy =
+      Number.isFinite(parsed) && parsed >= 1
+        ? Math.min(150, Math.round(parsed))
+        : lifeProfile.lifeExpectancy || DEFAULT_LIFE_PROFILE.lifeExpectancy;
+    setExpectancyDraft(String(nextExpectancy));
+    if (nextExpectancy !== lifeProfile.lifeExpectancy) {
+      onUpdateLifeProfile({ ...lifeProfile, lifeExpectancy: nextExpectancy });
+      showNotice('Life profile updated');
+    }
+  };
 
   const toggleSection = (id: SettingsSectionId) => {
     setExpandedSections((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -202,6 +269,8 @@ export function SettingsView({
     setExpandedSections({
       appearance: next,
       general: next,
+      lifeChapter: next,
+      lifeProfile: next,
       defaults: next,
       notifications: next,
       account: next,
@@ -1120,6 +1189,312 @@ export function SettingsView({
             </div>
           </div>
         </div>
+        )}
+      </section>
+
+      {/* Section: Life Chapter */}
+      <section className="editorial-rise editorial-rise-3 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection('lifeChapter')}
+          aria-expanded={expandedSections.lifeChapter}
+          aria-controls="settings-panel-life-chapter"
+          className={`w-full text-left px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${
+            expandedSections.lifeChapter ? 'border-b border-slate-200 dark:border-slate-800' : ''
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Compass className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <div className="min-w-0">
+              <span className="editorial-kicker">
+                <span className="editorial-marker" aria-hidden="true">CHAPTER</span>
+                <span className="editorial-kicker-text">Season &amp; Focus</span>
+              </span>
+              <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                Life chapter
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Active chapter name, theme, date range, and main goals shown on Home
+              </p>
+            </div>
+          </div>
+          <ChevronDown
+            className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+              expandedSections.lifeChapter ? 'rotate-180' : ''
+            }`}
+            aria-hidden="true"
+          />
+        </button>
+
+        {expandedSections.lifeChapter && (
+          <div id="settings-panel-life-chapter" className="p-6 space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label
+                  htmlFor="settings-chapter-name"
+                  className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+                >
+                  Chapter Name
+                </label>
+                <input
+                  id="settings-chapter-name"
+                  type="text"
+                  maxLength={120}
+                  value={chapterNameDraft}
+                  onChange={(e) => setChapterNameDraft(e.target.value)}
+                  onBlur={commitChapterName}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  placeholder="Drop Year"
+                  className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm text-slate-900 dark:text-slate-100"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="settings-chapter-theme"
+                  className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+                >
+                  Theme Line
+                </label>
+                <input
+                  id="settings-chapter-theme"
+                  type="text"
+                  maxLength={240}
+                  value={chapterThemeDraft}
+                  onChange={(e) => setChapterThemeDraft(e.target.value)}
+                  onBlur={commitChapterTheme}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  placeholder="Focused growth, deep craft & steady momentum"
+                  className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm text-slate-900 dark:text-slate-100"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="settings-chapter-start"
+                  className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+                >
+                  Start Date
+                </label>
+                <input
+                  id="settings-chapter-start"
+                  type="date"
+                  value={lifeChapter.startDate}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      onUpdateLifeChapter({
+                        ...lifeChapter,
+                        startDate: e.target.value,
+                      });
+                      showNotice('Chapter updated');
+                    }
+                  }}
+                  className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums text-slate-900 dark:text-slate-100"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="settings-chapter-end"
+                  className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+                >
+                  End Date
+                </label>
+                <input
+                  id="settings-chapter-end"
+                  type="date"
+                  value={lifeChapter.endDate}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      onUpdateLifeChapter({
+                        ...lifeChapter,
+                        endDate: e.target.value,
+                      });
+                      showNotice('Chapter updated');
+                    }
+                  }}
+                  className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums text-slate-900 dark:text-slate-100"
+                />
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
+              <div>
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                  Main Goals
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Shown as small chips in your Home chapter banner (up to 10)
+                </p>
+              </div>
+
+              {lifeChapter.goals.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {lifeChapter.goals.map((goal, idx) => (
+                    <span
+                      key={`${goal}-${idx}`}
+                      className="editorial-subtle-box inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
+                    >
+                      <span>{goal}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onUpdateLifeChapter({
+                            ...lifeChapter,
+                            goals: lifeChapter.goals.filter((_, gIdx) => gIdx !== idx),
+                          })
+                        }
+                        aria-label={`Remove goal "${goal}"`}
+                        className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const trimmed = newGoalInput.trim().slice(0, 80);
+                  if (!trimmed || lifeChapter.goals.length >= 10) return;
+                  if (lifeChapter.goals.includes(trimmed)) {
+                    setNewGoalInput('');
+                    return;
+                  }
+                  onUpdateLifeChapter({
+                    ...lifeChapter,
+                    goals: [...lifeChapter.goals, trimmed],
+                  });
+                  setNewGoalInput('');
+                  showNotice('Chapter goal added');
+                }}
+                className="flex flex-col sm:flex-row gap-2"
+              >
+                <input
+                  type="text"
+                  maxLength={80}
+                  value={newGoalInput}
+                  onChange={(e) => setNewGoalInput(e.target.value)}
+                  placeholder="Add a main goal (e.g. Ship flagship project)"
+                  aria-label="New chapter goal"
+                  className="cadence-input flex-1 px-3.5 py-2 rounded-lg text-sm text-slate-900 dark:text-slate-100"
+                />
+                <button
+                  type="submit"
+                  disabled={!newGoalInput.trim() || lifeChapter.goals.length >= 10}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add goal</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Section: Life Profile & Time Bars */}
+      <section className="editorial-rise editorial-rise-3 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection('lifeProfile')}
+          aria-expanded={expandedSections.lifeProfile}
+          aria-controls="settings-panel-life-profile"
+          className={`w-full text-left px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${
+            expandedSections.lifeProfile ? 'border-b border-slate-200 dark:border-slate-800' : ''
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Hourglass className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <div className="min-w-0">
+              <span className="editorial-kicker">
+                <span className="editorial-marker" aria-hidden="true">HORIZON</span>
+                <span className="editorial-kicker-text">Time &amp; Life Bar</span>
+              </span>
+              <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                Life profile
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Date of birth and life expectancy used for your live Life progress bar
+              </p>
+            </div>
+          </div>
+          <ChevronDown
+            className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+              expandedSections.lifeProfile ? 'rotate-180' : ''
+            }`}
+            aria-hidden="true"
+          />
+        </button>
+
+        {expandedSections.lifeProfile && (
+          <div id="settings-panel-life-profile" className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label
+                htmlFor="settings-birth-date"
+                className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+              >
+                Date of Birth
+              </label>
+              <input
+                id="settings-birth-date"
+                type="date"
+                value={lifeProfile.birthDate}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    onUpdateLifeProfile({
+                      ...lifeProfile,
+                      birthDate: e.target.value,
+                    });
+                    showNotice('Life profile updated');
+                  }
+                }}
+                onBlur={(e) => {
+                  if (!e.target.value) {
+                    onUpdateLifeProfile({
+                      ...lifeProfile,
+                      birthDate: DEFAULT_LIFE_PROFILE.birthDate,
+                    });
+                  }
+                }}
+                className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums text-slate-900 dark:text-slate-100"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="settings-life-expectancy"
+                className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+              >
+                Life Expectancy (years)
+              </label>
+              <input
+                id="settings-life-expectancy"
+                type="number"
+                min={1}
+                max={150}
+                value={expectancyDraft}
+                onChange={(e) => setExpectancyDraft(e.target.value)}
+                onBlur={commitExpectancy}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                  }
+                }}
+                className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums text-slate-900 dark:text-slate-100"
+              />
+            </div>
+          </div>
         )}
       </section>
 

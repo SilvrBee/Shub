@@ -18,14 +18,20 @@ interface HeaderProps {
 }
 
 const VIEW_LABELS: Record<DashboardView, string> = {
-  [DashboardView.Overview]: 'Overview',
+  [DashboardView.Home]: 'Home',
   [DashboardView.Tasks]: 'Tasks',
-  [DashboardView.Schedule]: 'Schedule',
   [DashboardView.Focus]: 'Focus',
   [DashboardView.Habits]: 'Habits',
+  [DashboardView.Journal]: 'Journal',
+  [DashboardView.Body]: 'Body',
+  [DashboardView.Life]: 'Life',
+  [DashboardView.Stats]: 'Stats',
+  [DashboardView.Reports]: 'Reports',
+  [DashboardView.Settings]: 'Settings',
+  [DashboardView.Overview]: 'Overview',
+  [DashboardView.Schedule]: 'Schedule',
   [DashboardView.Notes]: 'Notes',
   [DashboardView.GoogleWorkspace]: 'Google Apps',
-  [DashboardView.Settings]: 'Settings',
 };
 
 export function Header({
