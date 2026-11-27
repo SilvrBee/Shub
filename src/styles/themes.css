@@ -74,3 +74,39 @@ html.dark[data-theme="nord"] {
   --color-slate-50: #f4f7fa;
   --color-slate-100: #e9eff5;
 }
+
+/* Ensure Study (accent-linked) and sibling life areas remain distinct across every theme */
+html[data-theme="emerald"] {
+  --cadence-area-body: #0284c7;
+}
+html.dark[data-theme="emerald"] {
+  --cadence-area-body: #38bdf8;
+}
+
+html[data-theme="indigo"] {
+  --cadence-area-mind: #9333ea;
+}
+html.dark[data-theme="indigo"] {
+  --cadence-area-mind: #c084fc;
+}
+
+html[data-theme="amber"] {
+  --cadence-area-people: #ea580c;
+}
+html.dark[data-theme="amber"] {
+  --cadence-area-people: #fb923c;
+}
+
+html[data-theme="rose"] {
+  --cadence-area-projects: #ea580c;
+}
+html.dark[data-theme="rose"] {
+  --cadence-area-projects: #fb923c;
+}
+
+html[data-theme="nord"] {
+  --cadence-area-skills: #4f46e5;
+}
+html.dark[data-theme="nord"] {
+  --cadence-area-skills: #818cf8;
+}

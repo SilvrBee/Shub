@@ -404,3 +404,59 @@ export interface MoodRatingRecord {
   updatedAt?: string;
 }
 
+export type LifeAreaId =
+  | 'study'
+  | 'body'
+  | 'mind'
+  | 'people'
+  | 'skills'
+  | 'projects';
+
+export const LIFE_AREA_IDS: readonly LifeAreaId[] = [
+  'study',
+  'body',
+  'mind',
+  'people',
+  'skills',
+  'projects',
+] as const;
+
+export interface AreaSettings {
+  studyWeeklyGoalHours: number; // 1..80
+  categoryAreaMap: Record<string, LifeAreaId>;
+  journalOpenedDates: string[]; // YYYY-MM-DD
+}
+
+export const DEFAULT_AREA_SETTINGS: AreaSettings = {
+  studyWeeklyGoalHours: 10,
+  categoryAreaMap: {
+    Work: 'projects',
+    Health: 'body',
+    Personal: 'mind',
+    Finance: 'skills',
+  },
+  journalOpenedDates: [],
+};
+
+export type CountdownIconId =
+  | 'Calendar'
+  | 'Flag'
+  | 'GraduationCap'
+  | 'Plane'
+  | 'Trophy'
+  | 'Target'
+  | 'Compass'
+  | 'BookOpen'
+  | 'Star'
+  | 'Sparkles';
+
+export interface CountdownItem {
+  id: string;
+  title: string;
+  targetDate: string; // YYYY-MM-DD
+  icon: CountdownIconId;
+  pinned: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+

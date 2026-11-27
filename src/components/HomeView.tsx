@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, BookOpen, Calendar, Check, Flame, Sparkles } from 'lucide-react';
+import { ArrowRight, BookOpen, Calendar, Check, Flame, Pin, Sparkles } from 'lucide-react';
 import {
   AppSettings,
+  AreaSettings,
+  CountdownItem,
   DashboardView,
+  FocusSession,
   HabitItem,
+  LifeAreaId,
   LifeChapter,
   LifeProfileSettings,
   MoodRatingRecord,
@@ -11,13 +15,19 @@ import {
 } from '../types/dashboard';
 import { formatDateKey } from '../data/initialData';
 import {
+  computeAreaPulses,
   computeChapterStatus,
   computeTimeProgressBars,
+  getCountdownDisplay,
   getHabitsDueToday,
+  getNextUpCountdowns,
+  getPinnedCountdown,
   getTodayTasksSorted,
 } from '../utils/lifeUtils';
 import { formatShortDateLabel, formatTimeShort } from '../utils/taskUtils';
 import { DoodleHeaderScene } from './DoodleKit';
+import { CountdownIcon, LifeAreaIcon, PulseTrendBadge } from './LifeAreaIcon';
+import { LifeWheel } from './LifeWheel';
 import { PriorityFlagDisplay } from './PriorityFlag';
 import { TaskCheckButton } from './TaskCheckButton';
 import { CategoryBadge } from './ui/CategoryBadge';
@@ -25,14 +35,18 @@ import { CategoryBadge } from './ui/CategoryBadge';
 interface HomeViewProps {
   tasks: TaskItem[];
   habits: HabitItem[];
+  focusSessions: FocusSession[];
   settings: AppSettings;
   chapter: LifeChapter;
   lifeProfile: LifeProfileSettings;
+  areaSettings: AreaSettings;
   moodRatings: MoodRatingRecord[];
+  countdowns: CountdownItem[];
   userFirstName?: string | null;
   onToggleTask: (id: string) => void;
   onToggleHabitDay: (habitId: string, dayIndex: number) => void;
   onSetMoodRating: (dateKey: string, rating: number) => void;
+  onSelectArea: (areaId: LifeAreaId) => void;
   onNavigate: (view: DashboardView) => void;
 }
 
@@ -48,14 +62,18 @@ const SORT_MODE_LABELS: Record<AppSettings['smartSortMode'], string> = {
 export function HomeView({
   tasks,
   habits,
+  focusSessions,
   settings,
   chapter,
   lifeProfile,
+  areaSettings,
   moodRatings,
+  countdowns,
   userFirstName,
   onToggleTask,
   onToggleHabitDay,
   onSetMoodRating,
+  onSelectArea,
   onNavigate,
 }: HomeViewProps) {
   const [now, setNow] = useState(() => new Date());
@@ -112,6 +130,29 @@ export function HomeView({
     [moodRatings, todayKey]
   );
 
+  const areaPulses = useMemo(
+    () =>
+      computeAreaPulses({
+        tasks,
+        habits,
+        focusSessions,
+        moodRatings,
+        areaSettings,
+        now,
+      }),
+    [tasks, habits, focusSessions, moodRatings, areaSettings, now]
+  );
+
+  const pinnedCountdown = useMemo(() => getPinnedCountdown(countdowns), [countdowns]);
+  const pinnedCountdownDisplay = useMemo(
+    () => (pinnedCountdown ? getCountdownDisplay(pinnedCountdown.targetDate, now) : null),
+    [pinnedCountdown, now]
+  );
+  const nextUpCountdowns = useMemo(
+    () => getNextUpCountdowns(countdowns, now, 2),
+    [countdowns, now]
+  );
+
   const formattedToday = useMemo(
     () =>
       now.toLocaleDateString('en-US', {
@@ -123,7 +164,7 @@ export function HomeView({
   );
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-6xl">
       {/* Top Row: Quiet Welcome + Doodle Scene */}
       <div className="editorial-rise editorial-rise-1 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
@@ -186,6 +227,38 @@ export function HomeView({
             ))}
           </div>
         )}
+
+        {pinnedCountdown && pinnedCountdownDisplay && (
+          <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-7 h-7 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center shrink-0">
+                <CountdownIcon icon={pinnedCountdown.icon} className="w-3.5 h-3.5" />
+              </span>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0 text-xs">
+                <span className="inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400">
+                  <Pin className="w-3 h-3" aria-hidden="true" />
+                  <span>Pinned</span>
+                </span>
+                <span className="font-medium text-slate-900 dark:text-slate-100 truncate">
+                  {pinnedCountdown.title}
+                </span>
+                <span className="text-slate-400 dark:text-slate-500" aria-hidden="true">
+                  ·
+                </span>
+                <span className="font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                  {formatShortDateLabel(pinnedCountdown.targetDate)}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate(DashboardView.Life)}
+              className="font-mono text-xs font-semibold tabular-nums px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-950/60 transition-colors shrink-0"
+            >
+              {pinnedCountdownDisplay.shortBadge}
+            </button>
+          </div>
+        )}
       </section>
 
       {/* 2b) Nested Time Bars */}
@@ -229,11 +302,12 @@ export function HomeView({
         </div>
       </section>
 
-      {/* 2c) Today Card */}
-      <section
-        aria-label="Today"
-        className="editorial-rise editorial-rise-4 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden"
-      >
+      {/* 2c & 3) Today Card + Life Wheel side-by-side */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        <section
+          aria-label="Today"
+          className="lg:col-span-7 editorial-rise editorial-rise-4 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden flex flex-col"
+        >
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
           <div>
             <span className="editorial-kicker">
@@ -454,10 +528,161 @@ export function HomeView({
             </div>
           </div>
         </div>
+        </section>
+
+        {/* Life Wheel beside Today card */}
+        <div className="lg:col-span-5">
+          <LifeWheel pulses={areaPulses} onSelectArea={onSelectArea} />
+        </div>
+      </div>
+
+      {/* 3b) Compact Area Cards Grid below the wheel */}
+      <section aria-label="Life areas pulse" className="editorial-rise editorial-rise-4 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Life Areas · Last 7 Days
+          </h2>
+          <button
+            type="button"
+            onClick={() => onNavigate(DashboardView.Settings)}
+            className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            Map categories &amp; goals
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {areaPulses.map((pulse) => {
+            const hasScore = pulse.hasData && pulse.score !== null;
+            return (
+              <button
+                key={pulse.id}
+                type="button"
+                onClick={() => onSelectArea(pulse.id)}
+                className="cadence-card text-left bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 rounded-xl p-3.5 space-y-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1.5 min-w-0">
+                    <span
+                      style={{
+                        color: hasScore ? pulse.colorVar : 'var(--cadence-area-muted)',
+                      }}
+                      className="shrink-0"
+                    >
+                      <LifeAreaIcon areaId={pulse.id} className="w-3.5 h-3.5" />
+                    </span>
+                    <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                      {pulse.label}
+                    </span>
+                  </span>
+                  <PulseTrendBadge trend={pulse.trend} delta={pulse.delta} compact />
+                </div>
+
+                <div className="flex items-baseline justify-between gap-2">
+                  <span
+                    className={`font-mono text-lg font-semibold tabular-nums leading-none ${
+                      hasScore
+                        ? 'text-slate-900 dark:text-slate-100'
+                        : 'text-slate-400 dark:text-slate-500'
+                    }`}
+                  >
+                    {hasScore ? pulse.score : '—'}
+                  </span>
+                  <span className="text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400 truncate">
+                    {pulse.summaryLabel}
+                  </span>
+                </div>
+
+                <div
+                  className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"
+                  aria-hidden="true"
+                >
+                  <div
+                    className="h-full rounded-full transition-[width] duration-300"
+                    style={{
+                      width: `${hasScore && pulse.score !== null ? Math.max(4, pulse.score) : 0}%`,
+                      backgroundColor: hasScore
+                        ? pulse.colorVar
+                        : 'var(--cadence-area-muted)',
+                    }}
+                  />
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </section>
 
-      {/* 2d) Reserved vertical room below for Life Wheel and Next Up in next step */}
-      <div className="min-h-[240px]" aria-hidden="true" />
+      {/* 4) Next Up (2 nearest non-pinned upcoming countdowns) */}
+      <section
+        aria-label="Next up countdowns"
+        className="editorial-rise editorial-rise-4 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden"
+      >
+        <div className="px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-sm font-semibold text-slate-900 dark:text-slate-100">
+              Next up
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Nearest upcoming countdowns
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigate(DashboardView.Life)}
+            className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+          >
+            <span>Manage countdowns</span>
+            <ArrowRight className="w-3 h-3" aria-hidden="true" />
+          </button>
+        </div>
+
+        {nextUpCountdowns.length === 0 ? (
+          <div className="px-6 py-5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <span>
+              {pinnedCountdown
+                ? 'No other upcoming countdowns scheduled.'
+                : 'No upcoming countdowns added yet.'}
+            </span>
+            <button
+              type="button"
+              onClick={() => onNavigate(DashboardView.Life)}
+              className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Add in Life
+            </button>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100 dark:divide-slate-800/80 sm:divide-y-0 sm:divide-x sm:grid sm:grid-cols-2">
+            {nextUpCountdowns.map((item) => {
+              const display = getCountdownDisplay(item.targetDate, now);
+              return (
+                <div
+                  key={item.id}
+                  className="px-6 py-4 flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
+                      <CountdownIcon icon={item.icon} className="w-4 h-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                        {item.title}
+                      </p>
+                      <p className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                        {formatShortDateLabel(item.targetDate)}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="font-mono text-xs font-semibold tabular-nums px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 shrink-0">
+                    {display.shortBadge}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

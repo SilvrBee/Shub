@@ -327,6 +327,35 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["ownerId", "birthDate", "lifeExpectancy", "createdAt", "updatedAt"]
+    },
+    "AreaSettings": {
+      "title": "AreaSettings",
+      "description": "Per-user life areas configuration mapping task categories to areas, weekly study focus goal, and journal visit date keys.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "studyWeeklyGoalHours": { "type": "integer", "minimum": 1, "maximum": 80 },
+        "categoryAreaMap": { "type": "object" },
+        "journalOpenedDates": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "studyWeeklyGoalHours", "categoryAreaMap", "journalOpenedDates", "createdAt", "updatedAt"]
+    },
+    "Countdown": {
+      "title": "Countdown",
+      "description": "User-owned upcoming milestone or countdown shown in Chapter banner when pinned or Next up.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "targetDate": { "type": "string", "minLength": 10, "maxLength": 10 },
+        "icon": { "type": "string", "enum": ["Calendar", "Flag", "GraduationCap", "Plane", "Trophy", "Target", "Compass", "BookOpen", "Star", "Sparkles"] },
+        "pinned": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "title", "targetDate", "icon", "pinned", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
@@ -397,6 +426,14 @@
     "/users/{uid}/lifeProfiles/{profileId}": {
       "schema": { "$ref": "#/entities/LifeProfile" },
       "description": "User-owned birth date and life expectancy settings."
+    },
+    "/users/{uid}/areaSettings/{settingsId}": {
+      "schema": { "$ref": "#/entities/AreaSettings" },
+      "description": "User-owned life areas category mapping and study weekly goal."
+    },
+    "/users/{uid}/countdowns/{countdownId}": {
+      "schema": { "$ref": "#/entities/Countdown" },
+      "description": "User-owned upcoming countdowns."
     }
   }
 }

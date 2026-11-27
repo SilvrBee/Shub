@@ -20,6 +20,8 @@ import { clearAccessToken, googleSignIn, initAuth, logout } from './services/goo
 import {
   clearLegacyTaskAiFields,
   ensureUserRootProfile,
+  fsAreaSettings,
+  fsCountdowns,
   fsFocus,
   fsHabits,
   fsLifeChapter,
@@ -34,6 +36,9 @@ import {
   updateUserScratchpad,
 } from './services/firestoreService';
 import {
+  computeAreaPulses,
+  validateAreaSettings,
+  validateCountdowns,
   validateLifeChapter,
   validateLifeProfile,
   validateMoodRatings,
@@ -68,14 +73,19 @@ import {
 import {
   AppSettings,
   AppStyleId,
+  AreaSettings,
   CategoryItem,
+  CountdownIconId,
+  CountdownItem,
   DashboardView,
   DEFAULT_APP_SETTINGS,
+  DEFAULT_AREA_SETTINGS,
   DEFAULT_CATEGORIES,
   DEFAULT_LIFE_CHAPTER,
   DEFAULT_LIFE_PROFILE,
   FocusSession,
   HabitItem,
+  LifeAreaId,
   LifeChapter,
   LifeProfileSettings,
   MoodRatingRecord,
@@ -88,6 +98,8 @@ import {
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { HomeView } from './components/HomeView';
+import { AreaDetailView } from './components/AreaDetailView';
+import { LifeView } from './components/LifeView';
 import { PlaceholderPageView } from './components/PlaceholderPageView';
 import { OverviewView } from './components/OverviewView';
 import { TasksView } from './components/TasksView';
@@ -170,8 +182,14 @@ export default function App() {
       ? appSettings.defaultView
       : DashboardView.Home
   );
+  const [selectedArea, setSelectedArea] = useState<LifeAreaId | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
+
+  const handleSelectView = useCallback((view: DashboardView) => {
+    setActiveView(view);
+    setSelectedArea(null);
+  }, []);
 
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -425,6 +443,16 @@ export default function App() {
     [],
     validateMoodRatings
   );
+  const [localAreaSettings, setLocalAreaSettings] = useLocalStorage<AreaSettings>(
+    'cadence_area_settings',
+    DEFAULT_AREA_SETTINGS,
+    validateAreaSettings
+  );
+  const [localCountdowns, setLocalCountdowns] = useLocalStorage<CountdownItem[]>(
+    'cadence_countdowns',
+    [],
+    validateCountdowns
+  );
 
   // Cloud Firestore state when signed in
   const [cloudTasks, setCloudTasks] = useState<TaskItem[]>([]);
@@ -436,6 +464,9 @@ export default function App() {
   const [cloudChapters, setCloudChapters] = useState<Array<LifeChapter & { id: string }>>([]);
   const [cloudProfiles, setCloudProfiles] = useState<Array<LifeProfileSettings & { id: string }>>([]);
   const [cloudMoodRatings, setCloudMoodRatings] = useState<MoodRatingRecord[]>([]);
+  const [cloudAreaSettings, setCloudAreaSettings] = useState<Array<AreaSettings & { id: string }>>([]);
+  const [cloudAreaSettingsLoaded, setCloudAreaSettingsLoaded] = useState(false);
+  const [cloudCountdowns, setCloudCountdowns] = useState<CountdownItem[]>([]);
 
   const scratchpadTimerRef = useRef<number | null>(null);
 
@@ -450,8 +481,13 @@ export default function App() {
       setCloudChapters([]);
       setCloudProfiles([]);
       setCloudMoodRatings([]);
+      setCloudAreaSettings([]);
+      setCloudAreaSettingsLoaded(false);
+      setCloudCountdowns([]);
       return;
     }
+
+    setCloudAreaSettingsLoaded(false);
 
     const unsubs: Array<() => void> = [
       subscribeUserProfile(uid, ({ scratchpad }) => {
@@ -469,6 +505,11 @@ export default function App() {
         setCloudProfiles
       ),
       subscribeUserCollection<MoodRatingRecord>(uid, 'moodRatings', setCloudMoodRatings),
+      subscribeUserCollection<AreaSettings & { id: string }>(uid, 'areaSettings', (items) => {
+        setCloudAreaSettings(items);
+        setCloudAreaSettingsLoaded(true);
+      }),
+      subscribeUserCollection<CountdownItem>(uid, 'countdowns', setCloudCountdowns),
     ];
 
     void ensureUserRootProfile(user).catch((err) => {
@@ -553,6 +594,31 @@ export default function App() {
     [uid, cloudMoodRatings, localMoodRatings]
   );
 
+  const areaSettings = useMemo(() => {
+    if (uid) {
+      const cloudDoc = cloudAreaSettings.find((a) => a.id === 'default') ?? cloudAreaSettings[0];
+      return cloudDoc ? validateAreaSettings(cloudDoc) : DEFAULT_AREA_SETTINGS;
+    }
+    return validateAreaSettings(localAreaSettings);
+  }, [uid, cloudAreaSettings, localAreaSettings]);
+
+  const countdowns = useMemo(
+    () => validateCountdowns(uid ? cloudCountdowns : localCountdowns),
+    [uid, cloudCountdowns, localCountdowns]
+  );
+
+  const areaPulses = useMemo(
+    () =>
+      computeAreaPulses({
+        tasks,
+        habits,
+        focusSessions,
+        moodRatings,
+        areaSettings,
+      }),
+    [tasks, habits, focusSessions, moodRatings, areaSettings]
+  );
+
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
   const [multiAddOpen, setMultiAddOpen] = useState(false);
@@ -627,6 +693,7 @@ export default function App() {
         prev.map((r) => (r.triggerKey === reminder.triggerKey ? { ...r, read: true } : r))
       );
       setToastQueue((prev) => prev.filter((t) => t.triggerKey !== reminder.triggerKey));
+      setSelectedArea(null);
       setActiveView(DashboardView.Tasks);
       if (targetTask) {
         setEditingTask(targetTask);
@@ -999,6 +1066,18 @@ export default function App() {
 
     if (patch.name !== undefined && nextName !== existing.name) {
       propagateCategoryName(existing.name, nextName);
+      if (Object.prototype.hasOwnProperty.call(areaSettings.categoryAreaMap, existing.name)) {
+        const nextMap = { ...areaSettings.categoryAreaMap };
+        const mappedArea = nextMap[existing.name];
+        delete nextMap[existing.name];
+        if (nextName && mappedArea) {
+          nextMap[nextName] = mappedArea;
+        }
+        handleUpdateAreaSettings({
+          ...areaSettings,
+          categoryAreaMap: nextMap,
+        });
+      }
     }
   };
 
@@ -1338,6 +1417,113 @@ export default function App() {
     }
   };
 
+  const handleUpdateAreaSettings = useCallback(
+    (nextAreaSettings: AreaSettings) => {
+      const validated = validateAreaSettings(nextAreaSettings);
+      if (uid) {
+        void fsAreaSettings.saveDefault(uid, validated);
+      } else {
+        setLocalAreaSettings(validated);
+      }
+    },
+    [uid, setLocalAreaSettings]
+  );
+
+  // Track Journal visits for Mind area pulse (at most once per day per user)
+  const journalRecordedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (activeView !== DashboardView.Journal) return;
+    if (uid && !cloudAreaSettingsLoaded) return;
+    const todayKey = getTodayKey();
+    const lockKey = `${uid ?? 'local'}:${todayKey}`;
+    if (areaSettings.journalOpenedDates.includes(todayKey)) {
+      journalRecordedRef.current = lockKey;
+      return;
+    }
+    if (journalRecordedRef.current === lockKey) return;
+    journalRecordedRef.current = lockKey;
+    handleUpdateAreaSettings({
+      ...areaSettings,
+      journalOpenedDates: [...areaSettings.journalOpenedDates, todayKey],
+    });
+  }, [activeView, uid, cloudAreaSettingsLoaded, areaSettings, handleUpdateAreaSettings]);
+
+  const handleAddCountdown = (input: {
+    title: string;
+    targetDate: string;
+    icon: CountdownIconId;
+    pinned: boolean;
+  }) => {
+    const cleanTitle = input.title.trim().slice(0, 160);
+    if (!cleanTitle || !input.targetDate) return;
+    const newItem: CountdownItem = {
+      id: makeId('cd'),
+      title: cleanTitle,
+      targetDate: input.targetDate,
+      icon: input.icon,
+      pinned: Boolean(input.pinned),
+      createdAt: new Date().toISOString(),
+    };
+
+    if (uid) {
+      void fsCountdowns.create(uid, newItem).then(() => {
+        if (newItem.pinned && countdowns.some((c) => c.pinned && c.id !== newItem.id)) {
+          return fsCountdowns.setPinnedExclusive(uid, newItem.id, true, countdowns);
+        }
+        return undefined;
+      });
+    } else {
+      setLocalCountdowns((prev) =>
+        validateCountdowns([
+          newItem,
+          ...(newItem.pinned ? prev.map((c) => ({ ...c, pinned: false })) : prev),
+        ])
+      );
+    }
+  };
+
+  const handleUpdateCountdown = (
+    id: string,
+    patch: Partial<Pick<CountdownItem, 'title' | 'targetDate' | 'icon' | 'pinned'>>
+  ) => {
+    if (uid) {
+      void fsCountdowns.update(uid, id, patch);
+    } else {
+      setLocalCountdowns((prev) =>
+        validateCountdowns(prev.map((c) => (c.id === id ? { ...c, ...patch } : c)))
+      );
+    }
+  };
+
+  const handleTogglePinCountdown = (id: string) => {
+    const target = countdowns.find((c) => c.id === id);
+    if (!target) return;
+    const nextPinned = !target.pinned;
+    if (uid) {
+      void fsCountdowns.setPinnedExclusive(uid, id, nextPinned, countdowns);
+    } else {
+      setLocalCountdowns((prev) =>
+        validateCountdowns(
+          prev.map((c) =>
+            c.id === id
+              ? { ...c, pinned: nextPinned }
+              : nextPinned
+                ? { ...c, pinned: false }
+                : c
+          )
+        )
+      );
+    }
+  };
+
+  const handleDeleteCountdown = (id: string) => {
+    if (uid) {
+      void fsCountdowns.remove(uid, id);
+    } else {
+      setLocalCountdowns((prev) => prev.filter((c) => c.id !== id));
+    }
+  };
+
   const handleResetWorkspace = () => {
     setLocalTasks(INITIAL_TASKS);
     setLocalSchedule(INITIAL_SCHEDULE);
@@ -1351,6 +1537,11 @@ export default function App() {
     const payload = {
       exportedAt: new Date().toISOString(),
       settings: appSettings,
+      lifeChapter,
+      lifeProfile,
+      areaSettings,
+      moodRatings,
+      countdowns,
       tasks,
       schedule,
       habits,
@@ -1406,7 +1597,7 @@ export default function App() {
 
       <Sidebar
         activeView={activeView}
-        onSelectView={setActiveView}
+        onSelectView={handleSelectView}
         isDark={isDark}
         supportedModes={activeStyleDef.supportedModes}
         onToggleTheme={() => handleUpdateSettings({ colorMode: isDark ? 'light' : 'dark' })}
@@ -1443,29 +1634,68 @@ export default function App() {
         <main className="cadence-main flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-8 py-6 sm:py-8">
           <ErrorBoundary
             inline
-            resetKey={activeView}
+            resetKey={`${activeView}:${selectedArea ?? ''}`}
             fallbackTitle="Unable to display this section"
           >
-            <div key={activeView} className="tab-transition-enter cadence-stack space-y-6">
-              {activeView === DashboardView.Home && (
+            <div
+              key={
+                activeView === DashboardView.Home && selectedArea
+                  ? `area-${selectedArea}`
+                  : activeView
+              }
+              className="tab-transition-enter cadence-stack space-y-6"
+            >
+              {activeView === DashboardView.Home && selectedArea !== null && (
+                <AreaDetailView
+                  areaId={selectedArea}
+                  pulses={areaPulses}
+                  tasks={tasks}
+                  habits={habits}
+                  focusSessions={focusSessions}
+                  moodRatings={moodRatings}
+                  settings={appSettings}
+                  areaSettings={areaSettings}
+                  onSelectArea={setSelectedArea}
+                  onBackHome={() => setSelectedArea(null)}
+                  onToggleTask={handleToggleTask}
+                  onEditTask={openEditTaskModal}
+                  onToggleHabitDay={handleToggleHabitDay}
+                  onNavigate={handleSelectView}
+                />
+              )}
+
+              {activeView === DashboardView.Home && selectedArea === null && (
                 <HomeView
                   tasks={tasks}
                   habits={habits}
+                  focusSessions={focusSessions}
                   settings={appSettings}
                   chapter={lifeChapter}
                   lifeProfile={lifeProfile}
+                  areaSettings={areaSettings}
                   moodRatings={moodRatings}
+                  countdowns={countdowns}
                   userFirstName={userFirstName}
                   onToggleTask={handleToggleTask}
                   onToggleHabitDay={handleToggleHabitDay}
                   onSetMoodRating={handleSetMoodRating}
-                  onNavigate={setActiveView}
+                  onSelectArea={setSelectedArea}
+                  onNavigate={handleSelectView}
+                />
+              )}
+
+              {activeView === DashboardView.Life && (
+                <LifeView
+                  countdowns={countdowns}
+                  onAddCountdown={handleAddCountdown}
+                  onUpdateCountdown={handleUpdateCountdown}
+                  onTogglePinCountdown={handleTogglePinCountdown}
+                  onDeleteCountdown={handleDeleteCountdown}
                 />
               )}
 
               {(activeView === DashboardView.Journal ||
                 activeView === DashboardView.Body ||
-                activeView === DashboardView.Life ||
                 activeView === DashboardView.Stats ||
                 activeView === DashboardView.Reports) && (
                 <PlaceholderPageView view={activeView} />
@@ -1593,8 +1823,10 @@ export default function App() {
                   onExportWorkspace={handleExportWorkspace}
                   lifeChapter={lifeChapter}
                   lifeProfile={lifeProfile}
+                  areaSettings={areaSettings}
                   onUpdateLifeChapter={handleUpdateLifeChapter}
                   onUpdateLifeProfile={handleUpdateLifeProfile}
+                  onUpdateAreaSettings={handleUpdateAreaSettings}
                   user={user}
                   hasWorkspaceToken={Boolean(accessToken)}
                   isSigningIn={isSigningIn}

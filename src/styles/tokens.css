@@ -36,6 +36,15 @@
   --cadence-space-main-y: 2rem;
 
   --cadence-bg-layer: none;
+
+  /* Theme-aware Life Area tokens (default light) */
+  --cadence-area-study: var(--color-blue-600);
+  --cadence-area-body: #059669;
+  --cadence-area-mind: #7c3aed;
+  --cadence-area-people: #d97706;
+  --cadence-area-skills: #0891b2;
+  --cadence-area-projects: #e11d48;
+  --cadence-area-muted: #94a3b8;
 }
 
 html.dark {
@@ -52,6 +61,15 @@ html.dark {
   --cadence-popover-text: #f1f5f9;
   --cadence-popover-muted: #94a3b8;
   --cadence-popover-shadow: 0 18px 42px -12px rgb(0 0 0 / 0.65), 0 4px 14px -4px rgb(0 0 0 / 0.4);
+
+  /* Theme-aware Life Area tokens (dark) */
+  --cadence-area-study: var(--color-blue-400);
+  --cadence-area-body: #34d399;
+  --cadence-area-mind: #a78bfa;
+  --cadence-area-people: #fbbf24;
+  --cadence-area-skills: #22d3ee;
+  --cadence-area-projects: #fb7185;
+  --cadence-area-muted: #64748b;
 }
 
 @layer base {

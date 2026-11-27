@@ -12,6 +12,7 @@ import {
   Download,
   Globe,
   Hourglass,
+  Layers,
   Monitor,
   Moon,
   Palette,
@@ -32,13 +33,17 @@ import {
 import {
   AppSettings,
   AppThemeId,
+  AreaSettings,
   CategoryItem,
   ColorMode,
   DashboardView,
+  DEFAULT_AREA_SETTINGS,
   DEFAULT_LIFE_CHAPTER,
   DEFAULT_LIFE_PROFILE,
   DefaultReminderOffset,
   LayoutDensity,
+  LIFE_AREA_IDS,
+  LifeAreaId,
   LifeChapter,
   LifeProfileSettings,
   MatrixImportantRule,
@@ -47,6 +52,7 @@ import {
   TaskItem,
   TaskPriority,
 } from '../types/dashboard';
+import { LIFE_AREA_META, resolveCategoryToArea } from '../utils/lifeUtils';
 import { GoogleSignInButton } from './GoogleSignInButton';
 import { DoodleHeaderScene } from './DoodleKit';
 import { CustomCheckbox } from './ui/CustomCheckbox';
@@ -75,8 +81,10 @@ interface SettingsViewProps {
   onExportWorkspace: () => void;
   lifeChapter: LifeChapter;
   lifeProfile: LifeProfileSettings;
+  areaSettings: AreaSettings;
   onUpdateLifeChapter: (chapter: LifeChapter) => void;
   onUpdateLifeProfile: (profile: LifeProfileSettings) => void;
+  onUpdateAreaSettings: (areaSettings: AreaSettings) => void;
   user: User | null;
   hasWorkspaceToken: boolean;
   isSigningIn: boolean;
@@ -165,6 +173,7 @@ type SettingsSectionId =
   | 'general'
   | 'lifeChapter'
   | 'lifeProfile'
+  | 'lifeAreas'
   | 'defaults'
   | 'notifications'
   | 'account'
@@ -176,6 +185,7 @@ const INITIAL_COLLAPSED_SECTIONS: Record<SettingsSectionId, boolean> = {
   general: false,
   lifeChapter: false,
   lifeProfile: false,
+  lifeAreas: false,
   defaults: false,
   notifications: false,
   account: false,
@@ -200,8 +210,10 @@ export function SettingsView({
   onExportWorkspace,
   lifeChapter,
   lifeProfile,
+  areaSettings,
   onUpdateLifeChapter,
   onUpdateLifeProfile,
+  onUpdateAreaSettings,
   user,
   hasWorkspaceToken,
   isSigningIn,
@@ -214,6 +226,9 @@ export function SettingsView({
   const [chapterNameDraft, setChapterNameDraft] = useState(lifeChapter.name);
   const [chapterThemeDraft, setChapterThemeDraft] = useState(lifeChapter.theme);
   const [expectancyDraft, setExpectancyDraft] = useState(String(lifeProfile.lifeExpectancy));
+  const [studyGoalDraft, setStudyGoalDraft] = useState(
+    String(areaSettings.studyWeeklyGoalHours)
+  );
   const [expandedSections, setExpandedSections] = useState<Record<SettingsSectionId, boolean>>(
     INITIAL_COLLAPSED_SECTIONS
   );
@@ -226,6 +241,10 @@ export function SettingsView({
   useEffect(() => {
     setExpectancyDraft(String(lifeProfile.lifeExpectancy));
   }, [lifeProfile.lifeExpectancy]);
+
+  useEffect(() => {
+    setStudyGoalDraft(String(areaSettings.studyWeeklyGoalHours));
+  }, [areaSettings.studyWeeklyGoalHours]);
 
   const commitChapterName = () => {
     const trimmed = chapterNameDraft.trim().slice(0, 120);
@@ -259,6 +278,22 @@ export function SettingsView({
     }
   };
 
+  const commitStudyGoal = () => {
+    const parsed = Number(studyGoalDraft.trim());
+    const nextGoal =
+      Number.isFinite(parsed) && parsed >= 1
+        ? Math.min(80, Math.round(parsed))
+        : areaSettings.studyWeeklyGoalHours || DEFAULT_AREA_SETTINGS.studyWeeklyGoalHours;
+    setStudyGoalDraft(String(nextGoal));
+    if (nextGoal !== areaSettings.studyWeeklyGoalHours) {
+      onUpdateAreaSettings({
+        ...areaSettings,
+        studyWeeklyGoalHours: nextGoal,
+      });
+      showNotice('Life areas updated');
+    }
+  };
+
   const toggleSection = (id: SettingsSectionId) => {
     setExpandedSections((prev) => ({ ...prev, [id]: !prev[id] }));
   };
@@ -271,6 +306,7 @@ export function SettingsView({
       general: next,
       lifeChapter: next,
       lifeProfile: next,
+      lifeAreas: next,
       defaults: next,
       notifications: next,
       account: next,
@@ -1493,6 +1529,143 @@ export function SettingsView({
                 }}
                 className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums text-slate-900 dark:text-slate-100"
               />
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Section: Life Areas & Category Mapping */}
+      <section className="editorial-rise editorial-rise-3 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection('lifeAreas')}
+          aria-expanded={expandedSections.lifeAreas}
+          aria-controls="settings-panel-life-areas"
+          className={`w-full text-left px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${
+            expandedSections.lifeAreas ? 'border-b border-slate-200 dark:border-slate-800' : ''
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <div className="min-w-0">
+              <span className="editorial-kicker">
+                <span className="editorial-marker" aria-hidden="true">AREAS</span>
+                <span className="editorial-kicker-text">Wheel &amp; Pulse</span>
+              </span>
+              <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                Life areas
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Map each task category to a life area and set your weekly Study focus goal
+              </p>
+            </div>
+          </div>
+          <ChevronDown
+            className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+              expandedSections.lifeAreas ? 'rotate-180' : ''
+            }`}
+            aria-hidden="true"
+          />
+        </button>
+
+        {expandedSections.lifeAreas && (
+          <div id="settings-panel-life-areas" className="p-6 space-y-6">
+            <div className="max-w-xs">
+              <label
+                htmlFor="settings-study-goal-hours"
+                className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
+              >
+                Weekly Study Focus Goal (hours)
+              </label>
+              <input
+                id="settings-study-goal-hours"
+                type="number"
+                min={1}
+                max={80}
+                value={studyGoalDraft}
+                onChange={(e) => setStudyGoalDraft(e.target.value)}
+                onBlur={commitStudyGoal}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                  }
+                }}
+                className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums text-slate-900 dark:text-slate-100"
+              />
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Used to calculate your 7-day Study pulse from Focus sessions
+              </p>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
+              <div>
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                  Category to Area Mapping
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Choose which life area each task category contributes to
+                </p>
+              </div>
+
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-800">
+                {settings.categories.map((cat) => {
+                  const mapped = resolveCategoryToArea(cat.name, areaSettings) ?? 'unassigned';
+                  return (
+                    <div
+                      key={cat.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: cat.color }}
+                          aria-hidden="true"
+                        />
+                        <span style={{ color: cat.color }} className="shrink-0">
+                          <CategoryIcon icon={cat.icon} className="w-4 h-4" />
+                        </span>
+                        <span className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                          {cat.name}
+                        </span>
+                      </div>
+
+                      <div className="sm:w-56 shrink-0">
+                        <CustomSelect
+                          id={`settings-area-map-${cat.id}`}
+                          ariaLabel={`Map category ${cat.name} to life area`}
+                          value={mapped}
+                          onChange={(val) => {
+                            const nextMap = { ...areaSettings.categoryAreaMap };
+                            // Remove any case-variants of cat.name before writing canonical name
+                            for (const existingKey of Object.keys(nextMap)) {
+                              if (existingKey.toLowerCase() === cat.name.toLowerCase()) {
+                                delete nextMap[existingKey];
+                              }
+                            }
+                            if (val !== 'unassigned' && LIFE_AREA_IDS.includes(val as LifeAreaId)) {
+                              nextMap[cat.name] = val as LifeAreaId;
+                            }
+                            onUpdateAreaSettings({
+                              ...areaSettings,
+                              categoryAreaMap: nextMap,
+                            });
+                            showNotice('Category mapping updated');
+                          }}
+                          size="sm"
+                          className="w-full"
+                          options={[
+                            { value: 'unassigned', label: 'Unassigned' },
+                            ...LIFE_AREA_IDS.map((areaId) => ({
+                              value: areaId,
+                              label: LIFE_AREA_META[areaId].label,
+                            })),
+                          ]}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}

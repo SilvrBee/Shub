@@ -1,15 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import {
+  computeAreaPulses,
   computeChapterStatus,
   computeExactAgeYears,
   computeTimeProgressBars,
   getHabitsDueToday,
+  getNextUpCountdowns,
+  getPinnedCountdown,
   getTodayTasksSorted,
+  validateAreaSettings,
+  validateCountdowns,
   validateLifeChapter,
   validateLifeProfile,
   validateMoodRatings,
 } from '../lifeUtils';
-import { HabitItem, TaskItem, TaskPriority } from '../../types/dashboard';
+import {
+  AreaSettings,
+  CountdownItem,
+  DEFAULT_AREA_SETTINGS,
+  HabitItem,
+  TaskItem,
+  TaskPriority,
+} from '../../types/dashboard';
 
 describe('computeChapterStatus', () => {
   it('computes Day N and remaining days within an active chapter', () => {
@@ -219,5 +231,153 @@ describe('validators', () => {
       rating: 10,
       updatedAt: undefined,
     });
+  });
+
+  it('validates areaSettings and enforces at most one pinned countdown', () => {
+    const area = validateAreaSettings({
+      studyWeeklyGoalHours: 200,
+      categoryAreaMap: { Work: 'projects', Unknown: 'invalid', Study: 'study' },
+      journalOpenedDates: ['2026-11-27', 'bad', '2026-11-27'],
+    });
+    expect(area.studyWeeklyGoalHours).toBe(80);
+    expect(area.categoryAreaMap).toEqual({ Work: 'projects', Study: 'study' });
+    expect(area.journalOpenedDates).toEqual(['2026-11-27']);
+
+    const countdowns = validateCountdowns([
+      { id: 'c1', title: 'Exam', targetDate: '2026-12-10', icon: 'GraduationCap', pinned: true },
+      { id: 'c2', title: 'Launch', targetDate: '2026-12-20', icon: 'UnknownIcon', pinned: true },
+      { id: 'bad', title: '', targetDate: '2026-12-30' },
+    ]);
+    expect(countdowns).toHaveLength(2);
+    expect(countdowns[0].pinned).toBe(true);
+    expect(countdowns[1].pinned).toBe(false);
+    expect(countdowns[1].icon).toBe('Calendar');
+  });
+});
+
+describe('computeAreaPulses', () => {
+  const now = new Date(2026, 10, 27, 12, 0, 0); // Friday 2026-11-27
+
+  it('returns muted no-data states when no metrics exist rather than fake numbers', () => {
+    const pulses = computeAreaPulses({
+      tasks: [],
+      habits: [],
+      focusSessions: [],
+      moodRatings: [],
+      areaSettings: {
+        ...DEFAULT_AREA_SETTINGS,
+        journalOpenedDates: [],
+      },
+      now,
+    });
+
+    for (const p of pulses) {
+      expect(p.hasData).toBe(false);
+      expect(p.score).toBeNull();
+    }
+    expect(pulses.find((p) => p.id === 'people')?.summaryLabel).toBe('No data yet');
+  });
+
+  it('computes honest 0-100 scores and 7-day trends across Study, Body, Mind, Skills, and Projects', () => {
+    const areaSettings: AreaSettings = {
+      studyWeeklyGoalHours: 10,
+      categoryAreaMap: {
+        Work: 'projects',
+        Finance: 'skills',
+      },
+      journalOpenedDates: ['2026-11-25', '2026-11-27'],
+    };
+
+    const pulses = computeAreaPulses({
+      now,
+      areaSettings,
+      focusSessions: [
+        // Current 7d (Nov 21..Nov 27): 300 mins = 5h vs 10h goal -> 50
+        { id: 'f1', label: 'Algorithms', minutes: 180, dateKey: '2026-11-26', completedAt: '' },
+        { id: 'f2', label: 'Physics', minutes: 120, dateKey: '2026-11-24', completedAt: '' },
+        // Previous 7d (Nov 14..Nov 20): 120 mins = 2h vs 10h goal -> 20
+        { id: 'f3', label: 'Math', minutes: 120, dateKey: '2026-11-18', completedAt: '' },
+      ],
+      habits: [
+        {
+          id: 'walk',
+          name: 'Evening walk & steps',
+          category: 'Health',
+          targetDaysPerWeek: 7,
+          completedDays: [true, true, false, false, true, false, false],
+          completedDates: ['2026-11-23', '2026-11-24', '2026-11-27'],
+        },
+      ],
+      moodRatings: [
+        { id: '2026-11-27', dateKey: '2026-11-27', rating: 8 },
+      ],
+      tasks: [
+        {
+          id: 'p1',
+          title: 'Ship release',
+          category: 'Work',
+          priority: TaskPriority.High,
+          dueDate: '2026-11-27',
+          completed: true,
+          createdAt: '',
+        },
+        {
+          id: 'p2',
+          title: 'Write docs',
+          category: 'Work',
+          priority: TaskPriority.Medium,
+          dueDate: '2026-11-26',
+          completed: false,
+          createdAt: '',
+        },
+        {
+          id: 's1',
+          title: 'Practice drills',
+          category: 'Finance',
+          priority: TaskPriority.Low,
+          dueDate: '2026-11-25',
+          completed: true,
+          createdAt: '',
+        },
+      ],
+    });
+
+    const byId = Object.fromEntries(pulses.map((p) => [p.id, p]));
+
+    expect(byId.study.hasData).toBe(true);
+    expect(byId.study.score).toBe(50);
+    expect(byId.study.previousScore).toBe(20);
+    expect(byId.study.trend).toBe('up');
+    expect(byId.study.delta).toBe(30);
+
+    expect(byId.body.hasData).toBe(true);
+    expect(byId.body.score).toBe(43); // 3 / 7
+
+    // Mind: 2 active days (Nov 25 journal + Nov 27 both journal & mood=8)
+    // Math.round((2/7)*50 + (8/10)*50) = Math.round(14.28 + 40) = 54
+    expect(byId.mind.hasData).toBe(true);
+    expect(byId.mind.score).toBe(54);
+
+    expect(byId.people.hasData).toBe(false);
+    expect(byId.people.score).toBeNull();
+
+    expect(byId.projects.score).toBe(50); // 1/2
+    expect(byId.skills.score).toBe(100); // 1/1
+  });
+});
+
+describe('countdown selectors', () => {
+  const now = new Date(2026, 10, 27, 9, 0, 0);
+  const items: CountdownItem[] = [
+    { id: 'past', title: 'Past', targetDate: '2026-11-20', icon: 'Calendar', pinned: false },
+    { id: 'pinned', title: 'Exam', targetDate: '2026-12-01', icon: 'GraduationCap', pinned: true },
+    { id: 'near2', title: 'Demo Day', targetDate: '2026-12-12', icon: 'Sparkles', pinned: false },
+    { id: 'near1', title: 'Trip', targetDate: '2026-12-04', icon: 'Plane', pinned: false },
+    { id: 'far', title: 'Marathon', targetDate: '2027-01-15', icon: 'Trophy', pinned: false },
+  ];
+
+  it('picks the pinned countdown and the 2 nearest other upcoming countdowns', () => {
+    expect(getPinnedCountdown(items)?.id).toBe('pinned');
+    expect(getNextUpCountdowns(items, now, 2).map((c) => c.id)).toEqual(['near1', 'near2']);
   });
 });

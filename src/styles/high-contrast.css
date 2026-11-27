@@ -109,3 +109,23 @@ html.high-contrast.dark .cadence-flag-low {
 html.high-contrast.dark .cadence-flag-none {
   color: #cbd5e1;
 }
+
+html.high-contrast {
+  --cadence-area-study: #1d4ed8;
+  --cadence-area-body: #047857;
+  --cadence-area-mind: #6d28d9;
+  --cadence-area-people: #b45309;
+  --cadence-area-skills: #0e7490;
+  --cadence-area-projects: #be123c;
+  --cadence-area-muted: #475569;
+}
+
+html.high-contrast.dark {
+  --cadence-area-study: #93c5fd;
+  --cadence-area-body: #6ee7b7;
+  --cadence-area-mind: #c4b5fd;
+  --cadence-area-people: #fcd34d;
+  --cadence-area-skills: #67e8f9;
+  --cadence-area-projects: #fda4af;
+  --cadence-area-muted: #94a3b8;
+}

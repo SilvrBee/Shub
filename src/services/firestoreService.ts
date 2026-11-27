@@ -18,7 +18,9 @@ import { User } from 'firebase/auth';
 import { auth, db } from './googleAuth';
 import {
   ActivityLog,
+  AreaSettings,
   CommitmentItem,
+  CountdownItem,
   FocusSession,
   HabitItem,
   JournalConfig,
@@ -833,6 +835,102 @@ export const fsLifeProfile = {
       handleFirestoreError(error, OperationType.WRITE, path);
     }
   },
+};
+
+export const fsAreaSettings = {
+  saveDefault: async (uid: string, settings: AreaSettings): Promise<void> => {
+    const firestore = getDb();
+    const settingsId = 'default';
+    const path = `users/${uid}/areaSettings/${settingsId}`;
+    const safeGoal = Math.max(1, Math.min(80, Math.round(settings.studyWeeklyGoalHours || 10)));
+    const safeMap: Record<string, string> = {};
+    let count = 0;
+    for (const [k, v] of Object.entries(settings.categoryAreaMap || {})) {
+      if (count >= 50) break;
+      const cleanKey = k.trim().slice(0, 60);
+      if (cleanKey && v) {
+        safeMap[cleanKey] = v;
+        count += 1;
+      }
+    }
+    const safeJournalDates = Array.from(new Set(settings.journalOpenedDates || []))
+      .map((d) => d.slice(0, 10))
+      .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))
+      .sort()
+      .slice(-120);
+
+    try {
+      const ref = doc(firestore, 'users', uid, 'areaSettings', settingsId);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        await updateDoc(ref, {
+          studyWeeklyGoalHours: safeGoal,
+          categoryAreaMap: safeMap,
+          journalOpenedDates: safeJournalDates,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        await setDoc(ref, {
+          ownerId: uid,
+          studyWeeklyGoalHours: safeGoal,
+          categoryAreaMap: safeMap,
+          journalOpenedDates: safeJournalDates,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+};
+
+export const fsCountdowns = {
+  create: (uid: string, item: CountdownItem) =>
+    createUserDoc(uid, 'countdowns', item.id, {
+      title: item.title.trim().slice(0, 160),
+      targetDate: item.targetDate.slice(0, 10),
+      icon: item.icon,
+      pinned: Boolean(item.pinned),
+    }),
+  update: (uid: string, id: string, patch: Partial<Pick<CountdownItem, 'title' | 'targetDate' | 'icon' | 'pinned'>>) =>
+    updateUserDoc(uid, 'countdowns', id, {
+      ...(patch.title !== undefined ? { title: patch.title.trim().slice(0, 160) } : {}),
+      ...(patch.targetDate !== undefined ? { targetDate: patch.targetDate.slice(0, 10) } : {}),
+      ...(patch.icon !== undefined ? { icon: patch.icon } : {}),
+      ...(patch.pinned !== undefined ? { pinned: Boolean(patch.pinned) } : {}),
+    }),
+  setPinnedExclusive: async (
+    uid: string,
+    targetId: string,
+    nextPinned: boolean,
+    allCountdowns: CountdownItem[]
+  ): Promise<void> => {
+    const firestore = getDb();
+    const safeTargetId = sanitizeId(targetId);
+    const path = `users/${uid}/countdowns/${safeTargetId}`;
+    try {
+      const batch = writeBatch(firestore);
+      if (nextPinned) {
+        for (const item of allCountdowns) {
+          if (item.id !== targetId && item.pinned) {
+            batch.update(doc(firestore, 'users', uid, 'countdowns', sanitizeId(item.id)), {
+              pinned: false,
+              updatedAt: serverTimestamp(),
+            });
+          }
+        }
+      }
+      batch.update(doc(firestore, 'users', uid, 'countdowns', safeTargetId), {
+        pinned: nextPinned,
+        updatedAt: serverTimestamp(),
+      });
+      await batch.commit();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, path);
+    }
+  },
+  remove: (uid: string, id: string) => deleteUserDoc(uid, 'countdowns', id),
 };
 
 export async function deleteAllJournalIntelligenceData(uid: string): Promise<void> {

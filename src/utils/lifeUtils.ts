@@ -1,9 +1,16 @@
-import { formatDateKey, getTodayKey } from '../data/initialData';
+import { formatDateKey, getCurrentWeekDateKeys, getTodayKey } from '../data/initialData';
 import {
   AppSettings,
+  AreaSettings,
+  CountdownIconId,
+  CountdownItem,
+  DEFAULT_AREA_SETTINGS,
   DEFAULT_LIFE_CHAPTER,
   DEFAULT_LIFE_PROFILE,
+  FocusSession,
   HabitItem,
+  LIFE_AREA_IDS,
+  LifeAreaId,
   LifeChapter,
   LifeProfileSettings,
   MoodRatingRecord,
@@ -376,4 +383,512 @@ export function validateMoodRatings(raw: unknown): MoodRatingRecord[] {
   }
 
   return Array.from(byDate.values()).sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+}
+
+export interface LifeAreaMeta {
+  id: LifeAreaId;
+  label: string;
+  description: string;
+  icon: string;
+  colorVar: string;
+}
+
+export const LIFE_AREA_META: Record<LifeAreaId, LifeAreaMeta> = {
+  study: {
+    id: 'study',
+    label: 'Study',
+    description: 'Focus hours vs your weekly study goal',
+    icon: 'BookOpen',
+    colorVar: 'var(--cadence-area-study)',
+  },
+  body: {
+    id: 'body',
+    label: 'Body',
+    description: 'Days with steps or a walk logged this week',
+    icon: 'HeartPulse',
+    colorVar: 'var(--cadence-area-body)',
+  },
+  mind: {
+    id: 'mind',
+    label: 'Mind',
+    description: 'Journal check-ins, mood entries, and average mood',
+    icon: 'Brain',
+    colorVar: 'var(--cadence-area-mind)',
+  },
+  people: {
+    id: 'people',
+    label: 'People',
+    description: 'Relationships and shared moments',
+    icon: 'Users',
+    colorVar: 'var(--cadence-area-people)',
+  },
+  skills: {
+    id: 'skills',
+    label: 'Skills',
+    description: 'Completed vs planned tasks in Skills categories',
+    icon: 'Wrench',
+    colorVar: 'var(--cadence-area-skills)',
+  },
+  projects: {
+    id: 'projects',
+    label: 'Projects',
+    description: 'Completed vs planned tasks in Projects categories',
+    icon: 'FolderKanban',
+    colorVar: 'var(--cadence-area-projects)',
+  },
+};
+
+export const VALID_COUNTDOWN_ICONS: readonly CountdownIconId[] = [
+  'Calendar',
+  'Flag',
+  'GraduationCap',
+  'Plane',
+  'Trophy',
+  'Target',
+  'Compass',
+  'BookOpen',
+  'Star',
+  'Sparkles',
+] as const;
+
+export const COUNTDOWN_ICON_LABELS: Record<CountdownIconId, string> = {
+  Calendar: 'Calendar',
+  Flag: 'Milestone',
+  GraduationCap: 'Exam / Study',
+  Plane: 'Travel',
+  Trophy: 'Goal',
+  Target: 'Target',
+  Compass: 'Journey',
+  BookOpen: 'Release / Book',
+  Star: 'Special Day',
+  Sparkles: 'Launch',
+};
+
+export interface AreaPulseResult {
+  id: LifeAreaId;
+  label: string;
+  description: string;
+  icon: string;
+  colorVar: string;
+  score: number | null; // 0..100 or null if no data
+  previousScore: number | null;
+  delta: number | null;
+  trend: 'up' | 'down' | 'flat' | 'none';
+  hasData: boolean;
+  summaryLabel: string;
+}
+
+function getWindowKeysEndingAt(endDate: Date, days: number, offsetEndDays = 0): string[] {
+  const keys: string[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(
+      endDate.getFullYear(),
+      endDate.getMonth(),
+      endDate.getDate() - offsetEndDays - i
+    );
+    keys.push(formatDateKey(d));
+  }
+  return keys;
+}
+
+export function resolveCategoryToArea(
+  categoryName: string | undefined,
+  areaSettings: AreaSettings
+): LifeAreaId | null {
+  if (!categoryName || !categoryName.trim()) return null;
+  const target = categoryName.trim().toLowerCase();
+  for (const [cat, areaId] of Object.entries(areaSettings.categoryAreaMap)) {
+    if (cat.trim().toLowerCase() === target) {
+      return LIFE_AREA_IDS.includes(areaId) ? areaId : null;
+    }
+  }
+  return null;
+}
+
+export function getMappedCategoriesForArea(
+  areaId: LifeAreaId,
+  areaSettings: AreaSettings,
+  availableCategories: string[]
+): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (const cat of availableCategories) {
+    if (resolveCategoryToArea(cat, areaSettings) === areaId) {
+      const key = cat.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push(cat);
+      }
+    }
+  }
+  for (const [cat, mapped] of Object.entries(areaSettings.categoryAreaMap)) {
+    if (mapped === areaId && !seen.has(cat.toLowerCase())) {
+      seen.add(cat.toLowerCase());
+      result.push(cat);
+    }
+  }
+  return result;
+}
+
+function deriveTrend(score: number | null, previousScore: number | null): {
+  delta: number | null;
+  trend: 'up' | 'down' | 'flat' | 'none';
+} {
+  if (score === null || previousScore === null) {
+    return { delta: null, trend: 'none' };
+  }
+  const delta = score - previousScore;
+  if (delta > 0) return { delta, trend: 'up' };
+  if (delta < 0) return { delta, trend: 'down' };
+  return { delta: 0, trend: 'flat' };
+}
+
+export interface ComputeAreaPulsesInput {
+  tasks: TaskItem[];
+  habits: HabitItem[];
+  focusSessions: FocusSession[];
+  moodRatings: MoodRatingRecord[];
+  areaSettings: AreaSettings;
+  now?: Date;
+}
+
+export function computeAreaPulses({
+  tasks,
+  habits,
+  focusSessions,
+  moodRatings,
+  areaSettings,
+  now = new Date(),
+}: ComputeAreaPulsesInput): AreaPulseResult[] {
+  const currentKeys = getWindowKeysEndingAt(now, 7, 0);
+  const previousKeys = getWindowKeysEndingAt(now, 7, 7);
+  const currentSet = new Set(currentKeys);
+  const previousSet = new Set(previousKeys);
+
+  // 1. Study: Focus-session hours vs weekly goal in Settings
+  const goalHours = Math.max(1, Math.min(80, Math.round(areaSettings.studyWeeklyGoalHours || 10)));
+  const currFocusMinutes = focusSessions
+    .filter((s) => currentSet.has(s.dateKey))
+    .reduce((sum, s) => sum + Math.max(0, s.minutes), 0);
+  const prevFocusMinutes = focusSessions
+    .filter((s) => previousSet.has(s.dateKey))
+    .reduce((sum, s) => sum + Math.max(0, s.minutes), 0);
+
+  const studyHasData = currFocusMinutes > 0 || prevFocusMinutes > 0;
+  const studyScore = studyHasData
+    ? Math.min(100, Math.round((currFocusMinutes / 60 / goalHours) * 100))
+    : null;
+  const studyPrevScore =
+    prevFocusMinutes > 0
+      ? Math.min(100, Math.round((prevFocusMinutes / 60 / goalHours) * 100))
+      : null;
+  const studyTrend = deriveTrend(studyScore, studyPrevScore);
+  const studyHoursText = (currFocusMinutes / 60).toFixed(1).replace(/\.0$/, '');
+
+  // 2. Body: Days with steps or a walk logged out of 7
+  const weekKeys = getCurrentWeekDateKeys(now);
+  const bodyWalkDates = new Set<string>();
+  for (const habit of habits) {
+    if (!/(steps|walk)/i.test(habit.name)) continue;
+    for (const dk of habit.completedDates ?? []) {
+      bodyWalkDates.add(dk);
+    }
+    habit.completedDays.forEach((done, idx) => {
+      if (done && weekKeys[idx]) {
+        bodyWalkDates.add(weekKeys[idx]);
+      }
+    });
+  }
+  const currBodyDays = currentKeys.filter((k) => bodyWalkDates.has(k)).length;
+  const prevBodyDays = previousKeys.filter((k) => bodyWalkDates.has(k)).length;
+  const bodyHasData = currBodyDays > 0 || prevBodyDays > 0;
+  const bodyScore = bodyHasData ? Math.min(100, Math.round((currBodyDays / 7) * 100)) : null;
+  const bodyPrevScore =
+    prevBodyDays > 0 ? Math.min(100, Math.round((prevBodyDays / 7) * 100)) : null;
+  const bodyTrend = deriveTrend(bodyScore, bodyPrevScore);
+
+  // 3. Mind: Days Journal opened or mood rated, plus average mood
+  const journalDates = new Set(areaSettings.journalOpenedDates ?? []);
+  const moodByDate = new Map<string, number>();
+  for (const m of moodRatings) {
+    moodByDate.set(m.dateKey, m.rating);
+  }
+
+  const evalMindWindow = (keys: string[]) => {
+    let activeDays = 0;
+    const moods: number[] = [];
+    for (const k of keys) {
+      const hasMood = moodByDate.has(k);
+      const hasJournal = journalDates.has(k);
+      if (hasMood || hasJournal) activeDays += 1;
+      if (hasMood) moods.push(moodByDate.get(k)!);
+    }
+    if (activeDays === 0) {
+      return { activeDays: 0, avgMood: null as number | null, score: null as number | null };
+    }
+    if (moods.length > 0) {
+      const avgMood = moods.reduce((s, v) => s + v, 0) / moods.length;
+      const score = Math.min(100, Math.round((activeDays / 7) * 50 + (avgMood / 10) * 50));
+      return { activeDays, avgMood, score };
+    }
+    return {
+      activeDays,
+      avgMood: null as number | null,
+      score: Math.min(100, Math.round((activeDays / 7) * 100)),
+    };
+  };
+
+  const currMind = evalMindWindow(currentKeys);
+  const prevMind = evalMindWindow(previousKeys);
+  const mindHasData = currMind.activeDays > 0 || prevMind.activeDays > 0;
+  const mindScore = mindHasData ? (currMind.score ?? 0) : null;
+  const mindPrevScore = prevMind.score;
+  const mindTrend = deriveTrend(mindScore, mindPrevScore);
+
+  // 4. Skills and Projects: Tasks completed from mapped categories vs tasks planned
+  const evalTaskAreaWindow = (areaId: LifeAreaId, keySet: Set<string>) => {
+    const planned = tasks.filter((t) => {
+      if (resolveCategoryToArea(t.category, areaSettings) !== areaId) return false;
+      const dueInWindow = Boolean(t.dueDate && keySet.has(t.dueDate));
+      const deadlineInWindow = Boolean(t.deadlineDate && keySet.has(t.deadlineDate));
+      return dueInWindow || deadlineInWindow;
+    });
+    if (planned.length === 0) {
+      return { planned: 0, completed: 0, score: null as number | null };
+    }
+    const completed = planned.filter((t) => t.completed).length;
+    return {
+      planned: planned.length,
+      completed,
+      score: Math.round((completed / planned.length) * 100),
+    };
+  };
+
+  const currSkills = evalTaskAreaWindow('skills', currentSet);
+  const prevSkills = evalTaskAreaWindow('skills', previousSet);
+  const skillsTrend = deriveTrend(currSkills.score, prevSkills.score);
+
+  const currProjects = evalTaskAreaWindow('projects', currentSet);
+  const prevProjects = evalTaskAreaWindow('projects', previousSet);
+  const projectsTrend = deriveTrend(currProjects.score, prevProjects.score);
+
+  const resultsById: Record<LifeAreaId, AreaPulseResult> = {
+    study: {
+      ...LIFE_AREA_META.study,
+      score: studyScore,
+      previousScore: studyPrevScore,
+      delta: studyTrend.delta,
+      trend: studyTrend.trend,
+      hasData: studyHasData,
+      summaryLabel: studyHasData ? `${studyHoursText}h / ${goalHours}h goal` : 'No sessions yet',
+    },
+    body: {
+      ...LIFE_AREA_META.body,
+      score: bodyScore,
+      previousScore: bodyPrevScore,
+      delta: bodyTrend.delta,
+      trend: bodyTrend.trend,
+      hasData: bodyHasData,
+      summaryLabel: bodyHasData ? `${currBodyDays}/7 active days` : 'No data yet',
+    },
+    mind: {
+      ...LIFE_AREA_META.mind,
+      score: mindScore,
+      previousScore: mindPrevScore,
+      delta: mindTrend.delta,
+      trend: mindTrend.trend,
+      hasData: mindHasData,
+      summaryLabel: !mindHasData
+        ? 'No data yet'
+        : currMind.avgMood !== null
+          ? `${currMind.activeDays}/7d · avg ${currMind.avgMood.toFixed(1)}`
+          : `${currMind.activeDays}/7d journal`,
+    },
+    people: {
+      ...LIFE_AREA_META.people,
+      score: null,
+      previousScore: null,
+      delta: null,
+      trend: 'none',
+      hasData: false,
+      summaryLabel: 'No data yet',
+    },
+    skills: {
+      ...LIFE_AREA_META.skills,
+      score: currSkills.score,
+      previousScore: prevSkills.score,
+      delta: skillsTrend.delta,
+      trend: skillsTrend.trend,
+      hasData: currSkills.planned > 0,
+      summaryLabel:
+        currSkills.planned > 0
+          ? `${currSkills.completed}/${currSkills.planned} tasks`
+          : 'No data yet',
+    },
+    projects: {
+      ...LIFE_AREA_META.projects,
+      score: currProjects.score,
+      previousScore: prevProjects.score,
+      delta: projectsTrend.delta,
+      trend: projectsTrend.trend,
+      hasData: currProjects.planned > 0,
+      summaryLabel:
+        currProjects.planned > 0
+          ? `${currProjects.completed}/${currProjects.planned} tasks`
+          : 'No data yet',
+    },
+  };
+
+  return LIFE_AREA_IDS.map((id) => resultsById[id]);
+}
+
+export interface CountdownDisplayMeta {
+  daysRemaining: number;
+  shortBadge: string;
+  detailLabel: string;
+}
+
+export function getCountdownDisplay(
+  targetDateKey: string,
+  now = new Date()
+): CountdownDisplayMeta {
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = parseDateKeyLocal(targetDateKey);
+  if (!target) {
+    return {
+      daysRemaining: 0,
+      shortBadge: '—',
+      detailLabel: 'Invalid date',
+    };
+  }
+  const daysRemaining = Math.round((target.getTime() - todayMidnight.getTime()) / MS_PER_DAY);
+  if (daysRemaining === 0) {
+    return { daysRemaining: 0, shortBadge: 'Today', detailLabel: 'Today' };
+  }
+  if (daysRemaining === 1) {
+    return { daysRemaining: 1, shortBadge: '1d left', detailLabel: 'Tomorrow' };
+  }
+  if (daysRemaining > 1) {
+    return {
+      daysRemaining,
+      shortBadge: `${daysRemaining}d left`,
+      detailLabel: `In ${daysRemaining} days`,
+    };
+  }
+  if (daysRemaining === -1) {
+    return { daysRemaining: -1, shortBadge: '1d ago', detailLabel: 'Yesterday' };
+  }
+  const abs = Math.abs(daysRemaining);
+  return {
+    daysRemaining,
+    shortBadge: `${abs}d ago`,
+    detailLabel: `${abs} days ago`,
+  };
+}
+
+export function getPinnedCountdown(countdowns: CountdownItem[]): CountdownItem | null {
+  return countdowns.find((c) => c.pinned) ?? null;
+}
+
+export function getNextUpCountdowns(
+  countdowns: CountdownItem[],
+  now = new Date(),
+  limit = 2
+): CountdownItem[] {
+  const todayKey = formatDateKey(now);
+  const pinned = getPinnedCountdown(countdowns);
+  return countdowns
+    .filter((c) => c.id !== pinned?.id && c.targetDate >= todayKey)
+    .sort((a, b) => {
+      const dateCmp = a.targetDate.localeCompare(b.targetDate);
+      if (dateCmp !== 0) return dateCmp;
+      return a.title.localeCompare(b.title);
+    })
+    .slice(0, Math.max(0, limit));
+}
+
+export function validateAreaSettings(raw: unknown): AreaSettings {
+  const rec = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const studyWeeklyGoalHours =
+    typeof rec.studyWeeklyGoalHours === 'number' && Number.isFinite(rec.studyWeeklyGoalHours)
+      ? Math.max(1, Math.min(80, Math.round(rec.studyWeeklyGoalHours)))
+      : DEFAULT_AREA_SETTINGS.studyWeeklyGoalHours;
+
+  const rawMap =
+    rec.categoryAreaMap && typeof rec.categoryAreaMap === 'object'
+      ? (rec.categoryAreaMap as Record<string, unknown>)
+      : DEFAULT_AREA_SETTINGS.categoryAreaMap;
+
+  const categoryAreaMap: Record<string, LifeAreaId> = {};
+  for (const [key, val] of Object.entries(rawMap)) {
+    const trimmedKey = key.trim().slice(0, 60);
+    if (!trimmedKey) continue;
+    if (typeof val === 'string' && LIFE_AREA_IDS.includes(val as LifeAreaId)) {
+      categoryAreaMap[trimmedKey] = val as LifeAreaId;
+    }
+  }
+
+  const journalOpenedDates = Array.isArray(rec.journalOpenedDates)
+    ? Array.from(
+        new Set(
+          rec.journalOpenedDates
+            .map((d) => normalizeDateKey(d))
+            .filter((d): d is string => Boolean(d))
+        )
+      )
+        .sort()
+        .slice(-120)
+    : [];
+
+  return {
+    studyWeeklyGoalHours,
+    categoryAreaMap,
+    journalOpenedDates,
+  };
+}
+
+export function validateCountdowns(raw: unknown): CountdownItem[] {
+  if (!Array.isArray(raw)) return [];
+  const validIconSet = new Set<string>(VALID_COUNTDOWN_ICONS);
+  const seen = new Set<string>();
+  const items: CountdownItem[] = [];
+
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const rec = entry as Record<string, unknown>;
+    const id = typeof rec.id === 'string' && rec.id.trim() ? rec.id.trim().slice(0, 128) : '';
+    const title =
+      typeof rec.title === 'string' && rec.title.trim() ? rec.title.trim().slice(0, 160) : '';
+    const targetDate = normalizeDateKey(rec.targetDate);
+    if (!id || !title || !targetDate || seen.has(id)) continue;
+    seen.add(id);
+
+    const icon: CountdownIconId =
+      typeof rec.icon === 'string' && validIconSet.has(rec.icon)
+        ? (rec.icon as CountdownIconId)
+        : 'Calendar';
+
+    items.push({
+      id,
+      title,
+      targetDate,
+      icon,
+      pinned: Boolean(rec.pinned),
+      createdAt: typeof rec.createdAt === 'string' ? rec.createdAt : undefined,
+      updatedAt: typeof rec.updatedAt === 'string' ? rec.updatedAt : undefined,
+    });
+  }
+
+  // Ensure at most one pinned item
+  let foundPinned = false;
+  return items.map((item) => {
+    if (item.pinned) {
+      if (!foundPinned) {
+        foundPinned = true;
+        return item;
+      }
+      return { ...item, pinned: false };
+    }
+    return item;
+  });
 }

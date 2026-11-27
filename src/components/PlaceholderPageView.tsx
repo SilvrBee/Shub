@@ -7,7 +7,6 @@ interface PlaceholderPageViewProps {
   view:
     | DashboardView.Journal
     | DashboardView.Body
-    | DashboardView.Life
     | DashboardView.Stats
     | DashboardView.Reports;
 }
@@ -40,15 +39,6 @@ const PLACEHOLDER_META: Record<
     emptyTitle: 'No body logs recorded yet',
     emptyDescription:
       'Physical rhythms, sleep consistency, and training recovery will appear here.',
-  },
-  [DashboardView.Life]: {
-    kicker: 'Direction',
-    title: 'Life',
-    subtitle: 'Life wheel, chapters, and long-horizon milestones',
-    illustration: 'life',
-    emptyTitle: 'Life overview is taking shape',
-    emptyDescription:
-      'Your life wheel, active chapter milestones, and long-term compass will live here.',
   },
   [DashboardView.Stats]: {
     kicker: 'Analytics',

@@ -379,6 +379,29 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function isValidAreaSettings(data) {
+      return data.keys().hasAll(['ownerId', 'studyWeeklyGoalHours', 'categoryAreaMap', 'journalOpenedDates', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'studyWeeklyGoalHours', 'categoryAreaMap', 'journalOpenedDates', 'createdAt', 'updatedAt'])
+        && data.ownerId is string && data.ownerId == request.auth.uid && data.ownerId.size() <= 128
+        && data.studyWeeklyGoalHours is int && data.studyWeeklyGoalHours >= 1 && data.studyWeeklyGoalHours <= 80
+        && data.categoryAreaMap is map && data.categoryAreaMap.size() <= 50
+        && isStringList(data, 'journalOpenedDates', 120)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCountdown(data) {
+      return data.keys().hasAll(['ownerId', 'title', 'targetDate', 'icon', 'pinned', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'title', 'targetDate', 'icon', 'pinned', 'createdAt', 'updatedAt'])
+        && data.ownerId is string && data.ownerId == request.auth.uid && data.ownerId.size() <= 128
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 160
+        && isValidDateKey(data.targetDate)
+        && data.icon in ['Calendar', 'Flag', 'GraduationCap', 'Plane', 'Trophy', 'Target', 'Compass', 'BookOpen', 'Star', 'Sparkles']
+        && data.pinned is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
     match /users/{uid} {
       allow get: if isValidId(uid) && isOwner(uid);
       allow list: if false;
@@ -676,6 +699,45 @@ service cloud.firestore {
           && incoming().updatedAt == request.time
           && incoming().diff(existing()).affectedKeys().hasOnly(['birthDate', 'lifeExpectancy', 'updatedAt']);
         allow delete: if isValidId(uid) && isValidId(profileId) && isOwner(uid);
+      }
+
+      match /areaSettings/{settingsId} {
+        allow get: if isValidId(uid) && isValidId(settingsId) && isOwner(uid);
+        allow list: if isValidId(uid) && isOwner(uid) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(uid) && isValidId(settingsId) && isOwner(uid)
+          && isValidAreaSettings(incoming())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(uid) && isValidId(settingsId) && isOwner(uid)
+          && isValidAreaSettings(incoming())
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['journalOpenedDates', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['studyWeeklyGoalHours', 'categoryAreaMap', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['studyWeeklyGoalHours', 'categoryAreaMap', 'journalOpenedDates', 'updatedAt'])
+          );
+        allow delete: if isValidId(uid) && isValidId(settingsId) && isOwner(uid);
+      }
+
+      match /countdowns/{countdownId} {
+        allow get: if isValidId(uid) && isValidId(countdownId) && isOwner(uid);
+        allow list: if isValidId(uid) && isOwner(uid) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(uid) && isValidId(countdownId) && isOwner(uid)
+          && isValidCountdown(incoming())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(uid) && isValidId(countdownId) && isOwner(uid)
+          && isValidCountdown(incoming())
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['pinned', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['title', 'targetDate', 'icon', 'pinned', 'updatedAt'])
+          );
+        allow delete: if isValidId(uid) && isValidId(countdownId) && isOwner(uid);
       }
     }
   }
