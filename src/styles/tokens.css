@@ -45,6 +45,15 @@
   --cadence-area-skills: #0891b2;
   --cadence-area-projects: #e11d48;
   --cadence-area-muted: #94a3b8;
+
+  /* Life Poster & Year in Pixels semantic tokens (light) */
+  --cadence-poster-neutral-fill: color-mix(in srgb, var(--cadence-area-muted) 40%, var(--cadence-bg-card) 60%);
+  --cadence-poster-neutral-stroke: color-mix(in srgb, var(--cadence-area-muted) 62%, transparent);
+  --cadence-mood-empty: color-mix(in srgb, var(--cadence-border-color) 62%, var(--cadence-bg-card) 38%);
+  --cadence-mood-future-stroke: color-mix(in srgb, var(--cadence-border-color) 88%, transparent);
+  --cadence-mood-scale-start: color-mix(in oklab, var(--cadence-bg-card) 74%, var(--color-blue-600) 26%);
+  --cadence-mood-scale-mid: color-mix(in oklab, var(--cadence-bg-card) 38%, var(--color-blue-600) 62%);
+  --cadence-mood-scale-end: color-mix(in oklab, var(--color-blue-600) 86%, #0f172a 14%);
 }
 
 html.dark {
@@ -70,6 +79,15 @@ html.dark {
   --cadence-area-skills: #22d3ee;
   --cadence-area-projects: #fb7185;
   --cadence-area-muted: #64748b;
+
+  /* Life Poster & Year in Pixels semantic tokens (dark) */
+  --cadence-poster-neutral-fill: color-mix(in srgb, var(--cadence-area-muted) 46%, var(--cadence-bg-card) 54%);
+  --cadence-poster-neutral-stroke: color-mix(in srgb, var(--cadence-area-muted) 58%, transparent);
+  --cadence-mood-empty: color-mix(in srgb, var(--cadence-border-color) 65%, var(--cadence-bg-card) 35%);
+  --cadence-mood-future-stroke: color-mix(in srgb, var(--cadence-border-color) 92%, transparent);
+  --cadence-mood-scale-start: color-mix(in oklab, var(--cadence-bg-card) 72%, var(--color-blue-400) 28%);
+  --cadence-mood-scale-mid: color-mix(in oklab, var(--cadence-bg-card) 34%, var(--color-blue-400) 66%);
+  --cadence-mood-scale-end: color-mix(in oklab, var(--color-blue-400) 84%, #ffffff 16%);
 }
 
 @layer base {

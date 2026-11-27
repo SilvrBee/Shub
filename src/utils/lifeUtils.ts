@@ -2,9 +2,12 @@ import { formatDateKey, getCurrentWeekDateKeys, getTodayKey } from '../data/init
 import {
   AppSettings,
   AreaSettings,
+  ChapterColorId,
+  ChapterItem,
   CountdownIconId,
   CountdownItem,
   DEFAULT_AREA_SETTINGS,
+  DEFAULT_CHAPTER_COLOR,
   DEFAULT_LIFE_CHAPTER,
   DEFAULT_LIFE_PROFILE,
   FocusSession,
@@ -23,6 +26,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 export interface ChapterStatus {
   hasStarted: boolean;
   dayNumber: number;
+  totalDays: number | null;
   dayLabel: string;
   remainingDays: number | null;
   remainingLabel: string;
@@ -57,9 +61,14 @@ export function computeChapterStatus(
   const startDt = parseDateKeyLocal(chapter.startDate);
   const endDt = parseDateKeyLocal(chapter.endDate);
 
+  const totalDays =
+    startDt && endDt && endDt.getTime() >= startDt.getTime()
+      ? Math.max(1, Math.round((endDt.getTime() - startDt.getTime()) / MS_PER_DAY) + 1)
+      : null;
+
   let hasStarted = true;
   let dayNumber = 1;
-  let dayLabel = 'Day 1 of chapter';
+  let dayLabel = totalDays !== null ? `Day 1 of ${totalDays}` : 'Day 1 of chapter';
 
   if (startDt) {
     const diffFromStart = Math.floor(
@@ -74,8 +83,11 @@ export function computeChapterStatus(
           ? 'Starts tomorrow'
           : `Starts in ${daysUntilStart} days`;
     } else {
-      dayNumber = diffFromStart + 1;
-      dayLabel = `Day ${dayNumber} of chapter`;
+      dayNumber = totalDays !== null ? Math.min(totalDays, diffFromStart + 1) : diffFromStart + 1;
+      dayLabel =
+        totalDays !== null
+          ? `Day ${dayNumber} of ${totalDays}`
+          : `Day ${dayNumber} of chapter`;
     }
   }
 
@@ -97,24 +109,15 @@ export function computeChapterStatus(
   }
 
   let progressPercent: number | null = null;
-  if (startDt && endDt && endDt.getTime() >= startDt.getTime()) {
-    const totalDays = Math.max(
-      1,
-      Math.round((endDt.getTime() - startDt.getTime()) / MS_PER_DAY) + 1
-    );
-    const elapsedDays = Math.max(
-      0,
-      Math.min(
-        totalDays,
-        Math.floor((todayMidnight.getTime() - startDt.getTime()) / MS_PER_DAY) + 1
-      )
-    );
+  if (startDt && endDt && totalDays !== null) {
+    const elapsedDays = hasStarted ? Math.max(0, Math.min(totalDays, dayNumber)) : 0;
     progressPercent = Math.round(clamp01(elapsedDays / totalDays) * 1000) / 10;
   }
 
   return {
     hasStarted,
     dayNumber,
+    totalDays,
     dayLabel,
     remainingDays,
     remainingLabel,
@@ -209,12 +212,7 @@ export function computeTimeProgressBars(
   );
 
   // 5. Life
-  const safeExpectancy =
-    typeof profile.lifeExpectancy === 'number' && Number.isFinite(profile.lifeExpectancy)
-      ? Math.max(1, Math.min(150, Math.round(profile.lifeExpectancy)))
-      : DEFAULT_LIFE_PROFILE.lifeExpectancy;
-  const ageYears = computeExactAgeYears(profile.birthDate, now);
-  const lifeRatio = clamp01(ageYears / safeExpectancy);
+  const lifeProgress = computeLifeProgressBar(now, profile);
 
   return [
     {
@@ -244,10 +242,35 @@ export function computeTimeProgressBars(
     {
       id: 'life',
       label: 'Life',
-      percent: Math.round(lifeRatio * 1000) / 10,
-      detailLabel: `Age ${ageYears.toFixed(1)} of ${safeExpectancy}`,
+      percent: lifeProgress.percent,
+      detailLabel: `Age ${lifeProgress.label}`,
     },
   ];
+}
+
+export interface LifeProgressBarResult {
+  percent: number;
+  label: string;
+  ageYears: number;
+  lifeExpectancy: number;
+}
+
+export function computeLifeProgressBar(
+  now = new Date(),
+  profile: LifeProfileSettings = DEFAULT_LIFE_PROFILE
+): LifeProgressBarResult {
+  const safeExpectancy =
+    typeof profile.lifeExpectancy === 'number' && Number.isFinite(profile.lifeExpectancy)
+      ? Math.max(1, Math.min(150, Math.round(profile.lifeExpectancy)))
+      : DEFAULT_LIFE_PROFILE.lifeExpectancy;
+  const ageYears = computeExactAgeYears(profile.birthDate, now);
+  const lifeRatio = clamp01(ageYears / safeExpectancy);
+  return {
+    percent: Math.round(lifeRatio * 1000) / 10,
+    label: `${ageYears.toFixed(1)} of ${safeExpectancy} years`,
+    ageYears,
+    lifeExpectancy: safeExpectancy,
+  };
 }
 
 export function getTodayTasksSorted(
@@ -346,6 +369,113 @@ export function validateLifeChapter(raw: unknown): LifeChapter {
   };
 }
 
+export interface ChapterColorMeta {
+  id: ChapterColorId;
+  label: string;
+  colorVar: string;
+}
+
+export const CHAPTER_COLOR_OPTIONS: readonly ChapterColorMeta[] = [
+  { id: 'blue', label: 'Primary Accent', colorVar: 'var(--cadence-area-study)' },
+  { id: 'emerald', label: 'Emerald', colorVar: 'var(--cadence-area-body)' },
+  { id: 'violet', label: 'Violet', colorVar: 'var(--cadence-area-mind)' },
+  { id: 'amber', label: 'Amber', colorVar: 'var(--cadence-area-people)' },
+  { id: 'cyan', label: 'Cyan', colorVar: 'var(--cadence-area-skills)' },
+  { id: 'rose', label: 'Rose', colorVar: 'var(--cadence-area-projects)' },
+] as const;
+
+export const VALID_CHAPTER_COLORS: readonly ChapterColorId[] = [
+  'blue',
+  'emerald',
+  'violet',
+  'amber',
+  'rose',
+  'cyan',
+] as const;
+
+export function getChapterColorVar(colorId: ChapterColorId | string | undefined): string {
+  const found = CHAPTER_COLOR_OPTIONS.find((opt) => opt.id === colorId);
+  return found ? found.colorVar : CHAPTER_COLOR_OPTIONS[0].colorVar;
+}
+
+export function validateChapterItem(raw: unknown): ChapterItem | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const rec = raw as Record<string, unknown>;
+  const id = typeof rec.id === 'string' && rec.id.trim() ? rec.id.trim().slice(0, 128) : '';
+  const name =
+    typeof rec.name === 'string' && rec.name.trim() ? rec.name.trim().slice(0, 120) : '';
+  const startDate = normalizeDateKey(rec.startDate);
+  const endDate = normalizeDateKey(rec.endDate);
+  if (!id || !name || !startDate || !endDate) return null;
+  if (endDate < startDate) return null;
+
+  const theme = typeof rec.theme === 'string' ? rec.theme.trim().slice(0, 240) : '';
+  const color: ChapterColorId =
+    typeof rec.color === 'string' && VALID_CHAPTER_COLORS.includes(rec.color as ChapterColorId)
+      ? (rec.color as ChapterColorId)
+      : DEFAULT_CHAPTER_COLOR;
+  const goals = Array.isArray(rec.goals)
+    ? Array.from(
+        new Set(
+          rec.goals
+            .filter((g): g is string => typeof g === 'string')
+            .map((g) => g.trim().slice(0, 80))
+            .filter(Boolean)
+        )
+      ).slice(0, 10)
+    : [];
+
+  return {
+    id,
+    name,
+    theme,
+    startDate,
+    endDate,
+    color,
+    goals,
+    createdAt: typeof rec.createdAt === 'string' ? rec.createdAt : undefined,
+    updatedAt: typeof rec.updatedAt === 'string' ? rec.updatedAt : undefined,
+  };
+}
+
+export function validateChapters(raw: unknown): ChapterItem[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const items: ChapterItem[] = [];
+  for (const entry of raw) {
+    const valid = validateChapterItem(entry);
+    if (!valid || seen.has(valid.id)) continue;
+    seen.add(valid.id);
+    items.push(valid);
+  }
+  return items.sort((a, b) => a.startDate.localeCompare(b.startDate));
+}
+
+export function findOverlappingChapter(
+  chapters: ChapterItem[],
+  candidate: { id?: string; startDate: string; endDate: string }
+): ChapterItem | null {
+  for (const existing of chapters) {
+    if (candidate.id && existing.id === candidate.id) continue;
+    if (
+      existing.startDate <= candidate.endDate &&
+      candidate.startDate <= existing.endDate
+    ) {
+      return existing;
+    }
+  }
+  return null;
+}
+
+export function findActiveChapter(
+  chapters: ChapterItem[],
+  todayKey = getTodayKey()
+): ChapterItem | null {
+  return (
+    chapters.find((c) => c.startDate <= todayKey && todayKey <= c.endDate) ?? null
+  );
+}
+
 export function validateLifeProfile(raw: unknown): LifeProfileSettings {
   const rec = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const birthDate = normalizeDateKey(rec.birthDate) ?? DEFAULT_LIFE_PROFILE.birthDate;
@@ -360,6 +490,17 @@ export function validateLifeProfile(raw: unknown): LifeProfileSettings {
   };
 }
 
+export function normalizeMoodRating(rating: number): number {
+  if (!Number.isFinite(rating)) return 5;
+  const clamped = Math.max(1, Math.min(10, rating));
+  return Math.round(clamped * 2) / 2;
+}
+
+export function formatMoodValue(rating: number): string {
+  const normalized = normalizeMoodRating(rating);
+  return Number.isInteger(normalized) ? String(normalized) : normalized.toFixed(1);
+}
+
 export function validateMoodRatings(raw: unknown): MoodRatingRecord[] {
   if (!Array.isArray(raw)) return [];
   const byDate = new Map<string, MoodRatingRecord>();
@@ -370,7 +511,7 @@ export function validateMoodRatings(raw: unknown): MoodRatingRecord[] {
     const dateKey = normalizeDateKey(rec.dateKey ?? rec.id);
     if (!dateKey) continue;
     if (typeof rec.rating !== 'number' || !Number.isFinite(rec.rating)) continue;
-    const rating = Math.max(1, Math.min(10, Math.round(rec.rating)));
+    const rating = normalizeMoodRating(rec.rating);
     byDate.set(dateKey, {
       id: dateKey,
       dateKey,
@@ -892,3 +1033,264 @@ export function validateCountdowns(raw: unknown): CountdownItem[] {
     return item;
   });
 }
+
+function parseYmdParts(key: string): { y: number; m: number; d: number } | null {
+  const clean = normalizeDateKey(key);
+  if (!clean) return null;
+  const [y, m, d] = clean.split('-').map(Number);
+  return { y, m, d };
+}
+
+function dateKeyToEpochDay(key: string): number {
+  const parts = parseYmdParts(key);
+  if (!parts) return 0;
+  return Math.floor(Date.UTC(parts.y, parts.m - 1, parts.d) / MS_PER_DAY);
+}
+
+function epochDayToDateKey(epochDay: number): string {
+  return new Date(epochDay * MS_PER_DAY).toISOString().slice(0, 10);
+}
+
+function addYearsClampedEpochDay(birthKey: string, years: number): number {
+  const parts = parseYmdParts(birthKey);
+  if (!parts) return 0;
+  const targetYear = parts.y + years;
+  const daysInTargetMonth = new Date(Date.UTC(targetYear, parts.m, 0)).getUTCDate();
+  const clampedDay = Math.min(parts.d, daysInTargetMonth);
+  return Math.floor(Date.UTC(targetYear, parts.m - 1, clampedDay) / MS_PER_DAY);
+}
+
+export interface LifeWeekCell {
+  index: number; // 0 .. lifeExpectancy * 52 - 1
+  yearIndex: number; // 0 .. lifeExpectancy - 1
+  weekIndex: number; // 0 .. 51
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+  status: 'past' | 'current' | 'future';
+  chapter: ChapterItem | null;
+}
+
+export interface LifePosterGrid {
+  birthDate: string;
+  lifeExpectancy: number;
+  totalWeeks: number;
+  pastWeeks: number;
+  currentWeekIndex: number | null;
+  weeks: LifeWeekCell[];
+}
+
+export function buildLifePosterWeeks(
+  profile: LifeProfileSettings,
+  chapters: ChapterItem[],
+  now = new Date()
+): LifePosterGrid {
+  const birthDate = normalizeDateKey(profile.birthDate) ?? DEFAULT_LIFE_PROFILE.birthDate;
+  const lifeExpectancy =
+    typeof profile.lifeExpectancy === 'number' && Number.isFinite(profile.lifeExpectancy)
+      ? Math.max(1, Math.min(150, Math.round(profile.lifeExpectancy)))
+      : DEFAULT_LIFE_PROFILE.lifeExpectancy;
+
+  const todayKey = formatDateKey(now);
+  const todayEpoch = dateKeyToEpochDay(todayKey);
+
+  const chapterSpans = validateChapters(chapters).map((chapter) => ({
+    chapter,
+    startEpoch: dateKeyToEpochDay(chapter.startDate),
+    endEpoch: dateKeyToEpochDay(chapter.endDate),
+  }));
+
+  const totalWeeks = lifeExpectancy * 52;
+  const weeks: LifeWeekCell[] = new Array(totalWeeks);
+  let pastWeeks = 0;
+  let currentWeekIndex: number | null = null;
+  let cellIdx = 0;
+
+  for (let yearIndex = 0; yearIndex < lifeExpectancy; yearIndex += 1) {
+    const rowStartEpoch = addYearsClampedEpochDay(birthDate, yearIndex);
+    const nextRowStartEpoch = addYearsClampedEpochDay(birthDate, yearIndex + 1);
+    const rowEndEpoch = Math.max(rowStartEpoch, nextRowStartEpoch - 1);
+
+    for (let weekIndex = 0; weekIndex < 52; weekIndex += 1) {
+      const wStartEpoch = rowStartEpoch + weekIndex * 7;
+      const wEndEpoch =
+        weekIndex === 51
+          ? Math.max(wStartEpoch, rowEndEpoch)
+          : Math.min(rowEndEpoch, wStartEpoch + 6);
+
+      let status: 'past' | 'current' | 'future';
+      if (wEndEpoch < todayEpoch) {
+        status = 'past';
+        pastWeeks += 1;
+      } else if (wStartEpoch > todayEpoch) {
+        status = 'future';
+      } else {
+        status = 'current';
+        if (currentWeekIndex === null) {
+          currentWeekIndex = cellIdx;
+        }
+      }
+
+      let matchedChapter: ChapterItem | null = null;
+      let bestOverlap = 0;
+      for (const span of chapterSpans) {
+        if (span.endEpoch < wStartEpoch) continue;
+        if (span.startEpoch > wEndEpoch) break;
+        const overlap =
+          Math.min(wEndEpoch, span.endEpoch) - Math.max(wStartEpoch, span.startEpoch) + 1;
+        if (overlap > bestOverlap || (overlap === bestOverlap && overlap > 0)) {
+          bestOverlap = overlap;
+          matchedChapter = span.chapter;
+        }
+      }
+
+      weeks[cellIdx] = {
+        index: cellIdx,
+        yearIndex,
+        weekIndex,
+        startDate: epochDayToDateKey(wStartEpoch),
+        endDate: epochDayToDateKey(wEndEpoch),
+        status,
+        chapter: matchedChapter,
+      };
+      cellIdx += 1;
+    }
+  }
+
+  return {
+    birthDate,
+    lifeExpectancy,
+    totalWeeks,
+    pastWeeks,
+    currentWeekIndex,
+    weeks,
+  };
+}
+
+export const MOOD_STEP_VALUES: readonly number[] = [
+  1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10,
+] as const;
+
+export function getMoodScaleColor(rating: number): string {
+  const safe = normalizeMoodRating(rating);
+  const t = (safe - 1) / 9;
+  if (t <= 0.5) {
+    const pct = Math.round((t / 0.5) * 100);
+    return `color-mix(in oklab, var(--cadence-mood-scale-start) ${100 - pct}%, var(--cadence-mood-scale-mid) ${pct}%)`;
+  }
+  const pct = Math.round(((t - 0.5) / 0.5) * 100);
+  return `color-mix(in oklab, var(--cadence-mood-scale-mid) ${100 - pct}%, var(--cadence-mood-scale-end) ${pct}%)`;
+}
+
+export interface YearPixelDay {
+  monthIndex: number; // 0 .. 11
+  dayOfMonth: number; // 1 .. 31
+  dateKey: string; // YYYY-MM-DD
+  status: 'past' | 'today' | 'future';
+  rating: number | null;
+}
+
+export interface MonthMoodSummary {
+  monthIndex: number; // 0 .. 11
+  shortLabel: string; // 'Jan' .. 'Dec'
+  ratedCount: number;
+  average: number | null;
+}
+
+export interface YearPixelsData {
+  year: number;
+  isLeapYear: boolean;
+  daysByMonth: Array<Array<YearPixelDay | null>>;
+  monthSummaries: MonthMoodSummary[];
+  ratedCount: number;
+  yearAverage: number | null;
+}
+
+const MONTH_SHORT_LABELS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const;
+
+export function buildYearPixelsGrid(
+  year: number,
+  moodRatings: MoodRatingRecord[],
+  now = new Date()
+): YearPixelsData {
+  const safeYear = Number.isFinite(year)
+    ? Math.max(1900, Math.min(2200, Math.round(year)))
+    : now.getFullYear();
+  const isLeapYear = (safeYear % 4 === 0 && safeYear % 100 !== 0) || safeYear % 400 === 0;
+  const todayKey = formatDateKey(now);
+
+  const moodMap = new Map<string, number>();
+  for (const rec of moodRatings) {
+    const key = normalizeDateKey(rec.dateKey);
+    if (key && typeof rec.rating === 'number' && Number.isFinite(rec.rating)) {
+      moodMap.set(key, normalizeMoodRating(rec.rating));
+    }
+  }
+
+  const daysByMonth: Array<Array<YearPixelDay | null>> = [];
+  const monthSummaries: MonthMoodSummary[] = [];
+  let yearSum = 0;
+  let yearCount = 0;
+
+  for (let monthIndex = 0; monthIndex < 12; monthIndex += 1) {
+    const daysInMonth = new Date(Date.UTC(safeYear, monthIndex + 1, 0)).getUTCDate();
+    const monthDays: Array<YearPixelDay | null> = [];
+    let monthSum = 0;
+    let monthCount = 0;
+    const monthStr = String(monthIndex + 1).padStart(2, '0');
+
+    for (let dayOfMonth = 1; dayOfMonth <= 31; dayOfMonth += 1) {
+      if (dayOfMonth > daysInMonth) {
+        monthDays.push(null);
+        continue;
+      }
+      const dateKey = `${safeYear}-${monthStr}-${String(dayOfMonth).padStart(2, '0')}`;
+      const status: 'past' | 'today' | 'future' =
+        dateKey > todayKey ? 'future' : dateKey === todayKey ? 'today' : 'past';
+      const rating = moodMap.get(dateKey) ?? null;
+      if (rating !== null) {
+        monthSum += rating;
+        monthCount += 1;
+        yearSum += rating;
+        yearCount += 1;
+      }
+      monthDays.push({
+        monthIndex,
+        dayOfMonth,
+        dateKey,
+        status,
+        rating,
+      });
+    }
+
+    daysByMonth.push(monthDays);
+    monthSummaries.push({
+      monthIndex,
+      shortLabel: MONTH_SHORT_LABELS[monthIndex],
+      ratedCount: monthCount,
+      average: monthCount > 0 ? Math.round((monthSum / monthCount) * 10) / 10 : null,
+    });
+  }
+
+  return {
+    year: safeYear,
+    isLeapYear,
+    daysByMonth,
+    monthSummaries,
+    ratedCount: yearCount,
+    yearAverage: yearCount > 0 ? Math.round((yearSum / yearCount) * 10) / 10 : null,
+  };
+}
+

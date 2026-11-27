@@ -20,8 +20,9 @@
 10. **Array element type poisoning (`VaultItem.tags: [123]`)**: fails `tags[0] is string` -> `PERMISSION_DENIED`.
 11. **Backdated `createdAt` spoofing (`createdAt` != `request.time`)**: fails `createdAt == request.time` -> `PERMISSION_DENIED`.
 12. **Invalid enum state (`ReviewSuggestion.status: 'hacked'`)**: fails enum allowlist check -> `PERMISSION_DENIED`.
-13. **Invalid mood date key or out-of-range rating (`/users/userA/moodRatings/bad-date` or `rating: 11`)**: fails `isValidDateKey` and integer `[1..10]` bounds -> `PERMISSION_DENIED`.
+13. **Invalid mood date key, out-of-range rating, or non-0.5 step (`/users/userA/moodRatings/bad-date`, `rating: 11`, or `rating: 7.3`)**: fails `isValidDateKey`, `[1..10]` bounds, and `int(data.rating * 2) == data.rating * 2` -> `PERMISSION_DENIED`.
 14. **Cross-user write or shadow field on `lifeChapters` / `lifeProfiles`**: fails `isOwner(uid)` and strict `keys().hasOnly(...)` / `affectedKeys().hasOnly(...)` -> `PERMISSION_DENIED`.
 15. **Invalid countdown icon, bad date, or cross-user write on `countdowns`**: fails `isOwner(uid)`, `isValidDateKey(targetDate)`, and curated `icon` enum -> `PERMISSION_DENIED`.
 16. **Out-of-range `studyWeeklyGoalHours`, oversized `categoryAreaMap`, or shadow field on `areaSettings`**: fails `isOwner(uid)`, `[1..80]` integer bounds, and `keys().hasOnly(...)` -> `PERMISSION_DENIED`.
+17. **Invalid `chapters` range (`endDate < startDate`), invalid color token, shadow field, or cross-user access**: fails `isOwner(uid)`, `data.endDate >= data.startDate`, curated color enum, and strict `keys().hasOnly(...)` -> `PERMISSION_DENIED`.
 

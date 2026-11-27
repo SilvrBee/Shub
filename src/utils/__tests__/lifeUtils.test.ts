@@ -1,14 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildLifePosterWeeks,
+  buildYearPixelsGrid,
   computeAreaPulses,
   computeChapterStatus,
   computeExactAgeYears,
+  computeLifeProgressBar,
   computeTimeProgressBars,
+  findActiveChapter,
+  findOverlappingChapter,
+  formatMoodValue,
   getHabitsDueToday,
+  getMoodScaleColor,
   getNextUpCountdowns,
   getPinnedCountdown,
   getTodayTasksSorted,
+  normalizeMoodRating,
   validateAreaSettings,
+  validateChapters,
   validateCountdowns,
   validateLifeChapter,
   validateLifeProfile,
@@ -16,6 +25,7 @@ import {
 } from '../lifeUtils';
 import {
   AreaSettings,
+  ChapterItem,
   CountdownItem,
   DEFAULT_AREA_SETTINGS,
   HabitItem,
@@ -24,7 +34,7 @@ import {
 } from '../../types/dashboard';
 
 describe('computeChapterStatus', () => {
-  it('computes Day N and remaining days within an active chapter', () => {
+  it('computes Day N of M, progressPercent, and remaining days within a bounded chapter', () => {
     const now = new Date(2026, 10, 27, 9, 30, 0); // 2026-11-27
     const status = computeChapterStatus(
       {
@@ -38,9 +48,25 @@ describe('computeChapterStatus', () => {
     );
     expect(status.hasStarted).toBe(true);
     expect(status.dayNumber).toBe(27);
-    expect(status.dayLabel).toBe('Day 27 of chapter');
+    expect(status.totalDays).toBe(61);
+    expect(status.dayLabel).toBe('Day 27 of 61');
+    expect(status.progressPercent).toBeCloseTo((27 / 61) * 100, 1);
     expect(status.remainingDays).toBe(34);
     expect(status.remainingLabel).toBe('34 days remaining');
+
+    const openEnded = computeChapterStatus(
+      {
+        name: 'Open Chapter',
+        theme: '',
+        startDate: '2026-11-01',
+        endDate: '',
+        goals: [],
+      },
+      now
+    );
+    expect(openEnded.totalDays).toBeNull();
+    expect(openEnded.dayLabel).toBe('Day 27 of chapter');
+    expect(openEnded.progressPercent).toBeNull();
   });
 
   it('handles future chapters and single-day remaining boundary', () => {
@@ -96,7 +122,14 @@ describe('computeTimeProgressBars', () => {
     const age = computeExactAgeYears('2007-03-04', now);
     expect(age).toBeGreaterThan(19.7);
     expect(age).toBeLessThan(19.8);
-    expect(bars[4].detailLabel).toBe(`Age ${age.toFixed(1)} of 80`);
+    expect(bars[4].detailLabel).toBe(`Age ${age.toFixed(1)} of 80 years`);
+
+    const lifeBar = computeLifeProgressBar(now, {
+      birthDate: '2007-03-04',
+      lifeExpectancy: 80,
+    });
+    expect(lifeBar.label).toBe(`${age.toFixed(1)} of 80 years`);
+    expect(lifeBar.percent).toBeCloseTo((age / 80) * 100, 1);
   });
 
   it('accounts for leap years cleanly (366 days)', () => {
@@ -205,8 +238,8 @@ describe('getTodayTasksSorted & getHabitsDueToday', () => {
   });
 });
 
-describe('validators', () => {
-  it('sanitizes chapter, profile, and mood ratings cleanly', () => {
+describe('validators & chapters', () => {
+  it('sanitizes chapter, profile, and 0.5-step mood ratings cleanly', () => {
     const chapter = validateLifeChapter({
       name: '  ',
       startDate: 'bad-date',
@@ -219,18 +252,78 @@ describe('validators', () => {
     expect(profile.birthDate).toBe('2007-03-04');
     expect(profile.lifeExpectancy).toBe(150);
 
+    expect(normalizeMoodRating(7.5)).toBe(7.5);
+    expect(normalizeMoodRating(7.3)).toBe(7.5);
+    expect(normalizeMoodRating(0.2)).toBe(1);
+    expect(formatMoodValue(7)).toBe('7');
+    expect(formatMoodValue(7.5)).toBe('7.5');
+
     const moods = validateMoodRatings([
       { dateKey: '2026-11-27', rating: 14 },
-      { dateKey: '2026-11-26', rating: 7 },
+      { dateKey: '2026-11-26', rating: 7.5 },
+      { dateKey: '2026-11-25', rating: 6 },
       { dateKey: 'bad', rating: 5 },
     ]);
-    expect(moods).toHaveLength(2);
+    expect(moods).toHaveLength(3);
     expect(moods[0]).toEqual({
       id: '2026-11-27',
       dateKey: '2026-11-27',
       rating: 10,
       updatedAt: undefined,
     });
+    expect(moods[1].rating).toBe(7.5);
+    expect(moods[2].rating).toBe(6);
+  });
+
+  it('validates chapters, detects overlaps (including boundary days), and resolves active chapter', () => {
+    const chapters: ChapterItem[] = validateChapters([
+      {
+        id: 'c2',
+        name: 'College Year 1',
+        theme: 'Foundations',
+        startDate: '2027-06-01',
+        endDate: '2028-05-31',
+        color: 'emerald',
+        goals: ['Learn systems'],
+      },
+      {
+        id: 'c1',
+        name: 'Drop Year',
+        theme: 'Deep work',
+        startDate: '2026-06-01',
+        endDate: '2027-05-31',
+        color: 'blue',
+        goals: ['Consistency'],
+      },
+      {
+        id: 'invalid-order',
+        name: 'Reversed',
+        theme: '',
+        startDate: '2026-10-10',
+        endDate: '2026-10-01',
+        color: 'rose',
+        goals: [],
+      },
+    ]);
+
+    expect(chapters.map((c) => c.id)).toEqual(['c1', 'c2']);
+    expect(
+      findOverlappingChapter(chapters, { startDate: '2027-05-31', endDate: '2027-06-05' })?.id
+    ).toBe('c1');
+    expect(
+      findOverlappingChapter(chapters, {
+        id: 'c1',
+        startDate: '2026-06-01',
+        endDate: '2027-05-31',
+      })
+    ).toBeNull();
+    expect(
+      findOverlappingChapter(chapters, { startDate: '2028-06-01', endDate: '2028-12-31' })
+    ).toBeNull();
+
+    expect(findActiveChapter(chapters, '2026-11-27')?.id).toBe('c1');
+    expect(findActiveChapter(chapters, '2027-06-01')?.id).toBe('c2');
+    expect(findActiveChapter(chapters, '2029-01-01')).toBeNull();
   });
 
   it('validates areaSettings and enforces at most one pinned countdown', () => {
@@ -381,3 +474,115 @@ describe('countdown selectors', () => {
     expect(getNextUpCountdowns(items, now, 2).map((c) => c.id)).toEqual(['near1', 'near2']);
   });
 });
+
+describe('buildLifePosterWeeks', () => {
+  it('builds 52 weeks per year, classifies past/current/future, and assigns chapters by max overlap', () => {
+    const now = new Date(2026, 10, 27, 12, 0, 0); // 2026-11-27
+    const chapters: ChapterItem[] = [
+      {
+        id: 'drop_year',
+        name: 'Drop Year',
+        theme: 'Deep work',
+        startDate: '2026-06-01',
+        endDate: '2027-05-31',
+        color: 'blue',
+        goals: ['Craft'],
+      },
+      {
+        id: 'early',
+        name: 'Spring Sprint',
+        theme: 'Prep',
+        startDate: '2026-03-01',
+        endDate: '2026-03-10',
+        color: 'emerald',
+        goals: [],
+      },
+    ];
+
+    const grid = buildLifePosterWeeks(
+      { birthDate: '2007-03-04', lifeExpectancy: 80 },
+      chapters,
+      now
+    );
+
+    expect(grid.totalWeeks).toBe(80 * 52);
+    expect(grid.weeks).toHaveLength(80 * 52);
+    expect(grid.currentWeekIndex).not.toBeNull();
+
+    const currentCells = grid.weeks.filter((w) => w.status === 'current');
+    expect(currentCells).toHaveLength(1);
+    const currentCell = currentCells[0];
+    expect(currentCell.startDate <= '2026-11-27' && '2026-11-27' <= currentCell.endDate).toBe(true);
+    expect(currentCell.chapter?.id).toBe('drop_year');
+
+    // Week 0 begins on birthDate
+    expect(grid.weeks[0].startDate).toBe('2007-03-04');
+    expect(grid.weeks[0].status).toBe('past');
+    expect(grid.weeks[0].chapter).toBeNull();
+
+    // Past weeks count matches cells before current week
+    expect(grid.pastWeeks).toBe(currentCell.index);
+    expect(grid.weeks[grid.weeks.length - 1].status).toBe('future');
+  });
+
+  it('handles Feb 29 leap-day birthdates cleanly without drifting into March 1 on non-leap years', () => {
+    const grid = buildLifePosterWeeks(
+      { birthDate: '2008-02-29', lifeExpectancy: 4 },
+      [],
+      new Date(2010, 5, 1, 12, 0, 0)
+    );
+    expect(grid.weeks[0].startDate).toBe('2008-02-29');
+    expect(grid.weeks[52].startDate).toBe('2009-02-28');
+    expect(grid.weeks[51].endDate).toBe('2009-02-27');
+  });
+});
+
+describe('getMoodScaleColor & buildYearPixelsGrid', () => {
+  it('computes theme-token color-mix strings across 0.5 mood steps', () => {
+    const low = getMoodScaleColor(1);
+    const mid = getMoodScaleColor(5.5);
+    const high = getMoodScaleColor(10);
+
+    expect(low).toContain('color-mix(');
+    expect(low).toContain('var(--cadence-mood-scale-start)');
+    expect(mid).toContain('var(--cadence-mood-scale-mid)');
+    expect(high).toContain('var(--cadence-mood-scale-end)');
+    expect(low).not.toMatch(/#[0-9a-f]{3,8}/i);
+  });
+
+  it('builds a 12x31 grid, handles leap years, preserves unrated/future states, and averages months', () => {
+    const now = new Date(2026, 10, 27, 10, 0, 0); // 2026-11-27
+    const data = buildYearPixelsGrid(
+      2026,
+      [
+        { id: '2026-11-25', dateKey: '2026-11-25', rating: 7.5 },
+        { id: '2026-11-27', dateKey: '2026-11-27', rating: 9 },
+        { id: '2026-01-05', dateKey: '2026-01-05', rating: 6 },
+        { id: '2025-12-31', dateKey: '2025-12-31', rating: 10 }, // ignored for 2026
+      ],
+      now
+    );
+
+    expect(data.year).toBe(2026);
+    expect(data.isLeapYear).toBe(false);
+    expect(data.daysByMonth).toHaveLength(12);
+    expect(data.daysByMonth[1][28]).toBeNull(); // Feb 29 absent in 2026
+    expect(data.daysByMonth[10][26]?.status).toBe('today'); // Nov 27
+    expect(data.daysByMonth[10][26]?.rating).toBe(9);
+    expect(data.daysByMonth[10][27]?.status).toBe('future'); // Nov 28
+    expect(data.daysByMonth[0][0]?.status).toBe('past'); // Jan 1 unrated
+    expect(data.daysByMonth[0][0]?.rating).toBeNull();
+
+    // Jan avg = 6, Nov avg = (7.5 + 9)/2 = 8.25 -> 8.3
+    expect(data.monthSummaries[0].average).toBe(6);
+    expect(data.monthSummaries[1].average).toBeNull();
+    expect(data.monthSummaries[10].average).toBe(8.3);
+    expect(data.ratedCount).toBe(3);
+    expect(data.yearAverage).toBe(7.5); // (6 + 7.5 + 9)/3
+
+    const leapData = buildYearPixelsGrid(2024, [], now);
+    expect(leapData.isLeapYear).toBe(true);
+    expect(leapData.daysByMonth[1][28]?.dateKey).toBe('2024-02-29');
+  });
+});
+

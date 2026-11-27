@@ -22,6 +22,8 @@
         "lastProcessedEntryDate": { "type": "string", "maxLength": 20 },
         "lastProcessedEntryHash": { "type": "string", "maxLength": 128 },
         "lastSyncError": { "type": "string", "maxLength": 500 },
+        "sidebarCollapsed": { "type": "boolean" },
+        "chaptersMigrated": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -288,12 +290,12 @@
     },
     "MoodRating": {
       "title": "MoodRating",
-      "description": "Daily optional 1-10 mood rating stored one document per date (YYYY-MM-DD).",
+      "description": "Daily optional 1-10 (0.5 step) mood rating stored one document per date (YYYY-MM-DD).",
       "type": "object",
       "properties": {
         "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
         "dateKey": { "type": "string", "minLength": 10, "maxLength": 10 },
-        "rating": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "rating": { "type": "number", "minimum": 1, "maximum": 10 },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -301,7 +303,7 @@
     },
     "LifeChapter": {
       "title": "LifeChapter",
-      "description": "Active personal life chapter with theme, start/end dates, and main goals.",
+      "description": "Legacy single active life chapter document.",
       "type": "object",
       "properties": {
         "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
@@ -314,6 +316,23 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["ownerId", "name", "theme", "startDate", "endDate", "goals", "createdAt", "updatedAt"]
+    },
+    "Chapter": {
+      "title": "Chapter",
+      "description": "Non-overlapping personal life chapter with name, theme line, date range, token color, and goals.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "theme": { "type": "string", "maxLength": 240 },
+        "startDate": { "type": "string", "minLength": 10, "maxLength": 10 },
+        "endDate": { "type": "string", "minLength": 10, "maxLength": 10 },
+        "color": { "type": "string", "enum": ["blue", "emerald", "violet", "amber", "rose", "cyan"] },
+        "goals": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name", "theme", "startDate", "endDate", "color", "goals", "createdAt", "updatedAt"]
     },
     "LifeProfile": {
       "title": "LifeProfile",
@@ -421,7 +440,11 @@
     },
     "/users/{uid}/lifeChapters/{chapterId}": {
       "schema": { "$ref": "#/entities/LifeChapter" },
-      "description": "User-owned active life chapter configuration."
+      "description": "Legacy single active life chapter configuration."
+    },
+    "/users/{uid}/chapters/{chapterId}": {
+      "schema": { "$ref": "#/entities/Chapter" },
+      "description": "User-owned life chapters with date ranges, theme lines, token colors, and goals."
     },
     "/users/{uid}/lifeProfiles/{profileId}": {
       "schema": { "$ref": "#/entities/LifeProfile" },

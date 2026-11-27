@@ -371,12 +371,21 @@ export interface VaultItem {
   sourceEntryId?: string;
 }
 
+export type ChapterColorId = 'blue' | 'emerald' | 'violet' | 'amber' | 'rose' | 'cyan';
+
 export interface LifeChapter {
   name: string;
   theme: string;
   startDate: string; // YYYY-MM-DD
   endDate: string; // YYYY-MM-DD
   goals: string[];
+}
+
+export interface ChapterItem extends LifeChapter {
+  id: string;
+  color: ChapterColorId;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export const DEFAULT_LIFE_CHAPTER: LifeChapter = {
@@ -386,6 +395,8 @@ export const DEFAULT_LIFE_CHAPTER: LifeChapter = {
   endDate: '2027-05-31',
   goals: ['Deep work daily', 'Stay consistent', 'Build core projects'],
 };
+
+export const DEFAULT_CHAPTER_COLOR: ChapterColorId = 'blue';
 
 export interface LifeProfileSettings {
   birthDate: string; // YYYY-MM-DD
@@ -400,7 +411,7 @@ export const DEFAULT_LIFE_PROFILE: LifeProfileSettings = {
 export interface MoodRatingRecord {
   id: string; // YYYY-MM-DD
   dateKey: string; // YYYY-MM-DD
-  rating: number; // 1..10
+  rating: number; // 1..10 in 0.5 steps
   updatedAt?: string;
 }
 

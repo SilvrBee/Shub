@@ -21,23 +21,29 @@ import {
   clearLegacyTaskAiFields,
   ensureUserRootProfile,
   fsAreaSettings,
+  fsChapters,
   fsCountdowns,
   fsFocus,
   fsHabits,
-  fsLifeChapter,
   fsLifeProfile,
   fsMoodRatings,
   fsNotes,
   fsSchedule,
   fsTasks,
+  markUserChaptersMigrated,
   sanitizeId,
   subscribeUserCollection,
   subscribeUserProfile,
   updateUserScratchpad,
+  updateUserSidebarCollapsed,
 } from './services/firestoreService';
 import {
   computeAreaPulses,
+  findActiveChapter,
+  findOverlappingChapter,
+  normalizeMoodRating,
   validateAreaSettings,
+  validateChapters,
   validateCountdowns,
   validateLifeChapter,
   validateLifeProfile,
@@ -75,12 +81,14 @@ import {
   AppStyleId,
   AreaSettings,
   CategoryItem,
+  ChapterItem,
   CountdownIconId,
   CountdownItem,
   DashboardView,
   DEFAULT_APP_SETTINGS,
   DEFAULT_AREA_SETTINGS,
   DEFAULT_CATEGORIES,
+  DEFAULT_CHAPTER_COLOR,
   DEFAULT_LIFE_CHAPTER,
   DEFAULT_LIFE_PROFILE,
   FocusSession,
@@ -99,7 +107,7 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { HomeView } from './components/HomeView';
 import { AreaDetailView } from './components/AreaDetailView';
-import { LifeView } from './components/LifeView';
+import { ChapterInput, LifeSubTab, LifeView } from './components/LifeView';
 import { PlaceholderPageView } from './components/PlaceholderPageView';
 import { OverviewView } from './components/OverviewView';
 import { TasksView } from './components/TasksView';
@@ -121,7 +129,72 @@ import { Motion3DBackdrop } from './components/Motion3DBackdrop';
 
 const CADENCE_FIRED_REMINDERS_KEY = 'cadence_fired_reminders';
 const CADENCE_REMINDER_RECORDS_KEY = 'cadence_reminder_records';
+const CADENCE_CHAPTERS_KEY = 'cadence_chapters';
+const CADENCE_CHAPTERS_MIGRATED_KEY = 'cadence_chapters_migrated';
+const CADENCE_SIDEBAR_COLLAPSED_KEY = 'cadence_sidebar_collapsed';
 const BASE_DOCUMENT_TITLE = 'Cadence — Personal Dashboard';
+
+function buildMigratedDropYearChapter(legacy: Partial<LifeChapter> | null | undefined): ChapterItem {
+  const validated = validateLifeChapter(legacy ?? DEFAULT_LIFE_CHAPTER);
+  const safeStart = validated.startDate || DEFAULT_LIFE_CHAPTER.startDate;
+  const rawEnd = validated.endDate || DEFAULT_LIFE_CHAPTER.endDate;
+  const safeEnd = rawEnd >= safeStart ? rawEnd : safeStart;
+  return {
+    id: 'drop_year',
+    name: validated.name || DEFAULT_LIFE_CHAPTER.name,
+    theme: validated.theme,
+    startDate: safeStart,
+    endDate: safeEnd,
+    color: DEFAULT_CHAPTER_COLOR,
+    goals: validated.goals,
+  };
+}
+
+function getInitialLocalChapters(): ChapterItem[] {
+  if (typeof window === 'undefined') return [buildMigratedDropYearChapter(null)];
+  try {
+    const migratedFlag = window.localStorage.getItem(CADENCE_CHAPTERS_MIGRATED_KEY);
+    const existingRaw = window.localStorage.getItem(CADENCE_CHAPTERS_KEY);
+    if (existingRaw !== null) {
+      if (migratedFlag !== '1') {
+        window.localStorage.setItem(CADENCE_CHAPTERS_MIGRATED_KEY, '1');
+      }
+      return validateChapters(JSON.parse(existingRaw));
+    }
+    if (migratedFlag === '1') {
+      return [];
+    }
+    const legacyRaw = window.localStorage.getItem('cadence_life_chapter');
+    const legacyParsed = legacyRaw ? (JSON.parse(legacyRaw) as Partial<LifeChapter>) : null;
+    const migrated = [buildMigratedDropYearChapter(legacyParsed)];
+    window.localStorage.setItem(CADENCE_CHAPTERS_MIGRATED_KEY, '1');
+    window.localStorage.setItem(CADENCE_CHAPTERS_KEY, JSON.stringify(migrated));
+    return migrated;
+  } catch {
+    return [buildMigratedDropYearChapter(null)];
+  }
+}
+
+function readCachedUserSidebarCollapsed(uid: string): boolean | undefined {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const raw = window.localStorage.getItem(`${CADENCE_SIDEBAR_COLLAPSED_KEY}_${uid}`);
+    if (raw === '1') return true;
+    if (raw === '0') return false;
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeCachedUserSidebarCollapsed(uid: string, collapsed: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(`${CADENCE_SIDEBAR_COLLAPSED_KEY}_${uid}`, collapsed ? '1' : '0');
+  } catch {
+    // Ignore storage quota errors
+  }
+}
 
 function makeId(prefix: string): string {
   const rand =
@@ -183,12 +256,25 @@ export default function App() {
       : DashboardView.Home
   );
   const [selectedArea, setSelectedArea] = useState<LifeAreaId | null>(null);
+  const [lifeSubTab, setLifeSubTab] = useState<LifeSubTab>('poster');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
 
   const handleSelectView = useCallback((view: DashboardView) => {
     setActiveView(view);
     setSelectedArea(null);
+  }, []);
+
+  const handleOpenLifeChapters = useCallback(() => {
+    setLifeSubTab('chapters');
+    setActiveView(DashboardView.Life);
+    setSelectedArea(null);
+    window.setTimeout(() => {
+      document.getElementById('life-chapters')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }, 60);
   }, []);
 
   const [user, setUser] = useState<User | null>(null);
@@ -428,10 +514,15 @@ export default function App() {
     DEFAULT_SCRATCHPAD,
     validateScratchpad
   );
-  const [localLifeChapter, setLocalLifeChapter] = useLocalStorage<LifeChapter>(
-    'cadence_life_chapter',
-    DEFAULT_LIFE_CHAPTER,
-    validateLifeChapter
+  const [localSidebarCollapsed, setLocalSidebarCollapsed] = useLocalStorage<boolean>(
+    CADENCE_SIDEBAR_COLLAPSED_KEY,
+    false,
+    (v) => Boolean(v)
+  );
+  const [localChapters, setLocalChapters] = useLocalStorage<ChapterItem[]>(
+    CADENCE_CHAPTERS_KEY,
+    getInitialLocalChapters(),
+    validateChapters
   );
   const [localLifeProfile, setLocalLifeProfile] = useLocalStorage<LifeProfileSettings>(
     'cadence_life_profile',
@@ -461,7 +552,12 @@ export default function App() {
   const [cloudFocusSessions, setCloudFocusSessions] = useState<FocusSession[]>([]);
   const [cloudNotes, setCloudNotes] = useState<NoteItem[]>([]);
   const [cloudScratchpad, setCloudScratchpad] = useState<string>('');
-  const [cloudChapters, setCloudChapters] = useState<Array<LifeChapter & { id: string }>>([]);
+  const [cloudSidebarCollapsed, setCloudSidebarCollapsed] = useState<boolean | undefined>(undefined);
+  const [cloudProfileLoaded, setCloudProfileLoaded] = useState(false);
+  const [cloudProfileExists, setCloudProfileExists] = useState(false);
+  const [cloudChaptersMigrated, setCloudChaptersMigrated] = useState(false);
+  const [cloudChapters, setCloudChapters] = useState<ChapterItem[]>([]);
+  const [cloudChaptersLoaded, setCloudChaptersLoaded] = useState(false);
   const [cloudProfiles, setCloudProfiles] = useState<Array<LifeProfileSettings & { id: string }>>([]);
   const [cloudMoodRatings, setCloudMoodRatings] = useState<MoodRatingRecord[]>([]);
   const [cloudAreaSettings, setCloudAreaSettings] = useState<Array<AreaSettings & { id: string }>>([]);
@@ -469,6 +565,7 @@ export default function App() {
   const [cloudCountdowns, setCloudCountdowns] = useState<CountdownItem[]>([]);
 
   const scratchpadTimerRef = useRef<number | null>(null);
+  const chaptersMigratedUidRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!uid || !user) {
@@ -478,27 +575,51 @@ export default function App() {
       setCloudFocusSessions([]);
       setCloudNotes([]);
       setCloudScratchpad('');
+      setCloudSidebarCollapsed(undefined);
+      setCloudProfileLoaded(false);
+      setCloudProfileExists(false);
+      setCloudChaptersMigrated(false);
       setCloudChapters([]);
+      setCloudChaptersLoaded(false);
       setCloudProfiles([]);
       setCloudMoodRatings([]);
       setCloudAreaSettings([]);
       setCloudAreaSettingsLoaded(false);
       setCloudCountdowns([]);
+      chaptersMigratedUidRef.current = null;
       return;
     }
 
+    setCloudProfileLoaded(false);
+    setCloudProfileExists(false);
+    setCloudChaptersMigrated(false);
+    setCloudChaptersLoaded(false);
     setCloudAreaSettingsLoaded(false);
+    setCloudSidebarCollapsed(readCachedUserSidebarCollapsed(uid));
 
     const unsubs: Array<() => void> = [
-      subscribeUserProfile(uid, ({ scratchpad }) => {
-        setCloudScratchpad(scratchpad);
-      }),
+      subscribeUserProfile(
+        uid,
+        ({ scratchpad, sidebarCollapsed, chaptersMigrated, profileExists }) => {
+          setCloudScratchpad(scratchpad);
+          setCloudProfileLoaded(true);
+          setCloudProfileExists(profileExists);
+          setCloudChaptersMigrated(Boolean(chaptersMigrated));
+          if (typeof sidebarCollapsed === 'boolean') {
+            setCloudSidebarCollapsed(sidebarCollapsed);
+            writeCachedUserSidebarCollapsed(uid, sidebarCollapsed);
+          }
+        }
+      ),
       subscribeUserCollection<TaskItem>(uid, 'tasks', setCloudTasks),
       subscribeUserCollection<ScheduleBlock>(uid, 'schedule', setCloudSchedule),
       subscribeUserCollection<HabitItem>(uid, 'habits', setCloudHabits),
       subscribeUserCollection<FocusSession>(uid, 'focusSessions', setCloudFocusSessions),
       subscribeUserCollection<NoteItem>(uid, 'notes', setCloudNotes),
-      subscribeUserCollection<LifeChapter & { id: string }>(uid, 'lifeChapters', setCloudChapters),
+      subscribeUserCollection<ChapterItem>(uid, 'chapters', (items) => {
+        setCloudChapters(items);
+        setCloudChaptersLoaded(true);
+      }),
       subscribeUserCollection<LifeProfileSettings & { id: string }>(
         uid,
         'lifeProfiles',
@@ -524,6 +645,36 @@ export default function App() {
       }
     };
   }, [uid, user]);
+
+  // One-time cloud migration from legacy lifeChapters/active into multi-chapter collection
+  useEffect(() => {
+    if (!uid || !cloudProfileLoaded || !cloudProfileExists || !cloudChaptersLoaded) {
+      return;
+    }
+    if (cloudChaptersMigrated || chaptersMigratedUidRef.current === uid) {
+      return;
+    }
+    chaptersMigratedUidRef.current = uid;
+    void (async () => {
+      try {
+        if (cloudChapters.length === 0) {
+          const legacy = await fsChapters.getLegacyActive(uid);
+          const migrated = buildMigratedDropYearChapter(legacy);
+          await fsChapters.create(uid, migrated);
+        }
+        await markUserChaptersMigrated(uid);
+      } catch {
+        chaptersMigratedUidRef.current = null;
+      }
+    })();
+  }, [
+    uid,
+    cloudProfileLoaded,
+    cloudProfileExists,
+    cloudChaptersLoaded,
+    cloudChaptersMigrated,
+    cloudChapters.length,
+  ]);
 
   const migratedCloudIdsRef = useRef<Set<string>>(new Set());
 
@@ -573,13 +724,26 @@ export default function App() {
     [uid, cloudNotes, localNotes]
   );
   const scratchpad = uid ? validateScratchpad(cloudScratchpad) : localScratchpad;
-  const lifeChapter = useMemo(() => {
-    if (uid) {
-      const cloudDoc = cloudChapters.find((c) => c.id === 'active') ?? cloudChapters[0];
-      return cloudDoc ? validateLifeChapter(cloudDoc) : DEFAULT_LIFE_CHAPTER;
-    }
-    return validateLifeChapter(localLifeChapter);
-  }, [uid, cloudChapters, localLifeChapter]);
+  const sidebarCollapsed = uid ? Boolean(cloudSidebarCollapsed) : localSidebarCollapsed;
+
+  const [todayKey, setTodayKey] = useState<string>(() => getTodayKey());
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const next = getTodayKey();
+      setTodayKey((prev) => (prev === next ? prev : next));
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const chapters = useMemo(
+    () => validateChapters(uid ? cloudChapters : localChapters),
+    [uid, cloudChapters, localChapters]
+  );
+
+  const activeChapter = useMemo(
+    () => findActiveChapter(chapters, todayKey),
+    [chapters, todayKey]
+  );
 
   const lifeProfile = useMemo(() => {
     if (uid) {
@@ -1369,22 +1533,111 @@ export default function App() {
     }
   };
 
-  const handleUpdateLifeChapter = (nextChapter: LifeChapter) => {
+  const handleToggleSidebarCollapse = useCallback(() => {
+    const next = !sidebarCollapsed;
     if (uid) {
-      const toSave: LifeChapter = {
-        ...nextChapter,
-        startDate: nextChapter.startDate,
-        endDate: nextChapter.endDate,
-      };
-      void fsLifeChapter.saveActive(uid, {
-        ...validateLifeChapter(toSave),
-        name: toSave.name.slice(0, 120),
-      });
+      setCloudSidebarCollapsed(next);
+      writeCachedUserSidebarCollapsed(uid, next);
+      void updateUserSidebarCollapsed(uid, next);
     } else {
-      setLocalLifeChapter((prev) => ({
-        ...prev,
-        ...nextChapter,
-      }));
+      setLocalSidebarCollapsed(next);
+    }
+  }, [sidebarCollapsed, uid, setLocalSidebarCollapsed]);
+
+  const handleAddChapter = (input: ChapterInput): { error?: string } => {
+    const name = input.name.trim().slice(0, 120);
+    if (!name) return { error: 'Chapter name is required.' };
+    if (!input.startDate || !input.endDate) {
+      return { error: 'Both start date and end date are required.' };
+    }
+    if (input.endDate < input.startDate) {
+      return { error: 'End date must be on or after the start date.' };
+    }
+    const overlap = findOverlappingChapter(chapters, {
+      startDate: input.startDate,
+      endDate: input.endDate,
+    });
+    if (overlap) {
+      return {
+        error: `Date range overlaps with "${overlap.name}" (${overlap.startDate} to ${overlap.endDate}).`,
+      };
+    }
+
+    const cleanGoals = Array.from(
+      new Set(input.goals.map((g) => g.trim().slice(0, 80)).filter(Boolean))
+    ).slice(0, 10);
+
+    const newChapter: ChapterItem = {
+      id: makeId('chap'),
+      name,
+      theme: input.theme.trim().slice(0, 240),
+      startDate: input.startDate,
+      endDate: input.endDate,
+      color: input.color,
+      goals: cleanGoals,
+      createdAt: new Date().toISOString(),
+    };
+
+    if (uid) {
+      void fsChapters.create(uid, newChapter);
+    } else {
+      setLocalChapters((prev) => validateChapters([...prev, newChapter]));
+    }
+    return {};
+  };
+
+  const handleUpdateChapter = (id: string, input: ChapterInput): { error?: string } => {
+    const name = input.name.trim().slice(0, 120);
+    if (!name) return { error: 'Chapter name is required.' };
+    if (!input.startDate || !input.endDate) {
+      return { error: 'Both start date and end date are required.' };
+    }
+    if (input.endDate < input.startDate) {
+      return { error: 'End date must be on or after the start date.' };
+    }
+    const overlap = findOverlappingChapter(chapters, {
+      id,
+      startDate: input.startDate,
+      endDate: input.endDate,
+    });
+    if (overlap) {
+      return {
+        error: `Date range overlaps with "${overlap.name}" (${overlap.startDate} to ${overlap.endDate}).`,
+      };
+    }
+
+    const cleanGoals = Array.from(
+      new Set(input.goals.map((g) => g.trim().slice(0, 80)).filter(Boolean))
+    ).slice(0, 10);
+
+    const nextFields = {
+      name,
+      theme: input.theme.trim().slice(0, 240),
+      startDate: input.startDate,
+      endDate: input.endDate,
+      color: input.color,
+      goals: cleanGoals,
+    };
+
+    if (uid) {
+      void fsChapters.update(uid, id, nextFields);
+    } else {
+      setLocalChapters((prev) =>
+        validateChapters(
+          prev.map((c) =>
+            c.id === id ? { ...c, ...nextFields, updatedAt: new Date().toISOString() } : c
+          )
+        )
+      );
+    }
+    return {};
+  };
+
+  const handleDeleteChapter = (id: string) => {
+    if (uid) {
+      void fsChapters.remove(uid, id);
+    } else {
+      setLocalChapters((prev) => prev.filter((c) => c.id !== id));
     }
   };
 
@@ -1397,8 +1650,17 @@ export default function App() {
     }
   };
 
-  const handleSetMoodRating = (dateKey: string, rating: number) => {
-    const safeRating = Math.max(1, Math.min(10, Math.round(rating)));
+  const handleSetMoodRating = (dateKey: string, rating: number | null) => {
+    if (rating === null) {
+      if (uid) {
+        void fsMoodRatings.remove(uid, dateKey);
+      } else {
+        setLocalMoodRatings((prev) => prev.filter((item) => item.dateKey !== dateKey));
+      }
+      return;
+    }
+
+    const safeRating = normalizeMoodRating(rating);
     if (uid) {
       void fsMoodRatings.upsert(uid, dateKey, safeRating);
     } else {
@@ -1537,7 +1799,7 @@ export default function App() {
     const payload = {
       exportedAt: new Date().toISOString(),
       settings: appSettings,
-      lifeChapter,
+      chapters,
       lifeProfile,
       areaSettings,
       moodRatings,
@@ -1604,6 +1866,8 @@ export default function App() {
         pendingCount={pendingTaskCount}
         mobileOpen={mobileNavOpen}
         onCloseMobile={() => setMobileNavOpen(false)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={handleToggleSidebarCollapse}
         user={user}
         isSigningIn={isSigningIn}
         onSignIn={() => void handleGoogleSignIn()}
@@ -1670,7 +1934,7 @@ export default function App() {
                   habits={habits}
                   focusSessions={focusSessions}
                   settings={appSettings}
-                  chapter={lifeChapter}
+                  activeChapter={activeChapter}
                   lifeProfile={lifeProfile}
                   areaSettings={areaSettings}
                   moodRatings={moodRatings}
@@ -1681,16 +1945,27 @@ export default function App() {
                   onSetMoodRating={handleSetMoodRating}
                   onSelectArea={setSelectedArea}
                   onNavigate={handleSelectView}
+                  onOpenLifeChapters={handleOpenLifeChapters}
                 />
               )}
 
               {activeView === DashboardView.Life && (
                 <LifeView
+                  lifeProfile={lifeProfile}
+                  chapters={chapters}
                   countdowns={countdowns}
+                  moodRatings={moodRatings}
+                  activeSubTab={lifeSubTab}
+                  onSelectSubTab={setLifeSubTab}
+                  onSetMoodRating={handleSetMoodRating}
+                  onAddChapter={handleAddChapter}
+                  onUpdateChapter={handleUpdateChapter}
+                  onDeleteChapter={handleDeleteChapter}
                   onAddCountdown={handleAddCountdown}
                   onUpdateCountdown={handleUpdateCountdown}
                   onTogglePinCountdown={handleTogglePinCountdown}
                   onDeleteCountdown={handleDeleteCountdown}
+                  onNavigate={handleSelectView}
                 />
               )}
 
@@ -1821,10 +2096,8 @@ export default function App() {
                   onResetSettings={handleResetSettings}
                   onResetWorkspace={handleResetWorkspace}
                   onExportWorkspace={handleExportWorkspace}
-                  lifeChapter={lifeChapter}
                   lifeProfile={lifeProfile}
                   areaSettings={areaSettings}
-                  onUpdateLifeChapter={handleUpdateLifeChapter}
                   onUpdateLifeProfile={handleUpdateLifeProfile}
                   onUpdateAreaSettings={handleUpdateAreaSettings}
                   user={user}

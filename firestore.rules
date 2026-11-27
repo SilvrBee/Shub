@@ -73,7 +73,8 @@ service cloud.firestore {
           'autoSyncEnabled', 'autoSyncOnOpen', 'aiPrivacyAcknowledged',
           'syncTime', 'syncTimezone',
           'lastSyncedAt', 'lastProcessedEntryDate', 'lastProcessedEntryHash',
-          'lastSyncError', 'createdAt', 'updatedAt'
+          'lastSyncError', 'sidebarCollapsed', 'chaptersMigrated',
+          'createdAt', 'updatedAt'
         ])
         && data.uid is string && data.uid == uid && data.uid.size() <= 128
         && optStr(data, 'displayName', 120)
@@ -92,6 +93,8 @@ service cloud.firestore {
         && optStr(data, 'lastProcessedEntryDate', 20)
         && optStr(data, 'lastProcessedEntryHash', 128)
         && optStr(data, 'lastSyncError', 500)
+        && optBool(data, 'sidebarCollapsed')
+        && optBool(data, 'chaptersMigrated')
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
@@ -351,7 +354,8 @@ service cloud.firestore {
         && data.ownerId is string && data.ownerId == request.auth.uid && data.ownerId.size() <= 128
         && isValidDateKey(dateId)
         && data.dateKey is string && data.dateKey == dateId
-        && data.rating is int && data.rating >= 1 && data.rating <= 10
+        && data.rating is number && data.rating >= 1 && data.rating <= 10
+        && int(data.rating * 2) == data.rating * 2
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
@@ -364,6 +368,21 @@ service cloud.firestore {
         && data.theme is string && data.theme.size() <= 240
         && data.startDate is string && (data.startDate == '' || isValidDateKey(data.startDate))
         && data.endDate is string && (data.endDate == '' || isValidDateKey(data.endDate))
+        && isStringList(data, 'goals', 10)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidChapter(data) {
+      return data.keys().hasAll(['ownerId', 'name', 'theme', 'startDate', 'endDate', 'color', 'goals', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'name', 'theme', 'startDate', 'endDate', 'color', 'goals', 'createdAt', 'updatedAt'])
+        && data.ownerId is string && data.ownerId == request.auth.uid && data.ownerId.size() <= 128
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && data.theme is string && data.theme.size() <= 240
+        && isValidDateKey(data.startDate)
+        && isValidDateKey(data.endDate)
+        && data.endDate >= data.startDate
+        && data.color in ['blue', 'emerald', 'violet', 'amber', 'rose', 'cyan']
         && isStringList(data, 'goals', 10)
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
@@ -417,6 +436,8 @@ service cloud.firestore {
         && (
           incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'photoURL', 'updatedAt']) ||
           incoming().diff(existing()).affectedKeys().hasOnly(['scratchpad', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['sidebarCollapsed', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['chaptersMigrated', 'updatedAt']) ||
           incoming().diff(existing()).affectedKeys().hasOnly(['journalDocId', 'journalDocName', 'journalDocUrl', 'autoSyncEnabled', 'autoSyncOnOpen', 'aiPrivacyAcknowledged', 'syncTime', 'syncTimezone', 'lastSyncedAt', 'lastProcessedEntryDate', 'lastProcessedEntryHash', 'lastSyncError', 'updatedAt'])
         );
       allow delete: if isValidId(uid) && isOwner(uid);
@@ -682,6 +703,22 @@ service cloud.firestore {
           && incoming().createdAt == existing().createdAt
           && incoming().updatedAt == request.time
           && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'theme', 'startDate', 'endDate', 'goals', 'updatedAt']);
+        allow delete: if isValidId(uid) && isValidId(chapterId) && isOwner(uid);
+      }
+
+      match /chapters/{chapterId} {
+        allow get: if isValidId(uid) && isValidId(chapterId) && isOwner(uid);
+        allow list: if isValidId(uid) && isOwner(uid) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(uid) && isValidId(chapterId) && isOwner(uid)
+          && isValidChapter(incoming())
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(uid) && isValidId(chapterId) && isOwner(uid)
+          && isValidChapter(incoming())
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'theme', 'startDate', 'endDate', 'color', 'goals', 'updatedAt']);
         allow delete: if isValidId(uid) && isValidId(chapterId) && isOwner(uid);
       }
 

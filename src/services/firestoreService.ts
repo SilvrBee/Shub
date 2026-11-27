@@ -19,8 +19,11 @@ import { auth, db } from './googleAuth';
 import {
   ActivityLog,
   AreaSettings,
+  ChapterColorId,
+  ChapterItem,
   CommitmentItem,
   CountdownItem,
+  DEFAULT_CHAPTER_COLOR,
   FocusSession,
   HabitItem,
   JournalConfig,
@@ -36,6 +39,7 @@ import {
   TimelineEvent,
   VaultItem,
 } from '../types/dashboard';
+import { normalizeMoodRating, VALID_CHAPTER_COLORS } from '../utils/lifeUtils';
 
 export enum OperationType {
   CREATE = 'create',
@@ -187,9 +191,44 @@ export async function updateUserJournalConfig(
   }
 }
 
+export async function updateUserSidebarCollapsed(
+  uid: string,
+  sidebarCollapsed: boolean
+): Promise<void> {
+  const firestore = getDb();
+  const path = `users/${uid}`;
+  try {
+    await updateDoc(doc(firestore, 'users', uid), {
+      sidebarCollapsed: Boolean(sidebarCollapsed),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+export async function markUserChaptersMigrated(uid: string): Promise<void> {
+  const firestore = getDb();
+  const path = `users/${uid}`;
+  try {
+    await updateDoc(doc(firestore, 'users', uid), {
+      chaptersMigrated: true,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
 export function subscribeUserProfile(
   uid: string,
-  onData: (data: { scratchpad: string; journalConfig: JournalConfig }) => void,
+  onData: (data: {
+    scratchpad: string;
+    journalConfig: JournalConfig;
+    sidebarCollapsed?: boolean;
+    chaptersMigrated?: boolean;
+    profileExists: boolean;
+  }) => void,
   onError?: (err: Error) => void
 ): Unsubscribe {
   const firestore = getDb();
@@ -199,11 +238,22 @@ export function subscribeUserProfile(
     (snap) => {
       const raw = snap.data() as Record<string, unknown> | undefined;
       if (!raw) {
-        onData({ scratchpad: '', journalConfig: {} });
+        onData({
+          scratchpad: '',
+          journalConfig: {},
+          sidebarCollapsed: undefined,
+          chaptersMigrated: undefined,
+          profileExists: false,
+        });
         return;
       }
       onData({
+        profileExists: true,
         scratchpad: typeof raw.scratchpad === 'string' ? raw.scratchpad : '',
+        sidebarCollapsed:
+          typeof raw.sidebarCollapsed === 'boolean' ? raw.sidebarCollapsed : undefined,
+        chaptersMigrated:
+          typeof raw.chaptersMigrated === 'boolean' ? raw.chaptersMigrated : undefined,
         journalConfig: {
           journalDocId: typeof raw.journalDocId === 'string' ? raw.journalDocId : undefined,
           journalDocName: typeof raw.journalDocName === 'string' ? raw.journalDocName : undefined,
@@ -738,7 +788,7 @@ export const fsMoodRatings = {
   upsert: async (uid: string, dateKey: string, rating: number): Promise<void> => {
     const firestore = getDb();
     const safeDateKey = dateKey.slice(0, 10);
-    const safeRating = Math.max(1, Math.min(10, Math.round(rating)));
+    const safeRating = normalizeMoodRating(rating);
     const path = `users/${uid}/moodRatings/${safeDateKey}`;
     try {
       const ref = doc(firestore, 'users', uid, 'moodRatings', safeDateKey);
@@ -759,6 +809,45 @@ export const fsMoodRatings = {
       }
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+  remove: async (uid: string, dateKey: string): Promise<void> => {
+    const safeDateKey = dateKey.slice(0, 10);
+    await deleteUserDoc(uid, 'moodRatings', safeDateKey);
+  },
+};
+
+function sanitizeChapterFields(item: Omit<ChapterItem, 'id'> | ChapterItem) {
+  const name = (item.name || '').trim().slice(0, 120) || 'Chapter';
+  const theme = (item.theme || '').trim().slice(0, 240);
+  const startDate = (item.startDate || '').slice(0, 10);
+  const endDate = (item.endDate || '').slice(0, 10);
+  const color: ChapterColorId = VALID_CHAPTER_COLORS.includes(item.color)
+    ? item.color
+    : DEFAULT_CHAPTER_COLOR;
+  const goals = Array.from(
+    new Set((item.goals || []).map((g) => g.trim().slice(0, 80)).filter(Boolean))
+  ).slice(0, 10);
+  return { name, theme, startDate, endDate, color, goals };
+}
+
+export const fsChapters = {
+  create: (uid: string, item: ChapterItem) =>
+    createUserDoc(uid, 'chapters', item.id, sanitizeChapterFields(item)),
+  update: (
+    uid: string,
+    id: string,
+    next: Pick<ChapterItem, 'name' | 'theme' | 'startDate' | 'endDate' | 'color' | 'goals'>
+  ) => updateUserDoc(uid, 'chapters', id, sanitizeChapterFields(next)),
+  remove: (uid: string, id: string) => deleteUserDoc(uid, 'chapters', id),
+  getLegacyActive: async (uid: string): Promise<LifeChapter | null> => {
+    const firestore = getDb();
+    try {
+      const snap = await getDoc(doc(firestore, 'users', uid, 'lifeChapters', 'active'));
+      if (!snap.exists()) return null;
+      return snap.data() as LifeChapter;
+    } catch {
+      return null;
     }
   },
 };

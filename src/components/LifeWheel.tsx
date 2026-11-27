@@ -109,8 +109,8 @@ export function LifeWheel({ pulses, onSelectArea }: LifeWheelProps) {
         </div>
       </div>
 
-      <div className="p-5 flex-1 flex flex-col items-center justify-center relative">
-        <div className="relative w-full max-w-[280px] aspect-square flex items-center justify-center">
+      <div className="p-4 flex-1 flex flex-col items-center justify-center relative">
+        <div className="relative w-full max-w-[236px] aspect-square flex items-center justify-center">
           <svg
             viewBox="0 0 280 280"
             className="w-full h-full overflow-visible select-none"

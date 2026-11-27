@@ -4,9 +4,10 @@ import { usePWAInstall } from '../hooks/usePWAInstall';
 
 interface PWAInstallButtonProps {
   variant?: 'sidebar' | 'settings';
+  compact?: boolean;
 }
 
-export function PWAInstallButton({ variant = 'sidebar' }: PWAInstallButtonProps) {
+export function PWAInstallButton({ variant = 'sidebar', compact = false }: PWAInstallButtonProps) {
   const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
   const [showIOSGuide, setShowIOSGuide] = useState(false);
 
@@ -144,10 +145,14 @@ export function PWAInstallButton({ variant = 'sidebar' }: PWAInstallButtonProps)
       <button
         type="button"
         onClick={() => void install()}
-        className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors cursor-pointer"
+        title={compact ? 'Install App' : undefined}
+        aria-label="Install App"
+        className={`w-full flex items-center justify-center gap-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors cursor-pointer ${
+          compact ? 'p-2' : 'px-3 py-2'
+        }`}
       >
         <Download className="w-3.5 h-3.5 shrink-0" />
-        <span>Install App</span>
+        {!compact && <span>Install App</span>}
       </button>
     );
   }
@@ -158,10 +163,14 @@ export function PWAInstallButton({ variant = 'sidebar' }: PWAInstallButtonProps)
         <button
           type="button"
           onClick={() => setShowIOSGuide(true)}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          title={compact ? 'Install on iOS' : undefined}
+          aria-label="Install on iOS"
+          className={`w-full flex items-center justify-center gap-2 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer ${
+            compact ? 'p-2' : 'px-3 py-2'
+          }`}
         >
           <Smartphone className="w-3.5 h-3.5 shrink-0" />
-          <span>Install on iOS</span>
+          {!compact && <span>Install on iOS</span>}
         </button>
         {iosModal}
       </>

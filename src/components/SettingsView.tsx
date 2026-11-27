@@ -7,7 +7,6 @@ import {
   Check,
   CheckSquare,
   ChevronDown,
-  Compass,
   Database,
   Download,
   Globe,
@@ -16,12 +15,10 @@ import {
   Monitor,
   Moon,
   Palette,
-  Plus,
   RotateCcw,
   Sliders,
   Smartphone,
   Sun,
-  X,
 } from 'lucide-react';
 import { PWAInstallButton } from './PWAInstallButton';
 import {
@@ -38,13 +35,11 @@ import {
   ColorMode,
   DashboardView,
   DEFAULT_AREA_SETTINGS,
-  DEFAULT_LIFE_CHAPTER,
   DEFAULT_LIFE_PROFILE,
   DefaultReminderOffset,
   LayoutDensity,
   LIFE_AREA_IDS,
   LifeAreaId,
-  LifeChapter,
   LifeProfileSettings,
   MatrixImportantRule,
   ScheduleBlock,
@@ -79,10 +74,8 @@ interface SettingsViewProps {
   onResetSettings: () => void;
   onResetWorkspace: () => void;
   onExportWorkspace: () => void;
-  lifeChapter: LifeChapter;
   lifeProfile: LifeProfileSettings;
   areaSettings: AreaSettings;
-  onUpdateLifeChapter: (chapter: LifeChapter) => void;
   onUpdateLifeProfile: (profile: LifeProfileSettings) => void;
   onUpdateAreaSettings: (areaSettings: AreaSettings) => void;
   user: User | null;
@@ -171,7 +164,6 @@ const LANDING_VIEWS: Array<{ value: DashboardView; label: string }> = [
 type SettingsSectionId =
   | 'appearance'
   | 'general'
-  | 'lifeChapter'
   | 'lifeProfile'
   | 'lifeAreas'
   | 'defaults'
@@ -183,7 +175,6 @@ type SettingsSectionId =
 const INITIAL_COLLAPSED_SECTIONS: Record<SettingsSectionId, boolean> = {
   appearance: false,
   general: false,
-  lifeChapter: false,
   lifeProfile: false,
   lifeAreas: false,
   defaults: false,
@@ -208,10 +199,8 @@ export function SettingsView({
   onResetSettings,
   onResetWorkspace,
   onExportWorkspace,
-  lifeChapter,
   lifeProfile,
   areaSettings,
-  onUpdateLifeChapter,
   onUpdateLifeProfile,
   onUpdateAreaSettings,
   user,
@@ -222,9 +211,6 @@ export function SettingsView({
 }: SettingsViewProps) {
   const [confirmResetWorkspace, setConfirmResetWorkspace] = useState(false);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
-  const [newGoalInput, setNewGoalInput] = useState('');
-  const [chapterNameDraft, setChapterNameDraft] = useState(lifeChapter.name);
-  const [chapterThemeDraft, setChapterThemeDraft] = useState(lifeChapter.theme);
   const [expectancyDraft, setExpectancyDraft] = useState(String(lifeProfile.lifeExpectancy));
   const [studyGoalDraft, setStudyGoalDraft] = useState(
     String(areaSettings.studyWeeklyGoalHours)
@@ -234,36 +220,12 @@ export function SettingsView({
   );
 
   useEffect(() => {
-    setChapterNameDraft(lifeChapter.name);
-    setChapterThemeDraft(lifeChapter.theme);
-  }, [lifeChapter.name, lifeChapter.theme]);
-
-  useEffect(() => {
     setExpectancyDraft(String(lifeProfile.lifeExpectancy));
   }, [lifeProfile.lifeExpectancy]);
 
   useEffect(() => {
     setStudyGoalDraft(String(areaSettings.studyWeeklyGoalHours));
   }, [areaSettings.studyWeeklyGoalHours]);
-
-  const commitChapterName = () => {
-    const trimmed = chapterNameDraft.trim().slice(0, 120);
-    const nextName = trimmed || DEFAULT_LIFE_CHAPTER.name;
-    setChapterNameDraft(nextName);
-    if (nextName !== lifeChapter.name) {
-      onUpdateLifeChapter({ ...lifeChapter, name: nextName });
-      showNotice('Chapter updated');
-    }
-  };
-
-  const commitChapterTheme = () => {
-    const nextTheme = chapterThemeDraft.trim().slice(0, 240);
-    setChapterThemeDraft(nextTheme);
-    if (nextTheme !== lifeChapter.theme) {
-      onUpdateLifeChapter({ ...lifeChapter, theme: nextTheme });
-      showNotice('Chapter updated');
-    }
-  };
 
   const commitExpectancy = () => {
     const parsed = Number(expectancyDraft.trim());
@@ -304,7 +266,6 @@ export function SettingsView({
     setExpandedSections({
       appearance: next,
       general: next,
-      lifeChapter: next,
       lifeProfile: next,
       lifeAreas: next,
       defaults: next,
@@ -1225,217 +1186,6 @@ export function SettingsView({
             </div>
           </div>
         </div>
-        )}
-      </section>
-
-      {/* Section: Life Chapter */}
-      <section className="editorial-rise editorial-rise-3 cadence-card bg-white dark:bg-[#121927] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-        <button
-          type="button"
-          onClick={() => toggleSection('lifeChapter')}
-          aria-expanded={expandedSections.lifeChapter}
-          aria-controls="settings-panel-life-chapter"
-          className={`w-full text-left px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${
-            expandedSections.lifeChapter ? 'border-b border-slate-200 dark:border-slate-800' : ''
-          }`}
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <Compass className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-            <div className="min-w-0">
-              <span className="editorial-kicker">
-                <span className="editorial-marker" aria-hidden="true">CHAPTER</span>
-                <span className="editorial-kicker-text">Season &amp; Focus</span>
-              </span>
-              <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-                Life chapter
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Active chapter name, theme, date range, and main goals shown on Home
-              </p>
-            </div>
-          </div>
-          <ChevronDown
-            className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
-              expandedSections.lifeChapter ? 'rotate-180' : ''
-            }`}
-            aria-hidden="true"
-          />
-        </button>
-
-        {expandedSections.lifeChapter && (
-          <div id="settings-panel-life-chapter" className="p-6 space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div>
-                <label
-                  htmlFor="settings-chapter-name"
-                  className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
-                >
-                  Chapter Name
-                </label>
-                <input
-                  id="settings-chapter-name"
-                  type="text"
-                  maxLength={120}
-                  value={chapterNameDraft}
-                  onChange={(e) => setChapterNameDraft(e.target.value)}
-                  onBlur={commitChapterName}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.currentTarget.blur();
-                    }
-                  }}
-                  placeholder="Drop Year"
-                  className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm text-slate-900 dark:text-slate-100"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="settings-chapter-theme"
-                  className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
-                >
-                  Theme Line
-                </label>
-                <input
-                  id="settings-chapter-theme"
-                  type="text"
-                  maxLength={240}
-                  value={chapterThemeDraft}
-                  onChange={(e) => setChapterThemeDraft(e.target.value)}
-                  onBlur={commitChapterTheme}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.currentTarget.blur();
-                    }
-                  }}
-                  placeholder="Focused growth, deep craft & steady momentum"
-                  className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm text-slate-900 dark:text-slate-100"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="settings-chapter-start"
-                  className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
-                >
-                  Start Date
-                </label>
-                <input
-                  id="settings-chapter-start"
-                  type="date"
-                  value={lifeChapter.startDate}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      onUpdateLifeChapter({
-                        ...lifeChapter,
-                        startDate: e.target.value,
-                      });
-                      showNotice('Chapter updated');
-                    }
-                  }}
-                  className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums text-slate-900 dark:text-slate-100"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="settings-chapter-end"
-                  className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-1"
-                >
-                  End Date
-                </label>
-                <input
-                  id="settings-chapter-end"
-                  type="date"
-                  value={lifeChapter.endDate}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      onUpdateLifeChapter({
-                        ...lifeChapter,
-                        endDate: e.target.value,
-                      });
-                      showNotice('Chapter updated');
-                    }
-                  }}
-                  className="cadence-input w-full px-3.5 py-2 rounded-lg text-sm font-mono tabular-nums text-slate-900 dark:text-slate-100"
-                />
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
-              <div>
-                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                  Main Goals
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Shown as small chips in your Home chapter banner (up to 10)
-                </p>
-              </div>
-
-              {lifeChapter.goals.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {lifeChapter.goals.map((goal, idx) => (
-                    <span
-                      key={`${goal}-${idx}`}
-                      className="editorial-subtle-box inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
-                    >
-                      <span>{goal}</span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onUpdateLifeChapter({
-                            ...lifeChapter,
-                            goals: lifeChapter.goals.filter((_, gIdx) => gIdx !== idx),
-                          })
-                        }
-                        aria-label={`Remove goal "${goal}"`}
-                        className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const trimmed = newGoalInput.trim().slice(0, 80);
-                  if (!trimmed || lifeChapter.goals.length >= 10) return;
-                  if (lifeChapter.goals.includes(trimmed)) {
-                    setNewGoalInput('');
-                    return;
-                  }
-                  onUpdateLifeChapter({
-                    ...lifeChapter,
-                    goals: [...lifeChapter.goals, trimmed],
-                  });
-                  setNewGoalInput('');
-                  showNotice('Chapter goal added');
-                }}
-                className="flex flex-col sm:flex-row gap-2"
-              >
-                <input
-                  type="text"
-                  maxLength={80}
-                  value={newGoalInput}
-                  onChange={(e) => setNewGoalInput(e.target.value)}
-                  placeholder="Add a main goal (e.g. Ship flagship project)"
-                  aria-label="New chapter goal"
-                  className="cadence-input flex-1 px-3.5 py-2 rounded-lg text-sm text-slate-900 dark:text-slate-100"
-                />
-                <button
-                  type="submit"
-                  disabled={!newGoalInput.trim() || lifeChapter.goals.length >= 10}
-                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add goal</span>
-                </button>
-              </form>
-            </div>
-          </div>
         )}
       </section>
 
