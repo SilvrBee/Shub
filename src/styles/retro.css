@@ -1,0 +1,317 @@
+/* Style: Retro & Nostalgic (including Y2K) — strictly scoped under data-style="retro" */
+
+html[data-style="retro"] {
+  --cadence-font-display: "Chakra Petch", "Plus Jakarta Sans", sans-serif;
+  --cadence-font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --cadence-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --cadence-radius-card: 0.375rem;
+  --cadence-radius-control: 0.3125rem;
+  --cadence-radius-sm: 0.1875rem;
+
+  --cadence-border-width: 1px;
+  --cadence-border-color: #8494aa;
+  --cadence-border-subtle: #b7c3d3;
+
+  --cadence-bg-canvas: #d9e2ec;
+  --cadence-bg-sidebar: #eef2f7;
+  --cadence-bg-header: rgba(238, 242, 247, 0.96);
+  --cadence-bg-card: #f4f7fb;
+  --cadence-bg-input: #ffffff;
+  --cadence-bg-modal: #f4f7fb;
+  --cadence-bg-popover: #f8fafd;
+  --cadence-bg-popover-hover: #dce7f5;
+  --cadence-popover-text: #111827;
+  --cadence-popover-muted: #4b5563;
+  --cadence-popover-shadow:
+    0 12px 26px -8px rgba(15, 23, 42, 0.24),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.95);
+  --cadence-blur-popover: 0px;
+
+  --cadence-shadow-card:
+    0 6px 14px -8px rgba(15, 23, 42, 0.22),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.95),
+    inset -1.5px -1.5px 0 rgba(100, 116, 139, 0.24);
+  --cadence-shadow-elevated:
+    0 16px 34px -10px rgba(15, 23, 42, 0.28),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.95),
+    inset -1.5px -1.5px 0 rgba(100, 116, 139, 0.28);
+
+  --cadence-blur-card: 0px;
+  --cadence-blur-header: 0px;
+
+  --cadence-space-card: 1.375rem;
+  --cadence-space-section: 1.25rem;
+  --cadence-space-main-x: 1.875rem;
+  --cadence-space-main-y: 1.5rem;
+
+  /* Subtle late-90s CRT scanlines + archival film grain texture */
+  --cadence-bg-layer:
+    repeating-linear-gradient(
+      0deg,
+      rgba(15, 23, 42, 0.025) 0px,
+      rgba(15, 23, 42, 0.025) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.08 0 0 0 0 0.12 0 0 0 0 0.18 0 0 0 0.048 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23r)'/%3E%3C/svg%3E");
+}
+
+html[data-style="retro"]:not(.high-contrast) body,
+html[data-style="retro"]:not(.high-contrast) .cadence-shell {
+  background-repeat: repeat;
+  background-size: 100% 3px, 140px 140px;
+}
+
+html[data-style="retro"]:not(.high-contrast) {
+  --color-slate-50: #f1f5f9;
+  --color-slate-100: #e2e8f0;
+  --color-slate-200: #9aa8bc;
+  --color-slate-300: #7f90a6;
+  --color-slate-400: #526074;
+  --color-slate-500: #434f61;
+  --color-slate-600: #334155;
+  --color-slate-700: #1e293b;
+  --color-slate-800: #162032;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #090d16;
+}
+
+html.dark[data-style="retro"] {
+  --cadence-border-color: #384663;
+  --cadence-border-subtle: #273247;
+
+  --cadence-bg-canvas: #0c1018;
+  --cadence-bg-sidebar: #121826;
+  --cadence-bg-header: rgba(18, 24, 38, 0.96);
+  --cadence-bg-card: #151d2e;
+  --cadence-bg-input: #0e1420;
+  --cadence-bg-modal: #161f31;
+  --cadence-bg-popover: #161f31;
+  --cadence-bg-popover-hover: #222e48;
+  --cadence-popover-text: #eef4ff;
+  --cadence-popover-muted: #9eb0cf;
+  --cadence-popover-shadow:
+    0 18px 36px -10px rgba(0, 0, 0, 0.72),
+    inset 1px 1px 0 rgba(148, 163, 184, 0.22);
+
+  --cadence-shadow-card:
+    0 10px 24px -10px rgba(0, 0, 0, 0.65),
+    inset 1px 1px 0 rgba(148, 163, 184, 0.18),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.52);
+  --cadence-shadow-elevated:
+    0 22px 44px -12px rgba(0, 0, 0, 0.78),
+    inset 1px 1px 0 rgba(148, 163, 184, 0.22);
+
+  --cadence-bg-layer:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.024) 0px,
+      rgba(255, 255, 255, 0.024) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cfilter id='rd'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.75 0 0 0 0 0.85 0 0 0 0 1 0 0 0 0.042 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23rd)'/%3E%3C/svg%3E");
+}
+
+html.dark[data-style="retro"]:not(.high-contrast) {
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #eef4ff;
+  --color-slate-200: #cbd6ea;
+  --color-slate-300: #aebcd6;
+  --color-slate-400: #91a2c2;
+  --color-slate-500: #7c8ead;
+  --color-slate-600: #5c6d8c;
+  --color-slate-700: #384663;
+  --color-slate-800: #253047;
+  --color-slate-900: #151d2e;
+  --color-slate-950: #0b0f18;
+}
+
+/* Retro / Y2K Chakra Petch display typography */
+html[data-style="retro"] main h1 {
+  font-family: var(--cadence-font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+html[data-style="retro"] .cadence-card h2 {
+  font-family: var(--cadence-font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+html[data-style="retro"] aside .font-display {
+  font-family: var(--cadence-font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+html[data-style="retro"] .editorial-kpi-value {
+  font-family: var(--cadence-font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+html[data-style="retro"] .editorial-kpi-label {
+  font-family: var(--cadence-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Y2K brushed metallic hero banner with top gradient accent bar */
+html[data-style="retro"]:not(.high-contrast) .aurora-hero-header {
+  background: linear-gradient(180deg, #ffffff 0%, #e7eef6 100%);
+  border: 1px solid var(--cadence-border-color);
+  border-top: 3px solid var(--color-blue-600);
+  border-radius: var(--cadence-radius-card);
+  box-shadow: var(--cadence-shadow-card);
+  padding: 1.15rem 1.375rem;
+}
+
+html.dark[data-style="retro"]:not(.high-contrast) .aurora-hero-header {
+  background: linear-gradient(180deg, #1b2439 0%, #131a2a 100%);
+  border-top-color: var(--color-blue-400);
+}
+
+/* Beveled retro workstation cards & Y2K title-bar sheen */
+html[data-style="retro"] .cadence-sidebar {
+  background-color: var(--cadence-bg-sidebar);
+  border-right: 1px solid var(--cadence-border-color);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.7);
+}
+
+html.dark[data-style="retro"] .cadence-sidebar {
+  box-shadow: inset -1px 0 0 rgba(148, 163, 184, 0.12);
+}
+
+html[data-style="retro"] .cadence-header {
+  background-color: var(--cadence-bg-header);
+  border-bottom: 1px solid var(--cadence-border-color);
+}
+
+html[data-style="retro"] .cadence-card {
+  background-color: var(--cadence-bg-card);
+  border-color: var(--cadence-border-color);
+  border-radius: var(--cadence-radius-card);
+  box-shadow: var(--cadence-shadow-card);
+}
+
+html[data-style="retro"]:not(.high-contrast) .cadence-card > .border-b {
+  background: linear-gradient(180deg, #ffffff 0%, #e5ecf4 100%);
+  border-bottom-color: var(--cadence-border-color);
+}
+
+html.dark[data-style="retro"]:not(.high-contrast) .cadence-card > .border-b {
+  background: linear-gradient(180deg, #1d273d 0%, #151d2e 100%);
+  border-bottom-color: var(--cadence-border-color);
+}
+
+/* Recessed late-90s/Y2K LCD metric strip */
+html[data-style="retro"] section[aria-label$="Metrics Summary"].cadence-card {
+  gap: 0;
+  border-radius: var(--cadence-radius-card);
+  overflow: hidden;
+}
+
+html[data-style="retro"]:not(.high-contrast) section[aria-label$="Metrics Summary"].cadence-card > div {
+  background: linear-gradient(180deg, #fbfcfe 0%, #edf2f8 100%);
+  border-color: var(--cadence-border-subtle);
+  box-shadow: inset 0 2px 0 0 color-mix(in srgb, var(--color-blue-500) 45%, transparent);
+}
+
+html.dark[data-style="retro"]:not(.high-contrast) section[aria-label$="Metrics Summary"].cadence-card > div {
+  background: linear-gradient(180deg, #172034 0%, #111827 100%);
+  border-color: var(--cadence-border-subtle);
+  box-shadow: inset 0 2px 0 0 color-mix(in srgb, var(--color-blue-400) 45%, transparent);
+}
+
+html[data-style="retro"] [role="dialog"] .cadence-card,
+html[data-style="retro"] .cadence-card.editorial-modal {
+  background-color: var(--cadence-bg-modal);
+  border-color: var(--cadence-border-color);
+  border-radius: var(--cadence-radius-card);
+  box-shadow: var(--cadence-shadow-elevated);
+}
+
+/* Recessed tactile inputs & glossy aqua Y2K primary buttons */
+html[data-style="retro"] .cadence-input,
+html[data-style="retro"] .cadence-control,
+html[data-style="retro"] button.rounded-lg,
+html[data-style="retro"] button.rounded-xl {
+  border-radius: var(--cadence-radius-control);
+}
+
+html[data-style="retro"]:not(.high-contrast) main :is(input:not([type="checkbox"]), textarea, select) {
+  background-color: var(--cadence-bg-input);
+  border-color: var(--cadence-border-color);
+  border-radius: var(--cadence-radius-control);
+  box-shadow: inset 1px 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+html.dark[data-style="retro"]:not(.high-contrast) main :is(input:not([type="checkbox"]), textarea, select) {
+  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+html[data-style="retro"]:not(.high-contrast) main input[type="text"].bg-transparent,
+html[data-style="retro"]:not(.high-contrast) main textarea.bg-transparent {
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+html[data-style="retro"]:not(.high-contrast) main button.bg-blue-600 {
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.34) 0%,
+    rgba(255, 255, 255, 0.08) 48%,
+    rgba(0, 0, 0, 0.12) 100%
+  );
+  border: 1px solid var(--color-blue-700);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 2px 5px rgba(15, 23, 42, 0.2);
+}
+
+/* Beveled sidebar navigation highlight */
+html[data-style="retro"]:not(.high-contrast) aside nav button {
+  border-radius: var(--cadence-radius-control);
+  border: 1px solid transparent;
+}
+
+html[data-style="retro"]:not(.high-contrast) aside nav button.bg-slate-100 {
+  background: linear-gradient(180deg, #ffffff 0%, #dde6f2 100%);
+  border-color: var(--cadence-border-color);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.95),
+    inset -1px -1px 0 rgba(100, 116, 139, 0.25);
+}
+
+html.dark[data-style="retro"]:not(.high-contrast) aside nav button.dark\:bg-slate-800\/80 {
+  background: linear-gradient(180deg, #24304a 0%, #182135 100%);
+  border-color: var(--cadence-border-color);
+  box-shadow:
+    inset 1px 1px 0 rgba(148, 163, 184, 0.22),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.45);
+}
+
+/* High contrast safeguard */
+html.high-contrast[data-style="retro"] .cadence-card,
+html.high-contrast[data-style="retro"] .cadence-sidebar,
+html.high-contrast[data-style="retro"] .cadence-header {
+  background-image: none;
+  box-shadow: none;
+  border-width: 2px;
+}
+
+html[data-style="retro"][data-density="compact"] {
+  --cadence-space-card: 1.125rem;
+  --cadence-space-section: 0.875rem;
+  --cadence-space-main-x: 1.25rem;
+  --cadence-space-main-y: 1rem;
+}

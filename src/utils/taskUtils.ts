@@ -263,6 +263,7 @@ export function validateAndMigrateSettings(raw: unknown): AppSettings {
     'brutalism',
     'swiss',
     'motion-3d',
+    'retro',
   ]);
   const style: AppStyleId = validStyles.has(styleRaw) ? (styleRaw as AppStyleId) : 'classic';
 

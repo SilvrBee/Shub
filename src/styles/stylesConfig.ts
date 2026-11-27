@@ -29,7 +29,8 @@ export interface StyleDefinition {
       | 'magazine'
       | 'brutalism'
       | 'swiss'
-      | 'motion-3d';
+      | 'motion-3d'
+      | 'retro';
   };
 }
 
@@ -241,6 +242,25 @@ export const STYLE_DEFINITIONS: readonly StyleDefinition[] = [
       radius: '14px',
       displayFont: '"Outfit", sans-serif',
       effect: 'motion-3d',
+    },
+  },
+  {
+    id: 'retro',
+    name: 'Retro & Nostalgic (Y2K)',
+    description: 'Late-1990s/2000s beveled chrome windows, glossy aqua controls, subtle CRT scanline grain, and Chakra Petch type',
+    supportedModes: ['light', 'dark'],
+    preview: {
+      canvasLight: '#d9e2ec',
+      canvasDark: '#0d111a',
+      sidebarLight: '#eef2f7',
+      sidebarDark: '#131926',
+      cardLight: '#f4f7fb',
+      cardDark: '#151c2c',
+      borderLight: '#7b8ba1',
+      borderDark: '#33415c',
+      radius: '6px',
+      displayFont: '"Chakra Petch", sans-serif',
+      effect: 'retro',
     },
   },
 ];

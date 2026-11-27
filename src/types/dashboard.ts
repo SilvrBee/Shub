@@ -156,7 +156,8 @@ export type AppStyleId =
   | 'editorial-style'
   | 'brutalism'
   | 'swiss'
-  | 'motion-3d';
+  | 'motion-3d'
+  | 'retro';
 export type ColorMode = 'light' | 'dark' | 'system';
 export type LayoutDensity = 'comfortable' | 'compact';
 

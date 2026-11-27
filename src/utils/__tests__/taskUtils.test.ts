@@ -324,6 +324,7 @@ describe('taskUtils — corrupted and legacy stored data recovery', () => {
     expect(validateAndMigrateSettings({ style: 'brutalism' }).style).toBe('brutalism');
     expect(validateAndMigrateSettings({ style: 'swiss' }).style).toBe('swiss');
     expect(validateAndMigrateSettings({ style: 'motion-3d' }).style).toBe('motion-3d');
+    expect(validateAndMigrateSettings({ style: 'retro' }).style).toBe('retro');
     expect(safeSettings.colorMode).toBe(DEFAULT_APP_SETTINGS.colorMode);
     expect(safeSettings.defaultReminderOffset).toBe('30');
     expect(safeSettings.morningReminderTime).toBe('09:00');

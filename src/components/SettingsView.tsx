@@ -374,6 +374,7 @@ export function SettingsView({
                 const isBrutal = p.effect === 'brutalism';
                 const isSwiss = p.effect === 'swiss';
                 const isMotion3D = p.effect === 'motion-3d';
+                const isRetro = p.effect === 'retro';
                 const previewAccent = isMinimal
                   ? previewDark
                     ? '#e4e4e7'
@@ -399,6 +400,8 @@ export function SettingsView({
                   backdropBg = `linear-gradient(to right, ${previewDark ? 'rgba(255,255,255,0.06)' : 'rgba(17,17,17,0.055)'} 1px, transparent 1px), linear-gradient(to bottom, ${previewDark ? 'rgba(255,255,255,0.06)' : 'rgba(17,17,17,0.055)'} 1px, transparent 1px)`;
                 } else if (isMotion3D) {
                   backdropBg = `radial-gradient(110px circle at 82% 22%, ${activeTheme.accentHex}2a, transparent 70%), linear-gradient(160deg, transparent 55%, ${activeTheme.accentHex}14 100%)`;
+                } else if (isRetro) {
+                  backdropBg = `repeating-linear-gradient(0deg, ${previewDark ? 'rgba(255,255,255,0.035)' : 'rgba(15,23,42,0.035)'} 0px, ${previewDark ? 'rgba(255,255,255,0.035)' : 'rgba(15,23,42,0.035)'} 1px, transparent 1px, transparent 3px)`;
                 }
 
                 return (
@@ -473,7 +476,82 @@ export function SettingsView({
                         />
                       </div>
 
-                      {isMotion3D ? (
+                      {isRetro ? (
+                        <div className="p-2 flex-1 flex flex-col justify-between gap-1.5 min-w-0">
+                          <div
+                            className="border overflow-hidden"
+                            style={{
+                              backgroundColor: cardBg,
+                              borderColor,
+                              borderRadius: '5px',
+                              boxShadow: previewDark
+                                ? 'inset 1px 1px 0 rgba(148,163,184,0.2)'
+                                : 'inset 1px 1px 0 rgba(255,255,255,0.95)',
+                            }}
+                          >
+                            <div
+                              className="px-2 py-0.5 flex items-center justify-between border-b"
+                              style={{
+                                borderColor,
+                                background: previewDark
+                                  ? 'linear-gradient(180deg, #1d273d 0%, #151d2e 100%)'
+                                  : 'linear-gradient(180deg, #ffffff 0%, #dde6f2 100%)',
+                              }}
+                            >
+                              <span
+                                className="text-[10px] font-bold leading-none"
+                                style={{ fontFamily: p.displayFont, color: textPrimary }}
+                              >
+                                Aa Y2K
+                              </span>
+                              <div className="flex items-center gap-0.5">
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full"
+                                  style={{ backgroundColor: activeTheme.accentHex }}
+                                />
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full"
+                                  style={{ backgroundColor: textMuted }}
+                                />
+                              </div>
+                            </div>
+                            <div className="p-1.5 grid grid-cols-2 gap-1.5">
+                              <div
+                                className="p-1 border"
+                                style={{
+                                  borderColor,
+                                  borderRadius: '3px',
+                                  boxShadow: `inset 0 2px 0 0 ${activeTheme.accentHex}`,
+                                }}
+                              >
+                                <div className="h-1 w-5 mb-1" style={{ backgroundColor: textMuted }} />
+                                <div className="h-1.5 w-7" style={{ backgroundColor: textPrimary }} />
+                              </div>
+                              <div
+                                className="p-1 border"
+                                style={{
+                                  borderColor,
+                                  borderRadius: '3px',
+                                }}
+                              >
+                                <div className="h-1 w-6 mb-1" style={{ backgroundColor: textMuted }} />
+                                <div className="h-1.5 w-5" style={{ backgroundColor: textPrimary }} />
+                              </div>
+                            </div>
+                          </div>
+                          <div
+                            className="h-3 w-16 rounded-xs flex items-center px-1.5"
+                            style={{
+                              backgroundColor: activeTheme.accentHex,
+                              backgroundImage:
+                                'linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.06) 50%, rgba(0,0,0,0.12) 100%)',
+                              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5)',
+                            }}
+                          >
+                            <div className="h-1 w-8 rounded-full bg-white/90" />
+                          </div>
+                        </div>
+                      ) : isMotion3D ? (
                         <div className="p-2 flex-1 flex flex-col justify-between gap-1.5 min-w-0">
                           <div className="flex items-center justify-between gap-2">
                             <div
