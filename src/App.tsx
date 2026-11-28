@@ -17,14 +17,19 @@ import {
 } from './data/initialData';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { clearAccessToken, googleSignIn, initAuth, logout } from './services/googleAuth';
+import { fetchAndParseGoogleDocJournal, JournalFetchError } from './services/googleDocsJournal';
 import {
   clearLegacyTaskAiFields,
   ensureUserRootProfile,
   fsAreaSettings,
+  fsBodyLogs,
+  fsBodySettings,
   fsChapters,
   fsCountdowns,
   fsFocus,
   fsHabits,
+  fsJournalDocs,
+  fsJournalStats,
   fsLifeProfile,
   fsMoodRatings,
   fsNotes,
@@ -38,11 +43,20 @@ import {
   updateUserSidebarCollapsed,
 } from './services/firestoreService';
 import {
+  buildGoogleDocUrl,
+  extractGoogleDocId,
+  validateJournalDocs,
+  validateJournalStats,
+} from './utils/journalDocUtils';
+import {
   computeAreaPulses,
   findActiveChapter,
   findOverlappingChapter,
   normalizeMoodRating,
+  sanitizeBodyLogEntry,
   validateAreaSettings,
+  validateBodyLogs,
+  validateBodySettings,
   validateChapters,
   validateCountdowns,
   validateLifeChapter,
@@ -80,6 +94,8 @@ import {
   AppSettings,
   AppStyleId,
   AreaSettings,
+  BodyLogEntry,
+  BodySettings,
   CategoryItem,
   ChapterItem,
   CountdownIconId,
@@ -87,12 +103,16 @@ import {
   DashboardView,
   DEFAULT_APP_SETTINGS,
   DEFAULT_AREA_SETTINGS,
+  DEFAULT_BODY_SETTINGS,
   DEFAULT_CATEGORIES,
   DEFAULT_CHAPTER_COLOR,
   DEFAULT_LIFE_CHAPTER,
   DEFAULT_LIFE_PROFILE,
   FocusSession,
   HabitItem,
+  JournalDayStat,
+  JournalDocConnection,
+  JournalLiveEntry,
   LifeAreaId,
   LifeChapter,
   LifeProfileSettings,
@@ -107,7 +127,10 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { HomeView } from './components/HomeView';
 import { AreaDetailView } from './components/AreaDetailView';
+import { BodyView } from './components/BodyView';
+import { JournalView } from './components/JournalView';
 import { ChapterInput, LifeSubTab, LifeView } from './components/LifeView';
+import { StatsView } from './components/StatsView';
 import { PlaceholderPageView } from './components/PlaceholderPageView';
 import { OverviewView } from './components/OverviewView';
 import { TasksView } from './components/TasksView';
@@ -132,6 +155,7 @@ const CADENCE_REMINDER_RECORDS_KEY = 'cadence_reminder_records';
 const CADENCE_CHAPTERS_KEY = 'cadence_chapters';
 const CADENCE_CHAPTERS_MIGRATED_KEY = 'cadence_chapters_migrated';
 const CADENCE_SIDEBAR_COLLAPSED_KEY = 'cadence_sidebar_collapsed';
+const JOURNAL_AUTO_SYNC_COOLDOWN_MS = 3 * 60 * 1000;
 const BASE_DOCUMENT_TITLE = 'Cadence — Personal Dashboard';
 
 function buildMigratedDropYearChapter(legacy: Partial<LifeChapter> | null | undefined): ChapterItem {
@@ -544,6 +568,26 @@ export default function App() {
     [],
     validateCountdowns
   );
+  const [localBodyLogs, setLocalBodyLogs] = useLocalStorage<BodyLogEntry[]>(
+    'cadence_body_logs',
+    [],
+    validateBodyLogs
+  );
+  const [localBodySettings, setLocalBodySettings] = useLocalStorage<BodySettings>(
+    'cadence_body_settings',
+    DEFAULT_BODY_SETTINGS,
+    validateBodySettings
+  );
+  const [localJournalDocs, setLocalJournalDocs] = useLocalStorage<JournalDocConnection[]>(
+    'cadence_journal_docs',
+    [],
+    validateJournalDocs
+  );
+  const [localJournalStats, setLocalJournalStats] = useLocalStorage<JournalDayStat[]>(
+    'cadence_journal_stats',
+    [],
+    validateJournalStats
+  );
 
   // Cloud Firestore state when signed in
   const [cloudTasks, setCloudTasks] = useState<TaskItem[]>([]);
@@ -563,9 +607,24 @@ export default function App() {
   const [cloudAreaSettings, setCloudAreaSettings] = useState<Array<AreaSettings & { id: string }>>([]);
   const [cloudAreaSettingsLoaded, setCloudAreaSettingsLoaded] = useState(false);
   const [cloudCountdowns, setCloudCountdowns] = useState<CountdownItem[]>([]);
+  const [cloudBodyLogs, setCloudBodyLogs] = useState<BodyLogEntry[]>([]);
+  const [cloudBodySettings, setCloudBodySettings] = useState<Array<BodySettings & { id: string }>>([]);
+  const [cloudJournalDocs, setCloudJournalDocs] = useState<JournalDocConnection[]>([]);
+  const [cloudJournalStats, setCloudJournalStats] = useState<JournalDayStat[]>([]);
+
+  // Live Google Docs journal state (memory-only; entry text is never persisted)
+  const [journalLiveEntries, setJournalLiveEntries] = useState<Record<string, JournalLiveEntry>>({});
+  const [journalMonthTabIdsByYear, setJournalMonthTabIdsByYear] = useState<
+    Record<number, Record<number, string>>
+  >({});
+  const [journalRefreshing, setJournalRefreshing] = useState(false);
+  const [journalSyncError, setJournalSyncError] = useState<JournalFetchError | null>(null);
+  const [journalLastRefreshedAt, setJournalLastRefreshedAt] = useState<string | null>(null);
 
   const scratchpadTimerRef = useRef<number | null>(null);
   const chaptersMigratedUidRef = useRef<string | null>(null);
+  const lastJournalAutoSyncMsRef = useRef<number>(0);
+  const journalRefreshingRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (!uid || !user) {
@@ -586,6 +645,15 @@ export default function App() {
       setCloudAreaSettings([]);
       setCloudAreaSettingsLoaded(false);
       setCloudCountdowns([]);
+      setCloudBodyLogs([]);
+      setCloudBodySettings([]);
+      setCloudJournalDocs([]);
+      setCloudJournalStats([]);
+      setJournalLiveEntries({});
+      setJournalMonthTabIdsByYear({});
+      setJournalSyncError(null);
+      setJournalLastRefreshedAt(null);
+      lastJournalAutoSyncMsRef.current = 0;
       chaptersMigratedUidRef.current = null;
       return;
     }
@@ -595,6 +663,11 @@ export default function App() {
     setCloudChaptersMigrated(false);
     setCloudChaptersLoaded(false);
     setCloudAreaSettingsLoaded(false);
+    setJournalLiveEntries({});
+    setJournalMonthTabIdsByYear({});
+    setJournalSyncError(null);
+    setJournalLastRefreshedAt(null);
+    lastJournalAutoSyncMsRef.current = 0;
     setCloudSidebarCollapsed(readCachedUserSidebarCollapsed(uid));
 
     const unsubs: Array<() => void> = [
@@ -631,6 +704,14 @@ export default function App() {
         setCloudAreaSettingsLoaded(true);
       }),
       subscribeUserCollection<CountdownItem>(uid, 'countdowns', setCloudCountdowns),
+      subscribeUserCollection<BodyLogEntry>(uid, 'bodyLogs', setCloudBodyLogs),
+      subscribeUserCollection<BodySettings & { id: string }>(
+        uid,
+        'bodySettings',
+        setCloudBodySettings
+      ),
+      subscribeUserCollection<JournalDocConnection>(uid, 'journalDocs', setCloudJournalDocs),
+      subscribeUserCollection<JournalDayStat>(uid, 'journalStats', setCloudJournalStats),
     ];
 
     void ensureUserRootProfile(user).catch((err) => {
@@ -771,6 +852,30 @@ export default function App() {
     [uid, cloudCountdowns, localCountdowns]
   );
 
+  const bodyLogs = useMemo(
+    () => validateBodyLogs(uid ? cloudBodyLogs : localBodyLogs),
+    [uid, cloudBodyLogs, localBodyLogs]
+  );
+
+  const bodySettings = useMemo(() => {
+    if (uid) {
+      const cloudDoc =
+        cloudBodySettings.find((b) => b.id === 'default') ?? cloudBodySettings[0];
+      return cloudDoc ? validateBodySettings(cloudDoc) : DEFAULT_BODY_SETTINGS;
+    }
+    return validateBodySettings(localBodySettings);
+  }, [uid, cloudBodySettings, localBodySettings]);
+
+  const journalDocs = useMemo(
+    () => validateJournalDocs(uid ? cloudJournalDocs : localJournalDocs),
+    [uid, cloudJournalDocs, localJournalDocs]
+  );
+
+  const journalStats = useMemo(
+    () => validateJournalStats(uid ? cloudJournalStats : localJournalStats),
+    [uid, cloudJournalStats, localJournalStats]
+  );
+
   const areaPulses = useMemo(
     () =>
       computeAreaPulses({
@@ -779,8 +884,10 @@ export default function App() {
         focusSessions,
         moodRatings,
         areaSettings,
+        bodyLogs,
+        journalStats,
       }),
-    [tasks, habits, focusSessions, moodRatings, areaSettings]
+    [tasks, habits, focusSessions, moodRatings, areaSettings, bodyLogs, journalStats]
   );
 
   const [taskModalOpen, setTaskModalOpen] = useState(false);
@@ -1108,6 +1215,13 @@ export default function App() {
       const result = await googleSignIn(user?.email);
       setUser(result.user);
       setAccessToken(result.accessToken);
+      if (
+        result.accessToken &&
+        activeView === DashboardView.Journal &&
+        journalDocs.length > 0
+      ) {
+        void refreshJournalDocs({ force: true, overrideToken: result.accessToken });
+      }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Google sign-in could not be completed.';
@@ -1691,24 +1805,188 @@ export default function App() {
     [uid, setLocalAreaSettings]
   );
 
-  // Track Journal visits for Mind area pulse (at most once per day per user)
-  const journalRecordedRef = useRef<string | null>(null);
+  const refreshJournalDocs = useCallback(
+    async (options?: {
+      force?: boolean;
+      targetDocs?: JournalDocConnection[];
+      overrideToken?: string;
+    }) => {
+      const docsToSync = options?.targetDocs ?? journalDocs;
+      if (docsToSync.length === 0) {
+        setJournalSyncError(null);
+        return;
+      }
+
+      if (journalRefreshingRef.current) return;
+
+      const nowMs = Date.now();
+      if (!options?.force && nowMs - lastJournalAutoSyncMsRef.current < JOURNAL_AUTO_SYNC_COOLDOWN_MS) {
+        return;
+      }
+
+      const token = options?.overrideToken ?? accessToken;
+      if (!token) {
+        lastJournalAutoSyncMsRef.current = nowMs;
+        setJournalSyncError(
+          new JournalFetchError(
+            'missing_token',
+            'Connect your Google account to read your Google Docs journal.'
+          )
+        );
+        return;
+      }
+
+      journalRefreshingRef.current = true;
+      lastJournalAutoSyncMsRef.current = nowMs;
+      setJournalRefreshing(true);
+      setJournalSyncError(null);
+
+      let firstError: JournalFetchError | null = null;
+      let anySucceeded = false;
+      const prevStatsSnapshot = journalStats;
+
+      try {
+        for (const conn of docsToSync) {
+          try {
+            const parsed = await fetchAndParseGoogleDocJournal(conn.docId, conn.year, token);
+            anySucceeded = true;
+            const syncedAt = new Date().toISOString();
+
+            setJournalLiveEntries((prev) => {
+              const next: Record<string, JournalLiveEntry> = {};
+              const prefix = `${conn.year}-`;
+              for (const [key, val] of Object.entries(prev)) {
+                if (!key.startsWith(prefix)) next[key] = val;
+              }
+              return { ...next, ...parsed.liveEntries };
+            });
+
+            setJournalMonthTabIdsByYear((prev) => ({
+              ...prev,
+              [conn.year]: parsed.monthTabIds,
+            }));
+
+            const updatedConn: JournalDocConnection = {
+              ...conn,
+              docTitle: parsed.docTitle || conn.docTitle,
+              docUrl: conn.docUrl || buildGoogleDocUrl(conn.docId),
+              lastSyncedAt: syncedAt,
+            };
+
+            if (uid) {
+              await fsJournalDocs.upsert(uid, updatedConn);
+              await fsJournalStats.syncYear(uid, conn.year, parsed.stats, prevStatsSnapshot);
+            } else {
+              setLocalJournalDocs((prev) =>
+                validateJournalDocs([
+                  updatedConn,
+                  ...prev.filter((item) => item.year !== conn.year),
+                ])
+              );
+              setLocalJournalStats((prev) =>
+                validateJournalStats([
+                  ...prev.filter((item) => item.year !== conn.year),
+                  ...parsed.stats,
+                ])
+              );
+            }
+          } catch (err) {
+            const typedErr =
+              err instanceof JournalFetchError
+                ? err
+                : new JournalFetchError(
+                    'network',
+                    err instanceof Error ? err.message : 'Unable to read Google Doc.'
+                  );
+            if (typedErr.kind === 'expired_token') {
+              clearAccessToken();
+              setAccessToken(null);
+            }
+            if (!firstError) {
+              firstError = typedErr;
+            }
+          }
+        }
+
+        if (anySucceeded) {
+          setJournalLastRefreshedAt(new Date().toISOString());
+        }
+        setJournalSyncError(firstError);
+      } finally {
+        journalRefreshingRef.current = false;
+        setJournalRefreshing(false);
+      }
+    },
+    [
+      journalDocs,
+      journalStats,
+      accessToken,
+      uid,
+      setLocalJournalDocs,
+      setLocalJournalStats,
+    ]
+  );
+
+  // Auto-refresh Google Doc journal when opening Journal tab (throttled every few minutes)
   useEffect(() => {
     if (activeView !== DashboardView.Journal) return;
-    if (uid && !cloudAreaSettingsLoaded) return;
-    const todayKey = getTodayKey();
-    const lockKey = `${uid ?? 'local'}:${todayKey}`;
-    if (areaSettings.journalOpenedDates.includes(todayKey)) {
-      journalRecordedRef.current = lockKey;
+    if (journalDocs.length === 0) return;
+    if (Date.now() - lastJournalAutoSyncMsRef.current < JOURNAL_AUTO_SYNC_COOLDOWN_MS) {
       return;
     }
-    if (journalRecordedRef.current === lockKey) return;
-    journalRecordedRef.current = lockKey;
-    handleUpdateAreaSettings({
-      ...areaSettings,
-      journalOpenedDates: [...areaSettings.journalOpenedDates, todayKey],
+    void refreshJournalDocs({ force: false });
+  }, [activeView, journalDocs.length, refreshJournalDocs]);
+
+  const handleConnectJournalDoc = async (
+    year: number,
+    input: string
+  ): Promise<{ error?: string }> => {
+    const docId = extractGoogleDocId(input);
+    if (!docId) {
+      return { error: 'Please paste a valid Google Docs link or document ID.' };
+    }
+
+    const nextConn: JournalDocConnection = {
+      id: String(year),
+      year,
+      docId,
+      docUrl: buildGoogleDocUrl(docId),
+    };
+
+    if (uid) {
+      await fsJournalDocs.upsert(uid, nextConn);
+    } else {
+      setLocalJournalDocs((prev) =>
+        validateJournalDocs([nextConn, ...prev.filter((d) => d.year !== year)])
+      );
+    }
+
+    void refreshJournalDocs({ force: true, targetDocs: [nextConn] });
+    return {};
+  };
+
+  const handleDisconnectJournalDoc = (year: number) => {
+    if (uid) {
+      void fsJournalDocs.remove(uid, year);
+      void fsJournalStats.removeByYear(uid, year, journalStats);
+    } else {
+      setLocalJournalDocs((prev) => prev.filter((d) => d.year !== year));
+      setLocalJournalStats((prev) => prev.filter((s) => s.year !== year));
+    }
+    setJournalLiveEntries((prev) => {
+      const next: Record<string, JournalLiveEntry> = {};
+      const prefix = `${year}-`;
+      for (const [k, v] of Object.entries(prev)) {
+        if (!k.startsWith(prefix)) next[k] = v;
+      }
+      return next;
     });
-  }, [activeView, uid, cloudAreaSettingsLoaded, areaSettings, handleUpdateAreaSettings]);
+    setJournalMonthTabIdsByYear((prev) => {
+      const next = { ...prev };
+      delete next[year];
+      return next;
+    });
+  };
 
   const handleAddCountdown = (input: {
     title: string;
@@ -1786,6 +2064,35 @@ export default function App() {
     }
   };
 
+  const handleUpsertBodyLog = (entry: BodyLogEntry) => {
+    const clean = sanitizeBodyLogEntry(entry);
+    if (!clean) return;
+    if (uid) {
+      void fsBodyLogs.upsert(uid, clean);
+    } else {
+      setLocalBodyLogs((prev) =>
+        validateBodyLogs([clean, ...prev.filter((item) => item.dateKey !== clean.dateKey)])
+      );
+    }
+  };
+
+  const handleDeleteBodyLog = (dateKey: string) => {
+    if (uid) {
+      void fsBodyLogs.remove(uid, dateKey);
+    } else {
+      setLocalBodyLogs((prev) => prev.filter((item) => item.dateKey !== dateKey));
+    }
+  };
+
+  const handleUpdateBodySettings = (nextSettings: BodySettings) => {
+    const validated = validateBodySettings(nextSettings);
+    if (uid) {
+      void fsBodySettings.saveDefault(uid, validated);
+    } else {
+      setLocalBodySettings(validated);
+    }
+  };
+
   const handleResetWorkspace = () => {
     setLocalTasks(INITIAL_TASKS);
     setLocalSchedule(INITIAL_SCHEDULE);
@@ -1802,8 +2109,12 @@ export default function App() {
       chapters,
       lifeProfile,
       areaSettings,
+      bodySettings,
+      bodyLogs,
       moodRatings,
       countdowns,
+      journalDocs,
+      journalStats,
       tasks,
       schedule,
       habits,
@@ -1917,6 +2228,7 @@ export default function App() {
                   habits={habits}
                   focusSessions={focusSessions}
                   moodRatings={moodRatings}
+                  journalStats={journalStats}
                   settings={appSettings}
                   areaSettings={areaSettings}
                   onSelectArea={setSelectedArea}
@@ -1939,6 +2251,10 @@ export default function App() {
                   areaSettings={areaSettings}
                   moodRatings={moodRatings}
                   countdowns={countdowns}
+                  bodyLogs={bodyLogs}
+                  journalStats={journalStats}
+                  journalDocs={journalDocs}
+                  journalMonthTabIdsByYear={journalMonthTabIdsByYear}
                   userFirstName={userFirstName}
                   onToggleTask={handleToggleTask}
                   onToggleHabitDay={handleToggleHabitDay}
@@ -1969,10 +2285,48 @@ export default function App() {
                 />
               )}
 
-              {(activeView === DashboardView.Journal ||
-                activeView === DashboardView.Body ||
-                activeView === DashboardView.Stats ||
-                activeView === DashboardView.Reports) && (
+              {activeView === DashboardView.Body && (
+                <BodyView
+                  bodyLogs={bodyLogs}
+                  bodySettings={bodySettings}
+                  onUpsertBodyLog={handleUpsertBodyLog}
+                  onDeleteBodyLog={handleDeleteBodyLog}
+                  onUpdateBodySettings={handleUpdateBodySettings}
+                />
+              )}
+
+              {activeView === DashboardView.Journal && (
+                <JournalView
+                  connectedDocs={journalDocs}
+                  journalStats={journalStats}
+                  liveEntries={journalLiveEntries}
+                  monthTabIdsByYear={journalMonthTabIdsByYear}
+                  isRefreshing={journalRefreshing}
+                  syncError={journalSyncError}
+                  lastRefreshedAt={journalLastRefreshedAt}
+                  hasGoogleToken={Boolean(accessToken)}
+                  isSigningIn={isSigningIn}
+                  onReconnectGoogle={() => void handleGoogleSignIn()}
+                  onRefresh={() => void refreshJournalDocs({ force: true })}
+                  onConnectDoc={handleConnectJournalDoc}
+                  onDisconnectDoc={handleDisconnectJournalDoc}
+                />
+              )}
+
+              {activeView === DashboardView.Stats && (
+                <StatsView
+                  focusSessions={focusSessions}
+                  tasks={tasks}
+                  habits={habits}
+                  bodyLogs={bodyLogs}
+                  moodRatings={moodRatings}
+                  journalStats={journalStats}
+                  areaSettings={areaSettings}
+                  reducedMotion={appSettings.reducedMotion}
+                />
+              )}
+
+              {activeView === DashboardView.Reports && (
                 <PlaceholderPageView view={activeView} />
               )}
 

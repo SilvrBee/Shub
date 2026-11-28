@@ -2,16 +2,21 @@ import { formatDateKey, getCurrentWeekDateKeys, getTodayKey } from '../data/init
 import {
   AppSettings,
   AreaSettings,
+  BodyLogEntry,
+  BodyLogSource,
+  BodySettings,
   ChapterColorId,
   ChapterItem,
   CountdownIconId,
   CountdownItem,
   DEFAULT_AREA_SETTINGS,
+  DEFAULT_BODY_SETTINGS,
   DEFAULT_CHAPTER_COLOR,
   DEFAULT_LIFE_CHAPTER,
   DEFAULT_LIFE_PROFILE,
   FocusSession,
   HabitItem,
+  JournalDayStat,
   LIFE_AREA_IDS,
   LifeAreaId,
   LifeChapter,
@@ -552,7 +557,7 @@ export const LIFE_AREA_META: Record<LifeAreaId, LifeAreaMeta> = {
   mind: {
     id: 'mind',
     label: 'Mind',
-    description: 'Journal check-ins, mood entries, and average mood',
+    description: 'Journal entries written, mood check-ins, and average mood',
     icon: 'Brain',
     colorVar: 'var(--cadence-area-mind)',
   },
@@ -690,6 +695,8 @@ export interface ComputeAreaPulsesInput {
   focusSessions: FocusSession[];
   moodRatings: MoodRatingRecord[];
   areaSettings: AreaSettings;
+  bodyLogs?: BodyLogEntry[];
+  journalStats?: JournalDayStat[];
   now?: Date;
 }
 
@@ -699,6 +706,8 @@ export function computeAreaPulses({
   focusSessions,
   moodRatings,
   areaSettings,
+  bodyLogs = [],
+  journalStats,
   now = new Date(),
 }: ComputeAreaPulsesInput): AreaPulseResult[] {
   const currentKeys = getWindowKeysEndingAt(now, 7, 0);
@@ -726,9 +735,16 @@ export function computeAreaPulses({
   const studyTrend = deriveTrend(studyScore, studyPrevScore);
   const studyHoursText = (currFocusMinutes / 60).toFixed(1).replace(/\.0$/, '');
 
-  // 2. Body: Days with steps or a walk logged out of 7
+  // 2. Body: Days with steps or a walk logged out of 7 (from Body tab logs and walk/steps habits)
   const weekKeys = getCurrentWeekDateKeys(now);
   const bodyWalkDates = new Set<string>();
+  for (const log of bodyLogs) {
+    const hasSteps = typeof log.steps === 'number' && log.steps > 0;
+    const hasWalk = typeof log.walkMinutes === 'number' && log.walkMinutes > 0;
+    if (hasSteps || hasWalk) {
+      bodyWalkDates.add(log.dateKey);
+    }
+  }
   for (const habit of habits) {
     if (!/(steps|walk)/i.test(habit.name)) continue;
     for (const dk of habit.completedDates ?? []) {
@@ -748,8 +764,12 @@ export function computeAreaPulses({
     prevBodyDays > 0 ? Math.min(100, Math.round((prevBodyDays / 7) * 100)) : null;
   const bodyTrend = deriveTrend(bodyScore, bodyPrevScore);
 
-  // 3. Mind: Days Journal opened or mood rated, plus average mood
-  const journalDates = new Set(areaSettings.journalOpenedDates ?? []);
+  // 3. Mind: Days with a written journal entry (words > 0) or mood rated, plus average mood
+  const journalDates = new Set<string>(
+    journalStats !== undefined
+      ? journalStats.filter((s) => s.words > 0).map((s) => s.dateKey)
+      : areaSettings.journalOpenedDates ?? []
+  );
   const moodByDate = new Map<string, number>();
   for (const m of moodRatings) {
     moodByDate.set(m.dateKey, m.rating);
@@ -1293,4 +1313,412 @@ export function buildYearPixelsGrid(
     yearAverage: yearCount > 0 ? Math.round((yearSum / yearCount) * 10) / 10 : null,
   };
 }
+
+/* ---------------- Body & Stats Analytics Helpers ---------------- */
+
+function parseBoundedInt(raw: unknown, min: number, max: number): number | undefined {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return undefined;
+  return Math.max(min, Math.min(max, Math.round(raw)));
+}
+
+function parseBoundedDecimal(raw: unknown, min: number, max: number): number | undefined {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return undefined;
+  const clamped = Math.max(min, Math.min(max, raw));
+  return Math.round(clamped * 10) / 10;
+}
+
+export function sanitizeBodyLogEntry(raw: unknown): BodyLogEntry | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const rec = raw as Record<string, unknown>;
+  const dateKey = normalizeDateKey(rec.dateKey ?? rec.id);
+  if (!dateKey) return null;
+
+  const source: BodyLogSource = rec.source === 'sync' ? 'sync' : 'manual';
+  const steps = parseBoundedInt(rec.steps, 0, 200_000);
+  const walkMinutes = parseBoundedInt(rec.walkMinutes, 0, 1440);
+  const sleepHours = parseBoundedDecimal(rec.sleepHours, 0, 24);
+  const weight = parseBoundedDecimal(rec.weight, 10, 500);
+  const waterGlasses = parseBoundedInt(rec.waterGlasses, 0, 50);
+
+  return {
+    id: dateKey,
+    dateKey,
+    source,
+    ...(steps !== undefined ? { steps } : {}),
+    ...(walkMinutes !== undefined ? { walkMinutes } : {}),
+    ...(sleepHours !== undefined ? { sleepHours } : {}),
+    ...(weight !== undefined ? { weight } : {}),
+    ...(waterGlasses !== undefined ? { waterGlasses } : {}),
+    ...(typeof rec.updatedAt === 'string' && !Number.isNaN(Date.parse(rec.updatedAt))
+      ? { updatedAt: rec.updatedAt }
+      : {}),
+  };
+}
+
+export function bodyLogHasAnyMetric(entry: Pick<BodyLogEntry, 'steps' | 'walkMinutes' | 'sleepHours' | 'weight' | 'waterGlasses'>): boolean {
+  return (
+    entry.steps !== undefined ||
+    entry.walkMinutes !== undefined ||
+    entry.sleepHours !== undefined ||
+    entry.weight !== undefined ||
+    entry.waterGlasses !== undefined
+  );
+}
+
+export function validateBodyLogs(raw: unknown): BodyLogEntry[] {
+  if (!Array.isArray(raw)) return [];
+  const byDate = new Map<string, BodyLogEntry>();
+  for (const item of raw) {
+    const clean = sanitizeBodyLogEntry(item);
+    if (!clean) continue;
+    byDate.set(clean.dateKey, clean);
+  }
+  return Array.from(byDate.values()).sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+}
+
+export function validateBodySettings(raw: unknown): BodySettings {
+  const rec = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const dailyStepsGoal =
+    typeof rec.dailyStepsGoal === 'number' && Number.isFinite(rec.dailyStepsGoal)
+      ? Math.max(1000, Math.min(100_000, Math.round(rec.dailyStepsGoal)))
+      : DEFAULT_BODY_SETTINGS.dailyStepsGoal;
+  return { dailyStepsGoal };
+}
+
+export interface WalkStreakResult {
+  currentStreak: number;
+  longestStreak: number;
+  loggedToday: boolean;
+}
+
+export function computeWalkStreak(
+  bodyLogs: BodyLogEntry[],
+  now = new Date()
+): WalkStreakResult {
+  const todayKey = formatDateKey(now);
+  const todayEpoch = dateKeyToEpochDay(todayKey);
+
+  const walkEpochSet = new Set<number>();
+  for (const entry of bodyLogs) {
+    if (
+      typeof entry.walkMinutes === 'number' &&
+      entry.walkMinutes > 0 &&
+      entry.dateKey <= todayKey
+    ) {
+      walkEpochSet.add(dateKeyToEpochDay(entry.dateKey));
+    }
+  }
+
+  const loggedToday = walkEpochSet.has(todayEpoch);
+  let currentStreak = 0;
+  let cursor = loggedToday ? todayEpoch : todayEpoch - 1;
+  while (walkEpochSet.has(cursor)) {
+    currentStreak += 1;
+    cursor -= 1;
+  }
+
+  const sortedEpochs = Array.from(walkEpochSet).sort((a, b) => a - b);
+  let longestStreak = 0;
+  let run = 0;
+  let prev: number | null = null;
+  for (const epoch of sortedEpochs) {
+    if (prev !== null && epoch === prev + 1) {
+      run += 1;
+    } else {
+      run = 1;
+    }
+    if (run > longestStreak) longestStreak = run;
+    prev = epoch;
+  }
+
+  return {
+    currentStreak,
+    longestStreak,
+    loggedToday,
+  };
+}
+
+export interface BodyChartPoint {
+  dateKey: string;
+  shortLabel: string;
+  steps: number | null;
+  walkMinutes: number | null;
+  sleepHours: number | null;
+  hasEntry: boolean;
+}
+
+export function buildBodyChartSeries(
+  bodyLogs: BodyLogEntry[],
+  days: 7 | 30,
+  now = new Date()
+): BodyChartPoint[] {
+  const byDate = new Map<string, BodyLogEntry>();
+  for (const entry of bodyLogs) {
+    byDate.set(entry.dateKey, entry);
+  }
+
+  const keys = getWindowKeysEndingAt(now, days, 0);
+  return keys.map((dateKey) => {
+    const dt = parseDateKeyLocal(dateKey);
+    const shortLabel = dt
+      ? days === 7
+        ? dt.toLocaleDateString('en-US', { weekday: 'short' })
+        : dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : dateKey.slice(5);
+    const entry = byDate.get(dateKey);
+    return {
+      dateKey,
+      shortLabel,
+      steps: entry?.steps ?? null,
+      walkMinutes: entry?.walkMinutes ?? null,
+      sleepHours: entry?.sleepHours ?? null,
+      hasEntry: Boolean(entry),
+    };
+  });
+}
+
+export type StudyChartMode = 'day' | 'week' | 'month';
+
+export interface StudyHoursBarPoint {
+  key: string;
+  label: string;
+  rangeLabel: string;
+  hours: number;
+  minutes: number;
+}
+
+export interface StudyHoursSeries {
+  mode: StudyChartMode;
+  bars: StudyHoursBarPoint[];
+  totalHours: number;
+  totalMinutes: number;
+  maxHours: number;
+  weeklyGoalHours: number;
+}
+
+export function buildStudyHoursSeries(
+  focusSessions: FocusSession[],
+  mode: StudyChartMode,
+  weeklyGoalHours: number,
+  now = new Date()
+): StudyHoursSeries {
+  const safeGoal = Math.max(1, Math.min(80, Math.round(weeklyGoalHours || 10)));
+  const minutesByDate = new Map<string, number>();
+  let totalMinutes = 0;
+
+  for (const session of focusSessions) {
+    const mins = Math.max(0, Math.round(session.minutes || 0));
+    totalMinutes += mins;
+    const dk = normalizeDateKey(session.dateKey);
+    if (dk) {
+      minutesByDate.set(dk, (minutesByDate.get(dk) ?? 0) + mins);
+    }
+  }
+
+  const bars: StudyHoursBarPoint[] = [];
+
+  if (mode === 'day') {
+    const keys = getWindowKeysEndingAt(now, 14, 0);
+    for (const key of keys) {
+      const dt = parseDateKeyLocal(key);
+      const mins = minutesByDate.get(key) ?? 0;
+      const hours = Math.round((mins / 60) * 10) / 10;
+      const label = dt
+        ? dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : key.slice(5);
+      const rangeLabel = dt
+        ? dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+        : key;
+      bars.push({ key, label, rangeLabel, hours, minutes: mins });
+    }
+  } else if (mode === 'week') {
+    const currentWeekMondayStr = getCurrentWeekDateKeys(now)[0];
+    const currentMonday = parseDateKeyLocal(currentWeekMondayStr) ?? now;
+    for (let offset = 11; offset >= 0; offset -= 1) {
+      const monday = new Date(
+        currentMonday.getFullYear(),
+        currentMonday.getMonth(),
+        currentMonday.getDate() - offset * 7
+      );
+      const sunday = new Date(
+        monday.getFullYear(),
+        monday.getMonth(),
+        monday.getDate() + 6
+      );
+      let mins = 0;
+      for (let d = 0; d < 7; d += 1) {
+        const dayKey = formatDateKey(
+          new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + d)
+        );
+        mins += minutesByDate.get(dayKey) ?? 0;
+      }
+      const mondayKey = formatDateKey(monday);
+      const label = monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const rangeLabel = `${label} – ${sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      bars.push({
+        key: mondayKey,
+        label,
+        rangeLabel,
+        hours: Math.round((mins / 60) * 10) / 10,
+        minutes: mins,
+      });
+    }
+  } else {
+    // mode === 'month' (last 12 calendar months)
+    const minutesByMonth = new Map<string, number>();
+    for (const [dk, mins] of minutesByDate.entries()) {
+      const monthKey = dk.slice(0, 7);
+      minutesByMonth.set(monthKey, (minutesByMonth.get(monthKey) ?? 0) + mins);
+    }
+
+    for (let offset = 11; offset >= 0; offset -= 1) {
+      const dt = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+      const monthKey = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+      const mins = minutesByMonth.get(monthKey) ?? 0;
+      const label = dt.toLocaleDateString('en-US', { month: 'short' });
+      const rangeLabel = dt.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      bars.push({
+        key: monthKey,
+        label,
+        rangeLabel,
+        hours: Math.round((mins / 60) * 10) / 10,
+        minutes: mins,
+      });
+    }
+  }
+
+  const maxBarHours = Math.max(0, ...bars.map((b) => b.hours));
+  const goalBaseline = mode === 'week' ? safeGoal : 0;
+
+  return {
+    mode,
+    bars,
+    totalHours: Math.round((totalMinutes / 60) * 10) / 10,
+    totalMinutes,
+    maxHours: Math.max(mode === 'day' ? 2 : 1, maxBarHours, goalBaseline),
+    weeklyGoalHours: safeGoal,
+  };
+}
+
+export function computeLongestHabitStreak(
+  habits: HabitItem[],
+  now = new Date()
+): number {
+  if (habits.length === 0) return 0;
+  const todayKey = formatDateKey(now);
+  const weekKeys = getCurrentWeekDateKeys(now);
+  let longest = 0;
+
+  for (const habit of habits) {
+    const dateSet = new Set<string>(habit.completedDates ?? []);
+    weekKeys.forEach((dk, idx) => {
+      if (habit.completedDays[idx]) {
+        dateSet.add(dk);
+      } else {
+        dateSet.delete(dk);
+      }
+    });
+
+    const epochs = Array.from(dateSet)
+      .filter((dk) => dk <= todayKey)
+      .map((dk) => dateKeyToEpochDay(dk))
+      .filter((ep) => ep > 0)
+      .sort((a, b) => a - b);
+
+    let run = 0;
+    let prev: number | null = null;
+    for (const ep of epochs) {
+      if (prev !== null && ep === prev + 1) {
+        run += 1;
+      } else {
+        run = 1;
+      }
+      if (run > longest) longest = run;
+      prev = ep;
+    }
+  }
+
+  return longest;
+}
+
+export interface LifetimeStatsSummary {
+  totalFocusHours: number;
+  totalFocusMinutes: number;
+  tasksCompleted: number;
+  longestHabitStreak: number;
+  totalSteps: number;
+  totalWalkMinutes: number;
+  moodRatedDays: number;
+  averageMood: number | null;
+  journalEntries: number;
+  journalWords: number;
+  journalLetters: number;
+}
+
+export function computeLifetimeStats({
+  focusSessions,
+  tasks,
+  habits,
+  bodyLogs,
+  moodRatings,
+  journalStats = [],
+  now = new Date(),
+}: {
+  focusSessions: FocusSession[];
+  tasks: TaskItem[];
+  habits: HabitItem[];
+  bodyLogs: BodyLogEntry[];
+  moodRatings: MoodRatingRecord[];
+  journalStats?: JournalDayStat[];
+  now?: Date;
+}): LifetimeStatsSummary {
+  const totalFocusMinutes = focusSessions.reduce(
+    (sum, s) => sum + Math.max(0, Math.round(s.minutes || 0)),
+    0
+  );
+  const totalFocusHours = Math.round((totalFocusMinutes / 60) * 10) / 10;
+  const tasksCompleted = tasks.filter((t) => t.completed).length;
+  const longestHabitStreak = computeLongestHabitStreak(habits, now);
+
+  let totalSteps = 0;
+  let totalWalkMinutes = 0;
+  for (const entry of bodyLogs) {
+    if (typeof entry.steps === 'number' && entry.steps > 0) {
+      totalSteps += Math.round(entry.steps);
+    }
+    if (typeof entry.walkMinutes === 'number' && entry.walkMinutes > 0) {
+      totalWalkMinutes += Math.round(entry.walkMinutes);
+    }
+  }
+
+  const moodRatedDays = moodRatings.length;
+  const averageMood =
+    moodRatedDays > 0
+      ? Math.round(
+          (moodRatings.reduce((sum, m) => sum + normalizeMoodRating(m.rating), 0) /
+            moodRatedDays) *
+            10
+        ) / 10
+      : null;
+
+  const writtenJournal = journalStats.filter((s) => s.words > 0);
+  const journalEntries = writtenJournal.length;
+  const journalWords = writtenJournal.reduce((sum, s) => sum + s.words, 0);
+  const journalLetters = writtenJournal.reduce((sum, s) => sum + s.letters, 0);
+
+  return {
+    totalFocusHours,
+    totalFocusMinutes,
+    tasksCompleted,
+    longestHabitStreak,
+    totalSteps,
+    totalWalkMinutes,
+    moodRatedDays,
+    averageMood,
+    journalEntries,
+    journalWords,
+    journalLetters,
+  };
+}
+
 

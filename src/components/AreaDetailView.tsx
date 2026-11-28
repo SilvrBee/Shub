@@ -7,6 +7,7 @@ import {
   DashboardView,
   FocusSession,
   HabitItem,
+  JournalDayStat,
   LIFE_AREA_IDS,
   LifeAreaId,
   MoodRatingRecord,
@@ -31,6 +32,7 @@ interface AreaDetailViewProps {
   habits: HabitItem[];
   focusSessions: FocusSession[];
   moodRatings: MoodRatingRecord[];
+  journalStats?: JournalDayStat[];
   settings: AppSettings;
   areaSettings: AreaSettings;
   onSelectArea: (areaId: LifeAreaId) => void;
@@ -48,6 +50,7 @@ export function AreaDetailView({
   habits,
   focusSessions,
   moodRatings,
+  journalStats,
   settings,
   areaSettings,
   onSelectArea,
@@ -155,7 +158,11 @@ export function AreaDetailView({
         moods7d.length > 0
           ? (moods7d.reduce((s, v) => s + v, 0) / moods7d.length).toFixed(1)
           : null;
-      const journalSet = new Set(areaSettings.journalOpenedDates);
+      const journalSet = new Set(
+        journalStats !== undefined
+          ? journalStats.filter((s) => s.words > 0).map((s) => s.dateKey)
+          : areaSettings.journalOpenedDates
+      );
       const checkInDays = last7Keys.filter(
         (k) => journalSet.has(k) || moodRatings.some((m) => m.dateKey === k)
       ).length;
@@ -163,7 +170,7 @@ export function AreaDetailView({
         {
           label: 'Check-In Days (7d)',
           value: `${checkInDays}/7`,
-          sub: 'Journal opened or mood rated',
+          sub: 'Journal entry or mood rated',
         },
         {
           label: 'Avg Mood (7d)',
@@ -211,6 +218,7 @@ export function AreaDetailView({
     areaHabits,
     focusSessions,
     moodRatings,
+    journalStats,
     areaSettings,
     last7Keys,
     pulse,

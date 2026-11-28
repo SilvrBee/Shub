@@ -375,6 +375,72 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["ownerId", "title", "targetDate", "icon", "pinned", "createdAt", "updatedAt"]
+    },
+    "BodyLog": {
+      "title": "BodyLog",
+      "description": "Daily manual or synced body tracking entry keyed by YYYY-MM-DD with optional steps, walk minutes, sleep hours, weight, and water glasses.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "dateKey": { "type": "string", "minLength": 10, "maxLength": 10 },
+        "source": { "type": "string", "enum": ["manual", "sync"] },
+        "steps": { "type": "integer", "minimum": 0, "maximum": 200000 },
+        "walkMinutes": { "type": "integer", "minimum": 0, "maximum": 1440 },
+        "sleepHours": { "type": "number", "minimum": 0, "maximum": 24 },
+        "weight": { "type": "number", "minimum": 10, "maximum": 500 },
+        "waterGlasses": { "type": "integer", "minimum": 0, "maximum": 50 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "dateKey", "source", "createdAt", "updatedAt"]
+    },
+    "BodySettings": {
+      "title": "BodySettings",
+      "description": "User-owned body tracking preferences including daily steps goal.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "dailyStepsGoal": { "type": "integer", "minimum": 1000, "maximum": 100000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "dailyStepsGoal", "createdAt", "updatedAt"]
+    },
+    "JournalDoc": {
+      "title": "JournalDoc",
+      "description": "Connected Google Doc ID per year for read-only journal stats syncing (never stores document content).",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "year": { "type": "integer", "minimum": 1900, "maximum": 2200 },
+        "docId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "docUrl": { "type": "string", "maxLength": 500 },
+        "docTitle": { "type": "string", "maxLength": 300 },
+        "lastSyncedAt": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "year", "docId", "createdAt", "updatedAt"]
+    },
+    "JournalDayStat": {
+      "title": "JournalDayStat",
+      "description": "Derived daily writing counts keyed by YYYY-MM-DD (privacy-preserving: stores only counts and doc anchors, never journal text).",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "dateKey": { "type": "string", "minLength": 10, "maxLength": 10 },
+        "year": { "type": "integer", "minimum": 1900, "maximum": 2200 },
+        "words": { "type": "integer", "minimum": 0, "maximum": 500000 },
+        "letters": { "type": "integer", "minimum": 0, "maximum": 2500000 },
+        "characters": { "type": "integer", "minimum": 0, "maximum": 5000000 },
+        "paragraphs": { "type": "integer", "minimum": 0, "maximum": 50000 },
+        "docId": { "type": "string", "maxLength": 200 },
+        "tabId": { "type": "string", "maxLength": 128 },
+        "headingId": { "type": "string", "maxLength": 200 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "dateKey", "year", "words", "letters", "characters", "paragraphs", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
@@ -457,6 +523,22 @@
     "/users/{uid}/countdowns/{countdownId}": {
       "schema": { "$ref": "#/entities/Countdown" },
       "description": "User-owned upcoming countdowns."
+    },
+    "/users/{uid}/bodyLogs/{dateId}": {
+      "schema": { "$ref": "#/entities/BodyLog" },
+      "description": "User-owned daily body logs keyed by YYYY-MM-DD."
+    },
+    "/users/{uid}/bodySettings/{settingsId}": {
+      "schema": { "$ref": "#/entities/BodySettings" },
+      "description": "User-owned daily steps goal and body tracking preferences."
+    },
+    "/users/{uid}/journalDocs/{yearId}": {
+      "schema": { "$ref": "#/entities/JournalDoc" },
+      "description": "Connected Google Doc metadata keyed by 4-digit year."
+    },
+    "/users/{uid}/journalStats/{dateId}": {
+      "schema": { "$ref": "#/entities/JournalDayStat" },
+      "description": "Derived daily journal word/letter/character/paragraph counts keyed by YYYY-MM-DD (never entry text)."
     }
   }
 }

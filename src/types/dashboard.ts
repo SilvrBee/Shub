@@ -471,3 +471,67 @@ export interface CountdownItem {
   updatedAt?: string;
 }
 
+export type BodyLogSource = 'manual' | 'sync';
+
+export interface BodyLogEntry {
+  id: string; // YYYY-MM-DD
+  dateKey: string; // YYYY-MM-DD
+  source: BodyLogSource;
+  steps?: number;
+  walkMinutes?: number;
+  sleepHours?: number;
+  weight?: number;
+  waterGlasses?: number;
+  updatedAt?: string;
+}
+
+export interface BodySettings {
+  dailyStepsGoal: number; // 1000..100000
+}
+
+export const DEFAULT_BODY_SETTINGS: BodySettings = {
+  dailyStepsGoal: 8000,
+};
+
+export interface JournalDocConnection {
+  id: string; // YYYY (4-digit year string, one doc per year)
+  year: number;
+  docId: string;
+  docUrl?: string;
+  docTitle?: string;
+  lastSyncedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface JournalDayStat {
+  id: string; // YYYY-MM-DD
+  dateKey: string; // YYYY-MM-DD
+  year: number;
+  words: number;
+  letters: number;
+  characters: number;
+  paragraphs: number;
+  docId?: string;
+  tabId?: string;
+  headingId?: string;
+  updatedAt?: string;
+}
+
+/**
+ * In-memory only: never persisted to Firestore or localStorage.
+ * Holds live text snippet read directly from the user's Google Doc for "On this day".
+ */
+export interface JournalLiveEntry {
+  dateKey: string; // YYYY-MM-DD
+  year: number;
+  docId: string;
+  tabId?: string;
+  headingId?: string;
+  headingText: string;
+  snippet: string;
+  words: number;
+  letters: number;
+  characters: number;
+  paragraphs: number;
+}

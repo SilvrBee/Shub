@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
+  bodyLogHasAnyMetric,
+  buildBodyChartSeries,
   buildLifePosterWeeks,
+  buildStudyHoursSeries,
   buildYearPixelsGrid,
   computeAreaPulses,
   computeChapterStatus,
   computeExactAgeYears,
   computeLifeProgressBar,
+  computeLifetimeStats,
+  computeLongestHabitStreak,
   computeTimeProgressBars,
+  computeWalkStreak,
   findActiveChapter,
   findOverlappingChapter,
   formatMoodValue,
@@ -16,7 +22,10 @@ import {
   getPinnedCountdown,
   getTodayTasksSorted,
   normalizeMoodRating,
+  sanitizeBodyLogEntry,
   validateAreaSettings,
+  validateBodyLogs,
+  validateBodySettings,
   validateChapters,
   validateCountdowns,
   validateLifeChapter,
@@ -25,6 +34,7 @@ import {
 } from '../lifeUtils';
 import {
   AreaSettings,
+  BodyLogEntry,
   ChapterItem,
   CountdownItem,
   DEFAULT_AREA_SETTINGS,
@@ -585,4 +595,253 @@ describe('getMoodScaleColor & buildYearPixelsGrid', () => {
     expect(leapData.daysByMonth[1][28]?.dateKey).toBe('2024-02-29');
   });
 });
+
+describe('Body tab helpers & Body area pulse integration', () => {
+  const now = new Date(2026, 10, 27, 11, 0, 0); // Friday 2026-11-27
+
+  it('validates partial body logs, preserves source, and clamps body settings', () => {
+    const empty = sanitizeBodyLogEntry({ dateKey: '2026-11-27' });
+    expect(empty).not.toBeNull();
+    expect(empty?.source).toBe('manual');
+    expect(bodyLogHasAnyMetric(empty!)).toBe(false);
+
+    const logs = validateBodyLogs([
+      { dateKey: '2026-11-26', source: 'sync', steps: 9500, weight: 68.44 },
+      { dateKey: '2026-11-27', steps: 12000, walkMinutes: 40, sleepHours: 7.5, waterGlasses: 8 },
+      { dateKey: 'bad-date', steps: 5000 },
+    ]);
+    expect(logs).toHaveLength(2);
+    expect(logs[0].dateKey).toBe('2026-11-27');
+    expect(logs[0].source).toBe('manual');
+    expect(logs[1].weight).toBe(68.4);
+    expect(logs[1].source).toBe('sync');
+
+    expect(validateBodySettings({ dailyStepsGoal: 200 }).dailyStepsGoal).toBe(1000);
+    expect(validateBodySettings({ dailyStepsGoal: 12500 }).dailyStepsGoal).toBe(12500);
+  });
+
+  it('computes current and longest walk streaks accurately', () => {
+    const logs: BodyLogEntry[] = [
+      { id: '2026-11-27', dateKey: '2026-11-27', source: 'manual', walkMinutes: 30 },
+      { id: '2026-11-26', dateKey: '2026-11-26', source: 'manual', walkMinutes: 25 },
+      { id: '2026-11-25', dateKey: '2026-11-25', source: 'manual', steps: 9000 }, // no walkMinutes
+      { id: '2026-11-22', dateKey: '2026-11-22', source: 'manual', walkMinutes: 20 },
+      { id: '2026-11-21', dateKey: '2026-11-21', source: 'manual', walkMinutes: 15 },
+      { id: '2026-11-20', dateKey: '2026-11-20', source: 'manual', walkMinutes: 45 },
+    ];
+    const streak = computeWalkStreak(logs, now);
+    expect(streak.loggedToday).toBe(true);
+    expect(streak.currentStreak).toBe(2);
+    expect(streak.longestStreak).toBe(3);
+
+    // Streak continues if today is not yet logged as long as yesterday was logged
+    const yesterdayOnly = computeWalkStreak(
+      logs.filter((l) => l.dateKey !== '2026-11-27'),
+      now
+    );
+    expect(yesterdayOnly.loggedToday).toBe(false);
+    expect(yesterdayOnly.currentStreak).toBe(1);
+  });
+
+  it('builds 7d and 30d body chart series with null for unlogged days and feeds Home Body pulse', () => {
+    const bodyLogs: BodyLogEntry[] = [
+      { id: '2026-11-27', dateKey: '2026-11-27', source: 'manual', steps: 9200, walkMinutes: 35 },
+      { id: '2026-11-24', dateKey: '2026-11-24', source: 'manual', steps: 6400 },
+      { id: '2026-11-18', dateKey: '2026-11-18', source: 'manual', walkMinutes: 20 },
+    ];
+
+    const series7 = buildBodyChartSeries(bodyLogs, 7, now);
+    expect(series7).toHaveLength(7);
+    expect(series7[6].dateKey).toBe('2026-11-27');
+    expect(series7[6].steps).toBe(9200);
+    expect(series7[5].steps).toBeNull();
+    expect(buildBodyChartSeries(bodyLogs, 30, now)).toHaveLength(30);
+
+    const pulses = computeAreaPulses({
+      tasks: [],
+      habits: [],
+      focusSessions: [],
+      moodRatings: [],
+      areaSettings: DEFAULT_AREA_SETTINGS,
+      bodyLogs,
+      now,
+    });
+    const bodyPulse = pulses.find((p) => p.id === 'body')!;
+    expect(bodyPulse.hasData).toBe(true);
+    expect(bodyPulse.score).toBe(29); // 2/7 in current 7d window
+    expect(bodyPulse.previousScore).toBe(14); // 1/7 in previous 7d window
+    expect(bodyPulse.trend).toBe('up');
+    expect(bodyPulse.summaryLabel).toBe('2/7 active days');
+  });
+});
+
+describe('Stats tab helpers', () => {
+  const now = new Date(2026, 10, 27, 14, 0, 0); // Friday 2026-11-27
+
+  it('builds Day / Week / Month study hours series with weekly goal and total hours', () => {
+    const sessions = [
+      { id: 's1', label: 'Algorithms', minutes: 120, dateKey: '2026-11-27', completedAt: '' },
+      { id: 's2', label: 'Physics', minutes: 90, dateKey: '2026-11-25', completedAt: '' },
+      { id: 's3', label: 'Revision', minutes: 60, dateKey: '2026-10-12', completedAt: '' },
+    ];
+
+    const daySeries = buildStudyHoursSeries(sessions, 'day', 10, now);
+    expect(daySeries.bars).toHaveLength(14);
+    expect(daySeries.totalHours).toBe(4.5);
+    expect(daySeries.bars[13].hours).toBe(2);
+
+    const weekSeries = buildStudyHoursSeries(sessions, 'week', 10, now);
+    expect(weekSeries.bars).toHaveLength(12);
+    expect(weekSeries.weeklyGoalHours).toBe(10);
+    expect(weekSeries.bars[11].hours).toBe(3.5);
+
+    const monthSeries = buildStudyHoursSeries(sessions, 'month', 10, now);
+    expect(monthSeries.bars).toHaveLength(12);
+    expect(monthSeries.bars[11].hours).toBe(3.5);
+    expect(monthSeries.bars[10].hours).toBe(1);
+  });
+
+  it('computes longest habit streak and lifetime counters with honest zero/null empty states', () => {
+    const empty = computeLifetimeStats({
+      focusSessions: [],
+      tasks: [],
+      habits: [],
+      bodyLogs: [],
+      moodRatings: [],
+      now,
+    });
+    expect(empty.totalFocusHours).toBe(0);
+    expect(empty.tasksCompleted).toBe(0);
+    expect(empty.longestHabitStreak).toBe(0);
+    expect(empty.totalSteps).toBe(0);
+    expect(empty.totalWalkMinutes).toBe(0);
+    expect(empty.moodRatedDays).toBe(0);
+    expect(empty.averageMood).toBeNull();
+
+    const habits: HabitItem[] = [
+      {
+        id: 'h1',
+        name: 'Read 20 pages',
+        category: 'Mind',
+        targetDaysPerWeek: 5,
+        completedDays: [true, true, true, false, true, false, false], // Mon..Wed, Fri of week 2026-11-23..29
+        completedDates: ['2026-11-21', '2026-11-22'], // Sat + Sun -> 5-day streak Sat..Wed
+      },
+    ];
+    expect(computeLongestHabitStreak(habits, now)).toBe(5);
+
+    const populated = computeLifetimeStats({
+      focusSessions: [
+        { id: 'f1', label: 'Block', minutes: 150, dateKey: '2026-11-27', completedAt: '' },
+      ],
+      tasks: [
+        {
+          id: 't1',
+          title: 'Done',
+          priority: TaskPriority.Medium,
+          completed: true,
+          createdAt: '',
+        },
+        {
+          id: 't2',
+          title: 'Open',
+          priority: TaskPriority.Low,
+          completed: false,
+          createdAt: '',
+        },
+      ],
+      habits,
+      bodyLogs: [
+        { id: '2026-11-26', dateKey: '2026-11-26', source: 'manual', steps: 8000, walkMinutes: 30 },
+        { id: '2026-11-27', dateKey: '2026-11-27', source: 'manual', steps: 4500, walkMinutes: 20 },
+      ],
+      moodRatings: [
+        { id: '2026-11-26', dateKey: '2026-11-26', rating: 7.5 },
+        { id: '2026-11-27', dateKey: '2026-11-27', rating: 9 },
+      ],
+      journalStats: [
+        {
+          id: '2026-11-26',
+          dateKey: '2026-11-26',
+          year: 2026,
+          words: 310,
+          letters: 1420,
+          characters: 1760,
+          paragraphs: 3,
+        },
+        {
+          id: '2026-11-27',
+          dateKey: '2026-11-27',
+          year: 2026,
+          words: 190,
+          letters: 880,
+          characters: 1090,
+          paragraphs: 2,
+        },
+        {
+          id: '2026-11-25',
+          dateKey: '2026-11-25',
+          year: 2026,
+          words: 0,
+          letters: 0,
+          characters: 0,
+          paragraphs: 0,
+        },
+      ],
+      now,
+    });
+
+    expect(populated.totalFocusHours).toBe(2.5);
+    expect(populated.tasksCompleted).toBe(1);
+    expect(populated.longestHabitStreak).toBe(5);
+    expect(populated.totalSteps).toBe(12500);
+    expect(populated.totalWalkMinutes).toBe(50);
+    expect(populated.moodRatedDays).toBe(2);
+    expect(populated.averageMood).toBe(8.3);
+    expect(populated.journalEntries).toBe(2);
+    expect(populated.journalWords).toBe(500);
+    expect(populated.journalLetters).toBe(2300);
+  });
+
+  it('feeds Mind area pulse directly from written journalStats (words > 0)', () => {
+    const pulses = computeAreaPulses({
+      tasks: [],
+      habits: [],
+      focusSessions: [],
+      moodRatings: [{ id: '2026-11-27', dateKey: '2026-11-27', rating: 8 }],
+      areaSettings: {
+        ...DEFAULT_AREA_SETTINGS,
+        journalOpenedDates: ['2026-11-21', '2026-11-22'],
+      },
+      journalStats: [
+        {
+          id: '2026-11-25',
+          dateKey: '2026-11-25',
+          year: 2026,
+          words: 140,
+          letters: 620,
+          characters: 780,
+          paragraphs: 2,
+        },
+        {
+          id: '2026-11-24',
+          dateKey: '2026-11-24',
+          year: 2026,
+          words: 0,
+          letters: 0,
+          characters: 0,
+          paragraphs: 0,
+        },
+      ],
+      now,
+    });
+
+    const mind = pulses.find((p) => p.id === 'mind')!;
+    // Active days = Nov 25 (journal words > 0) + Nov 27 (mood=8) = 2/7
+    expect(mind.hasData).toBe(true);
+    expect(mind.score).toBe(54);
+    expect(mind.summaryLabel).toBe('2/7d · avg 8.0');
+  });
+});
+
 

@@ -4,11 +4,7 @@ import { DoodleHeaderScene } from './DoodleKit';
 import { EmptyIllustrationKind, EmptyStateIllustration } from './EmptyStateIllustration';
 
 interface PlaceholderPageViewProps {
-  view:
-    | DashboardView.Journal
-    | DashboardView.Body
-    | DashboardView.Stats
-    | DashboardView.Reports;
+  view: DashboardView.Reports;
 }
 
 const PLACEHOLDER_META: Record<
@@ -22,33 +18,6 @@ const PLACEHOLDER_META: Record<
     emptyDescription: string;
   }
 > = {
-  [DashboardView.Journal]: {
-    kicker: 'Reflection',
-    title: 'Journal',
-    subtitle: 'Daily writing, chapter reflections, and mindful check-ins',
-    illustration: 'journal',
-    emptyTitle: 'Your journal space is ready',
-    emptyDescription:
-      'Daily entries and guided prompts will live here as your personal reflection archive.',
-  },
-  [DashboardView.Body]: {
-    kicker: 'Vitality',
-    title: 'Body',
-    subtitle: 'Sleep, energy, movement, and physical baselines',
-    illustration: 'body',
-    emptyTitle: 'No body logs recorded yet',
-    emptyDescription:
-      'Physical rhythms, sleep consistency, and training recovery will appear here.',
-  },
-  [DashboardView.Stats]: {
-    kicker: 'Analytics',
-    title: 'Stats',
-    subtitle: 'Trends across tasks, habits, focus blocks, and mood',
-    illustration: 'stats',
-    emptyTitle: 'Insights will build over time',
-    emptyDescription:
-      'Charts comparing focus hours, habit consistency, and mood trends will appear here.',
-  },
   [DashboardView.Reports]: {
     kicker: 'Reviews',
     title: 'Reports',

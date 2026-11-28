@@ -19,6 +19,8 @@ import { auth, db } from './googleAuth';
 import {
   ActivityLog,
   AreaSettings,
+  BodyLogEntry,
+  BodySettings,
   ChapterColorId,
   ChapterItem,
   CommitmentItem,
@@ -27,6 +29,8 @@ import {
   FocusSession,
   HabitItem,
   JournalConfig,
+  JournalDayStat,
+  JournalDocConnection,
   JournalEntrySummary,
   LifeChapter,
   LifeProfileSettings,
@@ -39,7 +43,12 @@ import {
   TimelineEvent,
   VaultItem,
 } from '../types/dashboard';
-import { normalizeMoodRating, VALID_CHAPTER_COLORS } from '../utils/lifeUtils';
+import {
+  normalizeMoodRating,
+  sanitizeBodyLogEntry,
+  VALID_CHAPTER_COLORS,
+  validateBodySettings,
+} from '../utils/lifeUtils';
 
 export enum OperationType {
   CREATE = 'create',
@@ -1020,6 +1029,249 @@ export const fsCountdowns = {
     }
   },
   remove: (uid: string, id: string) => deleteUserDoc(uid, 'countdowns', id),
+};
+
+export const fsBodyLogs = {
+  upsert: async (uid: string, rawEntry: BodyLogEntry): Promise<void> => {
+    const clean = sanitizeBodyLogEntry(rawEntry);
+    if (!clean) return;
+    const firestore = getDb();
+    const safeDateKey = clean.dateKey.slice(0, 10);
+    const path = `users/${uid}/bodyLogs/${safeDateKey}`;
+    try {
+      const ref = doc(firestore, 'users', uid, 'bodyLogs', safeDateKey);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        await updateDoc(ref, {
+          source: clean.source,
+          steps: clean.steps !== undefined ? clean.steps : deleteField(),
+          walkMinutes: clean.walkMinutes !== undefined ? clean.walkMinutes : deleteField(),
+          sleepHours: clean.sleepHours !== undefined ? clean.sleepHours : deleteField(),
+          weight: clean.weight !== undefined ? clean.weight : deleteField(),
+          waterGlasses: clean.waterGlasses !== undefined ? clean.waterGlasses : deleteField(),
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        await setDoc(
+          ref,
+          cleanPayload({
+            ownerId: uid,
+            dateKey: safeDateKey,
+            source: clean.source,
+            steps: clean.steps,
+            walkMinutes: clean.walkMinutes,
+            sleepHours: clean.sleepHours,
+            weight: clean.weight,
+            waterGlasses: clean.waterGlasses,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          })
+        );
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+  remove: async (uid: string, dateKey: string): Promise<void> => {
+    const safeDateKey = dateKey.slice(0, 10);
+    await deleteUserDoc(uid, 'bodyLogs', safeDateKey);
+  },
+};
+
+export const fsBodySettings = {
+  saveDefault: async (uid: string, settings: BodySettings): Promise<void> => {
+    const firestore = getDb();
+    const settingsId = 'default';
+    const path = `users/${uid}/bodySettings/${settingsId}`;
+    const validated = validateBodySettings(settings);
+    try {
+      const ref = doc(firestore, 'users', uid, 'bodySettings', settingsId);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        await updateDoc(ref, {
+          dailyStepsGoal: validated.dailyStepsGoal,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        await setDoc(ref, {
+          ownerId: uid,
+          dailyStepsGoal: validated.dailyStepsGoal,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+};
+
+export const fsJournalDocs = {
+  upsert: async (uid: string, item: JournalDocConnection): Promise<void> => {
+    const firestore = getDb();
+    const yearInt = Math.max(1900, Math.min(2200, Math.round(item.year)));
+    const yearId = String(yearInt);
+    const path = `users/${uid}/journalDocs/${yearId}`;
+    try {
+      const ref = doc(firestore, 'users', uid, 'journalDocs', yearId);
+      const snap = await getDoc(ref);
+      const docId = item.docId.trim().slice(0, 200);
+      const docUrl = item.docUrl?.trim().slice(0, 500);
+      const docTitle = item.docTitle?.trim().slice(0, 300);
+      const lastSyncedAt = item.lastSyncedAt?.trim().slice(0, 64);
+
+      if (snap.exists()) {
+        await updateDoc(ref, {
+          docId,
+          docUrl: docUrl ? docUrl : deleteField(),
+          docTitle: docTitle ? docTitle : deleteField(),
+          lastSyncedAt: lastSyncedAt ? lastSyncedAt : deleteField(),
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        await setDoc(
+          ref,
+          cleanPayload({
+            ownerId: uid,
+            year: yearInt,
+            docId,
+            docUrl,
+            docTitle,
+            lastSyncedAt,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          })
+        );
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+  remove: async (uid: string, year: number): Promise<void> => {
+    const yearId = String(Math.round(year));
+    await deleteUserDoc(uid, 'journalDocs', yearId);
+  },
+};
+
+export const fsJournalStats = {
+  /**
+   * Synchronizes derived daily counts for a single year to Firestore.
+   * Strictly stores counts & anchors only — never entry text or snippets.
+   */
+  syncYear: async (
+    uid: string,
+    year: number,
+    nextStats: JournalDayStat[],
+    existingForYear: JournalDayStat[]
+  ): Promise<void> => {
+    const firestore = getDb();
+    const path = `users/${uid}/journalStats`;
+    const yearPrefix = `${String(Math.round(year))}-`;
+    const existingByDate = new Map(
+      existingForYear
+        .filter((s) => s.dateKey.startsWith(yearPrefix))
+        .map((s) => [s.dateKey, s])
+    );
+    const nextDateSet = new Set(nextStats.map((s) => s.dateKey));
+
+    type Op =
+      | { kind: 'create'; stat: JournalDayStat }
+      | { kind: 'update'; stat: JournalDayStat }
+      | { kind: 'delete'; dateKey: string };
+
+    const ops: Op[] = [];
+
+    for (const stat of nextStats) {
+      if (!stat.dateKey.startsWith(yearPrefix)) continue;
+      const prev = existingByDate.get(stat.dateKey);
+      if (!prev) {
+        ops.push({ kind: 'create', stat });
+      } else if (
+        prev.words !== stat.words ||
+        prev.letters !== stat.letters ||
+        prev.characters !== stat.characters ||
+        prev.paragraphs !== stat.paragraphs ||
+        prev.docId !== stat.docId ||
+        prev.tabId !== stat.tabId ||
+        prev.headingId !== stat.headingId
+      ) {
+        ops.push({ kind: 'update', stat });
+      }
+    }
+
+    for (const prev of existingByDate.values()) {
+      if (!nextDateSet.has(prev.dateKey)) {
+        ops.push({ kind: 'delete', dateKey: prev.dateKey });
+      }
+    }
+
+    if (ops.length === 0) return;
+
+    try {
+      const CHUNK_SIZE = 400;
+      for (let i = 0; i < ops.length; i += CHUNK_SIZE) {
+        const batch = writeBatch(firestore);
+        const slice = ops.slice(i, i + CHUNK_SIZE);
+        for (const op of slice) {
+          if (op.kind === 'delete') {
+            batch.delete(doc(firestore, 'users', uid, 'journalStats', op.dateKey));
+          } else if (op.kind === 'create') {
+            const s = op.stat;
+            batch.set(
+              doc(firestore, 'users', uid, 'journalStats', s.dateKey),
+              cleanPayload({
+                ownerId: uid,
+                dateKey: s.dateKey,
+                year: s.year,
+                words: Math.max(0, Math.min(500_000, Math.round(s.words))),
+                letters: Math.max(0, Math.min(2_500_000, Math.round(s.letters))),
+                characters: Math.max(0, Math.min(5_000_000, Math.round(s.characters))),
+                paragraphs: Math.max(0, Math.min(50_000, Math.round(s.paragraphs))),
+                docId: s.docId?.slice(0, 200),
+                tabId: s.tabId?.slice(0, 128),
+                headingId: s.headingId?.slice(0, 200),
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+              })
+            );
+          } else {
+            const s = op.stat;
+            batch.update(doc(firestore, 'users', uid, 'journalStats', s.dateKey), {
+              words: Math.max(0, Math.min(500_000, Math.round(s.words))),
+              letters: Math.max(0, Math.min(2_500_000, Math.round(s.letters))),
+              characters: Math.max(0, Math.min(5_000_000, Math.round(s.characters))),
+              paragraphs: Math.max(0, Math.min(50_000, Math.round(s.paragraphs))),
+              docId: s.docId ? s.docId.slice(0, 200) : deleteField(),
+              tabId: s.tabId ? s.tabId.slice(0, 128) : deleteField(),
+              headingId: s.headingId ? s.headingId.slice(0, 200) : deleteField(),
+              updatedAt: serverTimestamp(),
+            });
+          }
+        }
+        await batch.commit();
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+  removeByYear: async (uid: string, year: number, existingStats: JournalDayStat[]): Promise<void> => {
+    const firestore = getDb();
+    const targets = existingStats.filter((s) => s.year === year);
+    if (targets.length === 0) return;
+    const path = `users/${uid}/journalStats`;
+    try {
+      const CHUNK_SIZE = 400;
+      for (let i = 0; i < targets.length; i += CHUNK_SIZE) {
+        const batch = writeBatch(firestore);
+        for (const stat of targets.slice(i, i + CHUNK_SIZE)) {
+          batch.delete(doc(firestore, 'users', uid, 'journalStats', stat.dateKey));
+        }
+        await batch.commit();
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
+    }
+  },
 };
 
 export async function deleteAllJournalIntelligenceData(uid: string): Promise<void> {

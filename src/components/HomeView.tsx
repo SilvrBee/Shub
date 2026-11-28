@@ -3,7 +3,9 @@ import {
   ArrowRight,
   BookOpen,
   Check,
+  CheckCircle2,
   Compass,
+  ExternalLink,
   Flame,
   Minus,
   Pin,
@@ -13,17 +15,21 @@ import {
 import {
   AppSettings,
   AreaSettings,
+  BodyLogEntry,
   ChapterItem,
   CountdownItem,
   DashboardView,
   FocusSession,
   HabitItem,
+  JournalDayStat,
+  JournalDocConnection,
   LifeAreaId,
   LifeProfileSettings,
   MoodRatingRecord,
   TaskItem,
 } from '../types/dashboard';
 import { formatDateKey } from '../data/initialData';
+import { resolveTodayJournalUrl } from '../utils/journalDocUtils';
 import {
   computeAreaPulses,
   computeChapterStatus,
@@ -55,6 +61,10 @@ interface HomeViewProps {
   areaSettings: AreaSettings;
   moodRatings: MoodRatingRecord[];
   countdowns: CountdownItem[];
+  bodyLogs?: BodyLogEntry[];
+  journalStats?: JournalDayStat[];
+  journalDocs?: JournalDocConnection[];
+  journalMonthTabIdsByYear?: Record<number, Record<number, string>>;
   userFirstName?: string | null;
   onToggleTask: (id: string) => void;
   onToggleHabitDay: (habitId: string, dayIndex: number) => void;
@@ -93,6 +103,10 @@ export function HomeView({
   areaSettings,
   moodRatings,
   countdowns,
+  bodyLogs = [],
+  journalStats = [],
+  journalDocs = [],
+  journalMonthTabIdsByYear = {},
   userFirstName,
   onToggleTask,
   onToggleHabitDay,
@@ -157,6 +171,22 @@ export function HomeView({
     [moodRatings, todayKey]
   );
 
+  const todayJournalStat = useMemo(
+    () => journalStats.find((s) => s.dateKey === todayKey && s.words > 0) ?? null,
+    [journalStats, todayKey]
+  );
+
+  const todayJournalUrl = useMemo(
+    () =>
+      resolveTodayJournalUrl(
+        todayKey,
+        journalDocs,
+        journalStats,
+        journalMonthTabIdsByYear
+      ),
+    [todayKey, journalDocs, journalStats, journalMonthTabIdsByYear]
+  );
+
   const areaPulses = useMemo(
     () =>
       computeAreaPulses({
@@ -165,9 +195,11 @@ export function HomeView({
         focusSessions,
         moodRatings,
         areaSettings,
+        bodyLogs,
+        journalStats,
         now,
       }),
-    [tasks, habits, focusSessions, moodRatings, areaSettings, now]
+    [tasks, habits, focusSessions, moodRatings, areaSettings, bodyLogs, journalStats, now]
   );
 
   const pinnedCountdown = useMemo(() => getPinnedCountdown(countdowns), [countdowns]);
@@ -233,22 +265,60 @@ export function HomeView({
                   <span className="editorial-marker" aria-hidden="true">TODAY</span>
                   <span className="editorial-kicker-text">Daily Focus</span>
                 </span>
-                <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
-                  Today
-                </h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="font-display text-base font-semibold text-slate-900 dark:text-slate-100">
+                    Today
+                  </h2>
+                  {todayJournalStat && (
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border"
+                      style={{
+                        color: 'var(--cadence-area-mind)',
+                        borderColor:
+                          'color-mix(in oklab, var(--cadence-area-mind) 35%, transparent)',
+                        backgroundColor:
+                          'color-mix(in oklab, var(--cadence-area-mind) 10%, transparent)',
+                      }}
+                    >
+                      <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
+                      <span>Journal written · {todayJournalStat.words}w</span>
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Sorted by {SORT_MODE_LABELS[settings.smartSortMode]} · Tasks, habits &amp; mood
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => onNavigate(DashboardView.Journal)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors shrink-0"
-              >
-                <BookOpen className="w-3.5 h-3.5" aria-hidden="true" />
-                <span>Write journal</span>
-              </button>
+              {todayJournalUrl ? (
+                <a
+                  href={todayJournalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors shrink-0"
+                >
+                  {todayJournalStat ? (
+                    <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+                  ) : (
+                    <BookOpen className="w-3.5 h-3.5" aria-hidden="true" />
+                  )}
+                  <span>Write journal</span>
+                  <ExternalLink className="w-3 h-3 opacity-85" aria-hidden="true" />
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onNavigate(DashboardView.Journal)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors shrink-0"
+                >
+                  {todayJournalStat ? (
+                    <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+                  ) : (
+                    <BookOpen className="w-3.5 h-3.5" aria-hidden="true" />
+                  )}
+                  <span>Write journal</span>
+                </button>
+              )}
             </div>
 
             <div className="p-5 space-y-5">

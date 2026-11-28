@@ -54,6 +54,14 @@
   --cadence-mood-scale-start: color-mix(in oklab, var(--cadence-bg-card) 74%, var(--color-blue-600) 26%);
   --cadence-mood-scale-mid: color-mix(in oklab, var(--cadence-bg-card) 38%, var(--color-blue-600) 62%);
   --cadence-mood-scale-end: color-mix(in oklab, var(--color-blue-600) 86%, #0f172a 14%);
+
+  /* Theme-token doodle accent fallbacks for Stats & Body illustrations */
+  --cadence-doodle-ink: var(--doodle-stroke, #1e2433);
+  --cadence-doodle-paper: var(--doodle-illustration-surface, var(--cadence-bg-card));
+  --cadence-doodle-sun: var(--doodle-sun, var(--cadence-area-people));
+  --cadence-doodle-coral: var(--doodle-coral, var(--cadence-area-projects));
+  --cadence-doodle-mint: var(--doodle-mint, var(--cadence-area-body));
+  --cadence-doodle-accent: var(--doodle-accent, var(--cadence-area-study));
 }
 
 html.dark {
@@ -88,6 +96,14 @@ html.dark {
   --cadence-mood-scale-start: color-mix(in oklab, var(--cadence-bg-card) 72%, var(--color-blue-400) 28%);
   --cadence-mood-scale-mid: color-mix(in oklab, var(--cadence-bg-card) 34%, var(--color-blue-400) 66%);
   --cadence-mood-scale-end: color-mix(in oklab, var(--color-blue-400) 84%, #ffffff 16%);
+
+  /* Theme-token doodle accent fallbacks for Stats & Body illustrations (dark) */
+  --cadence-doodle-ink: var(--doodle-stroke, #cbd5e1);
+  --cadence-doodle-paper: var(--doodle-illustration-surface, var(--cadence-bg-card));
+  --cadence-doodle-sun: var(--doodle-sun, var(--cadence-area-people));
+  --cadence-doodle-coral: var(--doodle-coral, var(--cadence-area-projects));
+  --cadence-doodle-mint: var(--doodle-mint, var(--cadence-area-body));
+  --cadence-doodle-accent: var(--doodle-accent, var(--cadence-area-study));
 }
 
 @layer base {
